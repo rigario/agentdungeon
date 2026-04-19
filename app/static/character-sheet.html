@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Character Sheet — The Dreaming Hunger</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Fira+Code:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/sheet.css">
+</head>
+<body>
+
+<div id="app" class="loading">Loading character sheet...</div>
+
+<script>
+const API_BASE = window.location.origin;
+
+// ---- Helpers ----
+function modStr(score) {
+  const m = Math.floor((score - 10) / 2);
+  return m >= 0 ? `+${m}` : `${m}`;
+}
+
+function xpForLevel(lvl) {
+  const table = [0,300,900,2700,6500,14000,23000,34000,48000,64000,85000,100000,120000,140000,165000,195000,225000,265000,305000,355000];
+  return table[Math.min(lvl, 20)] || 355000;
+}
+
+function hpPct(char) {
+  return char.hit_points ? Math.round((char.hit_points.current / char.hit_points.max) * 100) : 0;
+}
+function xpPct(char) {
+  const lvl = char.classes?.[0]?.level || 1;
+  const next = xpForLevel(lvl);
+  const prev = xpForLevel(lvl - 1);
+  if (next === prev) return 100;
+  return Math.round(((char.xp - prev) / (next - prev)) * 100);
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
+
+// ---- Fetch data ----
+async function fetchJSON(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+  return r.json();
+}
+
+async function loadCharacter(id) {
+  const [char, markRes, frontsRes, inventoryRes] = await Promise.all([
+    fetchJSON(`${API_BASE}/characters/${id}`),
+    fetchJSON(`${API_BASE}/narrative/mark/${id}`).catch(() => ({ stage: 0, description: '' })),
+    fetchJSON(`${API_BASE}/narrative/fronts?character_id=${id}`).catch(() => []),
+    fetchJSON(`${API_BASE}/items/inventory/${id}`).catch(() => ({ items: [], count: 0 })),
+  ]);
+
+  // Fetch front details for active fronts
+  const frontDetails = [];
+  for (const f of frontsRes) {
+    try {
+      const detail = await fetchJSON(`${API_BASE}/narrative/fronts/${f.id}?character_id=${id}`);
+      frontDetails.push(detail);
+    } catch(e) { /* skip */ }
+  }
+
+  return { char, mark: markRes, fronts: frontDetails, inventory: inventoryRes };
+}
+
+// ---- Render ----
+function render({ char, mark, fronts, inventory }) {
+  const hp = char.hit_points || { current: 0, max: 0, temporary: 0 };
+  const ac = char.armor_class || { value: 10, description: 'Unarmored' };
+  const stats = char.ability_scores || {};
+  const cls = char.classes?.[0] || { name: 'Unknown', level: 1 };
+  const race = char.race?.name || char.race || 'Unknown';
+  const equipment = char.equipment || [];
+  const conditions = char.conditions || {};
+  const spellSlots = char.spell_slots || {};
+  const treasure = char.treasure || {};
+  const speed = char.speed || { Walk: 30 };
+
+  // Key items from equipment_json
+  const keyItems = equipment.filter(i => typeof i === 'object' && i.type === 'key_item');
+  const normalEquipment = equipment.filter(i => typeof i === 'string');
+
+  const markStage = mark.stage || 0;
+  const markActive = markStage > 0 && markStage < 4;
+
+  // Condition entries
+  const conditionEntries = Object.entries(conditions).filter(([,v]) => v);
+
+  let html = `<div class="sheet-container">`;
+
+  // Header
+  html += `
+    <div class="sheet-header">
+      <h1>${esc(char.name)}</h1>
+      <div class="subtitle">${esc(race)} ${esc(cls.name)}</div>
+      <div class="level-badge">Level ${cls.level}</div>
+      <div class="vital-bars">
+        <div class="vital-bar hp">
+          <div class="label"><span>Hit Points</span><span>${hp.current} / ${hp.max}${hp.temporary ? ' (+' + hp.temporary + ')' : ''}</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:${hpPct(char)}%"></div></div>
+        </div>
+        <div class="vital-bar xp">
+          <div class="label"><span>Experience</span><span>${char.xp || 0} XP</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:${xpPct(char)}%"></div></div>
+        </div>
+      </div>
+    </div>`;
+
+  // Mark of the Dreamer
+  if (markActive) {
+    html += `
+    <div class="mark-banner active">
+      <h3>☠ Mark of the Dreamer</h3>
+      <div class="stage">Stage ${markStage}</div>
+      <div class="mark-desc">${esc(mark.description)}</div>
+    </div>`;
+  } else if (markStage === 4) {
+    html += `
+    <div class="mark-banner active" style="border-color: var(--accent-green); box-shadow: 0 0 20px rgba(74,138,80,0.15);">
+      <h3 style="color: var(--accent-green);">✦ Mark Suppressed</h3>
+      <div class="stage" style="color: var(--accent-green);">Cured (Temporary)</div>
+      <div class="mark-desc">${esc(mark.description)}</div>
+    </div>`;
+  }
+
+  // Grid
+  html += `<div class="sheet-grid">`;
+
+  // Ability Scores
+  html += `<div class="card"><h2>Ability Scores</h2><div class="ability-grid">`;
+  for (const abbr of ['STR','DEX','CON','INT','WIS','CHA']) {
+    const score = stats[abbr] || 10;
+    html += `<div class="ability"><div class="name">${abbr}</div><div class="score">${score}</div><div class="mod">${modStr(score)}</div></div>`;
+  }
+  html += `</div></div>`;
+
+  // Combat Stats
+  html += `<div class="card"><h2>Combat</h2>
+    <div class="combat-stats">
+      <div class="combat-stat"><div class="name">AC</div><div class="value">${ac.value}</div></div>
+      <div class="combat-stat"><div class="name">Speed</div><div class="value">${speed.Walk || speed.walk || 30}</div></div>
+      <div class="combat-stat"><div class="name">Initiative</div><div class="value">${modStr(stats.DEX || 10)}</div></div>
+    </div>
+    <div style="margin-top:0.75rem;font-size:0.8rem;color:var(--text-muted)">${esc(ac.description)}</div>
+  </div>`;
+
+  // Equipment
+  html += `<div class="card"><h2>Equipment</h2><ul class="equipment-list">`;
+  for (const item of normalEquipment) {
+    html += `<li><span class="item-name">${esc(item)}</span></li>`;
+  }
+  if (!normalEquipment.length && !keyItems.length) {
+    html += `<li style="color:var(--text-muted);font-style:italic">No equipment</li>`;
+  }
+  html += `</ul></div>`;
+
+  // Key Items (clickable lore with images)
+  html += `<div class="card"><h2>Key Items</h2>`;
+  if (keyItems.length) {
+    for (const ki of keyItems) {
+      const itemId = ki.id || ki.item_id || ki.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      html += `
+      <div class="key-item-card" onclick="this.classList.toggle('expanded')" data-item-id="${esc(itemId)}">
+        <div class="ki-header">
+          <div class="ki-name">✦ ${esc(ki.display_name || ki.name)}</div>
+          <div class="ki-quest">${esc(ki.quest || '')}</div>
+        </div>
+        <div class="ki-body">
+          <img class="ki-image" src="" alt="${esc(ki.display_name || ki.name)}" loading="lazy" style="display:none">
+          <div class="ki-desc">${esc(ki.description || '')}</div>
+        </div>
+      </div>`;
+      // Async load item image
+      if (itemId) {
+        fetchJSON(`${API_BASE}/items/${itemId}`).then(item => {
+          if (item.image_url) {
+            const card = document.querySelector(`[data-item-id="${itemId}"] .ki-image`);
+            if (card) { card.src = item.image_url; card.style.display = 'block'; }
+          }
+        }).catch(() => {});
+      }
+    }
+  } else {
+    html += `<p style="color:var(--text-muted);font-style:italic;font-size:0.85rem">No key items discovered yet.</p>`;
+  }
+  html += `</div>`;
+
+  // Conditions
+  html += `<div class="card"><h2>Conditions</h2>`;
+  if (conditionEntries.length) {
+    html += `<ul class="conditions-list">`;
+    for (const [name, val] of conditionEntries) {
+      const iconClass = name.toLowerCase().includes('mark') || name.toLowerCase().includes('curse') ? 'danger' :
+                        name.toLowerCase().includes('bless') ? 'info' : 'warning';
+      html += `<li><span class="condition-icon ${iconClass}"></span>${esc(name)}: ${esc(String(val))}</li>`;
+    }
+    html += `</ul>`;
+  } else {
+    html += `<p style="color:var(--text-muted);font-style:italic;font-size:0.85rem">No active conditions.</p>`;
+  }
+  html += `</div>`;
+
+  // Spell Slots
+  const hasSpells = Object.keys(spellSlots).length > 0;
+  html += `<div class="card"><h2>Spell Slots</h2>`;
+  if (hasSpells) {
+    html += `<div class="spell-slots">`;
+    for (const [lvl, slots] of Object.entries(spellSlots).sort()) {
+      const total = slots.total || slots.max || 0;
+      const used = slots.used || 0;
+      html += `<div class="spell-slot-level"><div class="lvl">Lv ${lvl}</div><div class="spell-slot-dots">`;
+      for (let i = 0; i < total; i++) {
+        html += `<div class="spell-dot${i < used ? '' : ' used'}"></div>`;
+      }
+      html += `</div></div>`;
+    }
+    html += `</div>`;
+  } else {
+    html += `<p style="color:var(--text-muted);font-style:italic;font-size:0.85rem">No spell slots.</p>`;
+  }
+  html += `</div>`;
+
+  // Treasure
+  html += `<div class="card"><h2>Treasure</h2><div class="treasure-row">`;
+  for (const [type, amount] of [['pp','pp'],['gp','gp'],['sp','sp'],['cp','cp']]) {
+    const val = treasure[type] || 0;
+    html += `<div class="coin ${type}"><span class="coin-type">${type}</span> ${val}</div>`;
+  }
+  html += `</div></div>`;
+
+  // Fronts
+  if (fronts.length) {
+    html += `<div class="card"><h2>Active Fronts</h2>`;
+    for (const f of fronts) {
+      const portents = f.grim_portents || [];
+      const currentIdx = f.current_portent_index || 0;
+      const totalPortents = portents.length;
+      html += `<div class="front-item">
+        <div class="front-name">⚔ ${esc(f.name)}</div>
+        <div class="front-progress">${currentIdx}/${totalPortents} portents fired — ${esc(f.danger_type || '')}</div>
+      </div>`;
+    }
+    html += `</div>`;
+  }
+
+  // Location
+  if (char.location_id) {
+    html += `<div class="card"><h2>Location</h2>
+      <div class="location-info"><div class="location-name">📍 ${esc(char.location_id)}</div></div>
+    </div>`;
+  }
+
+  html += `</div>`; // close grid
+
+  // Inventory from items API
+  if (inventory.items && inventory.items.length) {
+    html += `<div class="card" style="margin-top:1rem"><h2>Inventory</h2><ul class="equipment-list">`;
+    for (const inv of inventory.items) {
+      html += `<li>
+        <span class="${inv.is_key_item ? 'key-item' : 'item-name'}">${esc(inv.name)}</span>
+        <span>
+          ${inv.is_equipped ? '<span class="item-tag">Equipped</span>' : ''}
+          ${inv.quantity > 1 ? '<span class="item-tag">x' + inv.quantity + '</span>' : ''}
+        </span>
+      </li>`;
+    }
+    html += `</ul></div>`;
+  }
+
+  // Footer
+  html += `
+    <div class="sheet-footer">
+      <p>The Dreaming Hunger — D20 Agent RPG</p>
+      <p>Built with <a href="#">Hermes Agent</a> · D&D 5E SRD 5.2</p>
+      <p style="margin-top:0.5rem;font-size:0.65rem;color:#444">Character ID: ${esc(char.id || '')} · Sheet Signature: ${esc(char.provenance?.signature || 'none')}</p>
+    </div>
+  </div>`;
+
+  document.getElementById('app').innerHTML = html;
+  document.title = `${char.name} — Character Sheet`;
+}
+
+// ---- Init ----
+(async function() {
+  const params = new URLSearchParams(window.location.search);
+  const charId = params.get('id');
+
+  if (!charId) {
+    // Show character selector
+    try {
+      const chars = await fetchJSON(`${API_BASE}/characters`);
+      let html = `<div class="sheet-container"><div class="sheet-header"><h1>The Dreaming Hunger</h1><div class="subtitle">Select a Character</div></div>`;
+      html += `<div style="display:grid;gap:0.75rem;max-width:500px;margin:0 auto">`;
+      for (const c of chars) {
+        const cls = c.classes?.[0] || { name: 'Unknown', level: 1 };
+        html += `<a href="?id=${encodeURIComponent(c.id)}" style="display:block;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:1rem;text-decoration:none;color:var(--text-primary);transition:border-color 0.2s" onmouseover="this.style.borderColor='var(--accent-gold)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="font-family:var(--font-display);color:var(--accent-gold);font-size:1.1rem">${esc(c.name)}</div>
+          <div style="font-size:0.85rem;color:var(--text-secondary)">Level ${cls.level} ${c.race?.name || c.race || ''} ${cls.name}</div>
+        </a>`;
+      }
+      html += `</div></div>`;
+      document.getElementById('app').innerHTML = html;
+      document.getElementById('app').className = '';
+    } catch(e) {
+      document.getElementById('app').innerHTML = `<div class="error">Failed to load characters: ${esc(e.message)}</div>`;
+      document.getElementById('app').className = '';
+    }
+    return;
+  }
+
+  try {
+    const data = await loadCharacter(charId);
+    render(data);
+    document.getElementById('app').className = '';
+  } catch(e) {
+    document.getElementById('app').innerHTML = `<div class="error">Failed to load character: ${esc(e.message)}<br><br><a href="?" style="color:var(--accent-gold)">← Back to character list</a></div>`;
+    document.getElementById('app').className = '';
+  }
+})();
+</script>
+</body>
+</html>

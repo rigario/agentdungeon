@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>World Map — The Dreaming Hunger</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-deep: #0a0a12;
+      --bg-primary: #111122;
+      --bg-card: #161628;
+      --bg-card-hover: #1c1c35;
+      --border: #2a2a4a;
+      --border-glow: #4a3a8a;
+      --text-primary: #e8e0d0;
+      --text-secondary: #9a90a8;
+      --text-muted: #6a6080;
+      --accent-gold: #d4a850;
+      --accent-amber: #e8a030;
+      --accent-red: #c04040;
+      --accent-purple: #8a5aaa;
+      --accent-blue: #5080c0;
+      --accent-green: #4a8a50;
+      --mark-glow: #ff6644;
+      --font-display: 'Cinzel', 'Georgia', serif;
+      --font-body: 'Crimson Text', 'Georgia', serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg-deep);
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      font-size: 16px;
+      min-height: 100vh;
+    }
+
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: var(--font-display);
+      color: var(--text-muted);
+      font-size: 1.2rem;
+    }
+
+    .map-container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 1.5rem;
+    }
+
+    .map-header {
+      text-align: center;
+      margin-bottom: 1rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .map-header h1 {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      color: var(--accent-gold);
+      letter-spacing: 0.05em;
+    }
+
+    .map-header .subtitle {
+      color: var(--text-secondary);
+      font-style: italic;
+      margin-top: 0.25rem;
+    }
+
+    .map-body {
+      display: flex;
+      gap: 1.5rem;
+      align-items: flex-start;
+    }
+
+    .map-svg-wrap {
+      flex: 1;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .map-svg-wrap svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    /* Location nodes */
+    .loc-node {
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+
+    .loc-node:hover {
+      transform: scale(1.15);
+    }
+
+    .loc-node circle.outer {
+      transition: all 0.2s ease;
+    }
+
+    .loc-node:hover circle.outer {
+      stroke: var(--accent-gold);
+      stroke-width: 3;
+    }
+
+    .loc-node.current circle.outer {
+      stroke: var(--accent-gold);
+      stroke-width: 3;
+      filter: drop-shadow(0 0 6px rgba(212, 168, 80, 0.6));
+    }
+
+    .loc-node.current circle.pulse {
+      animation: pulse-ring 2s ease-out infinite;
+    }
+
+    @keyframes pulse-ring {
+      0% { r: 14; opacity: 0.6; }
+      100% { r: 24; opacity: 0; }
+    }
+
+    .loc-label {
+      font-family: 'Cinzel', serif;
+      font-size: 9px;
+      fill: var(--text-secondary);
+      text-anchor: middle;
+      pointer-events: none;
+    }
+
+    .loc-node.current .loc-label {
+      fill: var(--accent-gold);
+      font-weight: 700;
+    }
+
+    .edge-line {
+      stroke: var(--border);
+      stroke-width: 1.5;
+      stroke-dasharray: 4 3;
+      opacity: 0.6;
+    }
+
+    /* Danger level colors */
+    .danger-0 { fill: var(--accent-green); }
+    .danger-1 { fill: #6aaa6a; }
+    .danger-2 { fill: #aaaa4a; }
+    .danger-3 { fill: var(--accent-amber); }
+    .danger-4 { fill: #cc6633; }
+    .danger-5 { fill: var(--accent-red); }
+
+    .danger-0-stroke { stroke: var(--accent-green); }
+    .danger-1-stroke { stroke: #6aaa6a; }
+    .danger-2-stroke { stroke: #aaaa4a; }
+    .danger-3-stroke { stroke: var(--accent-amber); }
+    .danger-4-stroke { stroke: #cc6633; }
+    .danger-5-stroke { stroke: var(--accent-red); }
+
+    /* Side panel */
+    .map-panel {
+      width: 300px;
+      min-width: 300px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+      position: sticky;
+      top: 1.5rem;
+    }
+
+    .map-panel h2 {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      color: var(--accent-gold);
+      margin-bottom: 0.5rem;
+    }
+
+    .panel-biome {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 0.75rem;
+    }
+
+    .panel-desc {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      line-height: 1.6;
+      margin-bottom: 1rem;
+    }
+
+    .panel-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .stat-box {
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.5rem 0.75rem;
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .stat-value {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      color: var(--text-primary);
+    }
+
+    .panel-connections {
+      margin-top: 0.75rem;
+    }
+
+    .panel-connections h3 {
+      font-family: var(--font-display);
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .conn-link {
+      display: block;
+      color: var(--accent-blue);
+      text-decoration: none;
+      padding: 0.25rem 0;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: color 0.15s;
+    }
+
+    .conn-link:hover {
+      color: var(--accent-gold);
+    }
+
+    .conn-link::before {
+      content: '→ ';
+      color: var(--text-muted);
+    }
+
+    /* Legend */
+    .map-legend {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      margin-top: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    /* Navigation link */
+    .nav-links {
+      text-align: center;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .nav-links a {
+      color: var(--accent-blue);
+      text-decoration: none;
+      font-family: var(--font-display);
+      font-size: 0.85rem;
+      margin: 0 0.75rem;
+    }
+
+    .nav-links a:hover {
+      color: var(--accent-gold);
+    }
+
+    .error {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--accent-red);
+    }
+
+    @media (max-width: 768px) {
+      .map-body {
+        flex-direction: column;
+      }
+      .map-panel {
+        width: 100%;
+        min-width: auto;
+        position: static;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div id="app" class="loading">Loading map...</div>
+
+<script>
+const API_BASE = window.location.origin;
+
+// Layout positions for locations (x, y in 700x500 viewBox)
+const LAYOUT = {
+  'rusty-tankard': { x: 300, y: 55 },
+  'thornhold':     { x: 300, y: 140 },
+  'forest-edge':   { x: 480, y: 175 },
+  'deep-forest':   { x: 570, y: 275 },
+  'cave-entrance': { x: 600, y: 375 },
+  'cave-depths':   { x: 510, y: 445 },
+  'seal-chamber':  { x: 400, y: 480 },
+  'south-road':    { x: 190, y: 255 },
+  'crossroads':    { x: 130, y: 355 },
+  'mountain-pass': { x: 75,  y: 445 },
+};
+
+// Biome icons
+const BIOME_ICONS = {
+  'town': '🏘️',
+  'tavern': '🍺',
+  'road': '🛤️',
+  'forest': '🌲',
+  'dungeon': '🕳️',
+  'mountain': '⛰️',
+};
+
+let locations = {};
+let currentLocationId = null;
+
+async function init() {
+  try {
+    const r = await fetch(`${API_BASE}/api/map/data`);
+    if (!r.ok) throw new Error(`${r.status}`);
+    const data = await r.json();
+    locations = {};
+    data.locations.forEach(l => { locations[l.id] = l; });
+    currentLocationId = data.current_location || data.locations[0]?.id;
+    render();
+  } catch (e) {
+    document.getElementById('app').innerHTML = `<div class="error">Failed to load map: ${esc(e.message)}</div>`;
+  }
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
+
+function render() {
+  const app = document.getElementById('app');
+  app.className = '';
+  app.innerHTML = `
+    <div class="map-container">
+      <div class="map-header">
+        <h1>⚔️ The Thornhold Region</h1>
+        <div class="subtitle">The Dreaming Hunger — World Map</div>
+      </div>
+      <div class="map-body">
+        <div class="map-svg-wrap">
+          ${buildSVG()}
+        </div>
+        <div class="map-panel" id="detail-panel">
+          ${buildPanel(currentLocationId)}
+        </div>
+      </div>
+      <div class="map-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#4a8a50"></div> Safe</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#6aaa6a"></div> Low</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#aaaa4a"></div> Moderate</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#e8a030"></div> Dangerous</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#cc6633"></div> Deadly</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#c04040"></div> Extreme</div>
+      </div>
+      <div class="nav-links">
+        <a href="/sheet">Character Sheet</a>
+        <a href="/docs">API Docs</a>
+      </div>
+    </div>
+  `;
+
+  // Bind click events on nodes
+  document.querySelectorAll('.loc-node').forEach(node => {
+    node.addEventListener('click', () => {
+      const id = node.dataset.id;
+      currentLocationId = id;
+      document.getElementById('detail-panel').innerHTML = buildPanel(id);
+      // Update current class
+      document.querySelectorAll('.loc-node').forEach(n => n.classList.remove('current'));
+      node.classList.add('current');
+      // Update pulse
+      document.querySelectorAll('.pulse').forEach(p => p.remove());
+      const circle = node.querySelector('circle.outer');
+      if (circle) {
+        const pulseCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        pulseCircle.setAttribute('class', 'pulse');
+        pulseCircle.setAttribute('cx', circle.getAttribute('cx'));
+        pulseCircle.setAttribute('cy', circle.getAttribute('cy'));
+        pulseCircle.setAttribute('r', '14');
+        pulseCircle.setAttribute('fill', 'none');
+        pulseCircle.setAttribute('stroke', '#d4a850');
+        pulseCircle.setAttribute('stroke-width', '2');
+        node.insertBefore(pulseCircle, circle);
+      }
+    });
+  });
+}
+
+function buildSVG() {
+  const locs = Object.values(locations);
+  const edges = new Set();
+
+  // Build edges
+  locs.forEach(loc => {
+    const conns = parseConns(loc.connected_to);
+    conns.forEach(c => {
+      const key = [loc.id, c].sort().join('|');
+      edges.add(key);
+    });
+  });
+
+  let svg = `<svg viewBox="0 0 700 540" xmlns="http://www.w3.org/2000/svg">`;
+
+  // Background gradient
+  svg += `<defs>
+    <radialGradient id="bg-grad" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#161628"/>
+      <stop offset="100%" stop-color="#0a0a12"/>
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>`;
+  svg += `<rect width="700" height="540" fill="url(#bg-grad)"/>`;
+
+  // Draw edges
+  edges.forEach(key => {
+    const [a, b] = key.split('|');
+    const pa = LAYOUT[a];
+    const pb = LAYOUT[b];
+    if (pa && pb) {
+      svg += `<line class="edge-line" x1="${pa.x}" y1="${pa.y}" x2="${pb.x}" y2="${pb.y}"/>`;
+    }
+  });
+
+  // Draw nodes
+  locs.forEach(loc => {
+    const pos = LAYOUT[loc.id];
+    if (!pos) return;
+    const danger = loc.hostility_level || 0;
+    const isCurrent = loc.id === currentLocationId;
+    const icon = BIOME_ICONS[loc.biome] || '📍';
+
+    svg += `<g class="loc-node ${isCurrent ? 'current' : ''}" data-id="${esc(loc.id)}">`;
+
+    // Pulse ring for current
+    if (isCurrent) {
+      svg += `<circle class="pulse" cx="${pos.x}" cy="${pos.y}" r="14" fill="none" stroke="#d4a850" stroke-width="2"/>`;
+    }
+
+    // Outer circle (danger color)
+    svg += `<circle class="outer danger-${danger}-stroke" cx="${pos.x}" cy="${pos.y}" r="16"
+      fill="#111122" stroke-width="2"/>`;
+
+    // Inner glow
+    svg += `<circle cx="${pos.x}" cy="${pos.y}" r="12"
+      fill="var(--bg-card)" opacity="0.8"/>`;
+
+    // Icon
+    svg += `<text x="${pos.x}" y="${pos.y + 4}" text-anchor="middle" font-size="12">${icon}</text>`;
+
+    // Label
+    const labelY = pos.y + 28;
+    svg += `<text class="loc-label" x="${pos.x}" y="${labelY}">${esc(loc.name)}</text>`;
+
+    svg += `</g>`;
+  });
+
+  svg += `</svg>`;
+  return svg;
+}
+
+function buildPanel(locId) {
+  const loc = locations[locId];
+  if (!loc) return '<p class="panel-desc">Select a location on the map.</p>';
+
+  const danger = loc.hostility_level || 0;
+  const dangerLabels = ['Safe', 'Low', 'Moderate', 'Dangerous', 'Deadly', 'Extreme'];
+  const dangerColors = ['#4a8a50', '#6aaa6a', '#aaaa4a', '#e8a030', '#cc6633', '#c04040'];
+  const conns = parseConns(loc.connected_to);
+  const biomeIcon = BIOME_ICONS[loc.biome] || '📍';
+
+  let html = `
+    <h2>${biomeIcon} ${esc(loc.name)}</h2>
+    <div class="panel-biome">${esc(loc.biome)}</div>
+    <div class="panel-desc">${esc(loc.description)}</div>
+    <div class="panel-stats">
+      <div class="stat-box">
+        <div class="stat-label">Danger</div>
+        <div class="stat-value" style="color:${dangerColors[danger]}">${dangerLabels[danger] || 'Unknown'}</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Rec. Level</div>
+        <div class="stat-value">${loc.recommended_level || 1}</div>
+      </div>
+    </div>
+  `;
+
+  if (conns.length > 0) {
+    html += `<div class="panel-connections"><h3>Paths</h3>`;
+    conns.forEach(c => {
+      const dest = locations[c];
+      const name = dest ? dest.name : c;
+      html += `<a class="conn-link" data-target="${esc(c)}">${esc(name)}</a>`;
+    });
+    html += `</div>`;
+  }
+
+  return html;
+}
+
+function parseConns(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw;
+  try { return JSON.parse(raw); } catch { return raw.split(',').map(s => s.trim()).filter(Boolean); }
+}
+
+// Delegate click on connection links
+document.addEventListener('click', e => {
+  const link = e.target.closest('.conn-link');
+  if (link) {
+    const target = link.dataset.target;
+    if (target && locations[target]) {
+      currentLocationId = target;
+      document.getElementById('detail-panel').innerHTML = buildPanel(target);
+      document.querySelectorAll('.loc-node').forEach(n => {
+        n.classList.toggle('current', n.dataset.id === target);
+      });
+    }
+  }
+});
+
+init();
+</script>
+</body>
+</html>

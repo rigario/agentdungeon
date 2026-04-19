@@ -1,0 +1,12 @@
+services:
+  d20-server:
+    build: .
+    container_name: rigario-d20
+    ports:
+      - "8600:8600"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - D20_DB_PATH=/app/data/d20.db
+      - D20_PORT=8600
+    restart: unless-stopped

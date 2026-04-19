@@ -1,0 +1,493 @@
+/* D20 Character Sheet — Dark Fantasy Theme */
+/* The Dreaming Hunger */
+
+:root {
+  --bg-deep: #0a0a12;
+  --bg-primary: #111122;
+  --bg-card: #161628;
+  --bg-card-hover: #1c1c35;
+  --border: #2a2a4a;
+  --border-glow: #4a3a8a;
+  --text-primary: #e8e0d0;
+  --text-secondary: #9a90a8;
+  --text-muted: #6a6080;
+  --accent-gold: #d4a850;
+  --accent-amber: #e8a030;
+  --accent-red: #c04040;
+  --accent-purple: #8a5aaa;
+  --accent-blue: #5080c0;
+  --accent-green: #4a8a50;
+  --mark-glow: #ff6644;
+  --hp-bar: #c04040;
+  --hp-bar-bg: #3a1818;
+  --xp-bar: #d4a850;
+  --xp-bar-bg: #3a2a10;
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
+  --font-display: 'Cinzel', 'Georgia', serif;
+  --font-body: 'Crimson Text', 'Georgia', serif;
+  --font-mono: 'Fira Code', 'Consolas', monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* Loading / Error States */
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  font-family: var(--font-display);
+  color: var(--text-muted);
+  font-size: 1.2rem;
+}
+.loading::after {
+  content: '';
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent-gold);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-left: 12px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.error {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--accent-red);
+  font-size: 1.1rem;
+}
+
+/* Main Container */
+.sheet-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+/* Header */
+.sheet-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+
+.sheet-header h1 {
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  color: var(--accent-gold);
+  letter-spacing: 0.05em;
+  text-shadow: 0 0 20px rgba(212, 168, 80, 0.3);
+  margin-bottom: 0.25rem;
+}
+
+.sheet-header .subtitle {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.sheet-header .level-badge {
+  display: inline-block;
+  background: var(--accent-gold);
+  color: var(--bg-deep);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 0.2rem 0.8rem;
+  border-radius: 4px;
+  margin-top: 0.5rem;
+  letter-spacing: 0.1em;
+}
+
+/* HP / XP Bars */
+.vital-bars {
+  display: flex;
+  gap: 1rem;
+  margin: 1rem 0;
+  justify-content: center;
+}
+.vital-bar {
+  flex: 1;
+  max-width: 280px;
+}
+.vital-bar .label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+}
+.vital-bar .bar-track {
+  height: 10px;
+  background: var(--hp-bar-bg);
+  border-radius: 5px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.vital-bar.xp .bar-track {
+  background: var(--xp-bar-bg);
+}
+.vital-bar .bar-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.6s ease;
+}
+.vital-bar.hp .bar-fill {
+  background: linear-gradient(90deg, var(--accent-red), #e05050);
+}
+.vital-bar.xp .bar-fill {
+  background: linear-gradient(90deg, var(--accent-gold), #f0c060);
+}
+
+/* Mark of the Dreamer */
+.mark-banner {
+  background: linear-gradient(135deg, #2a1a0a, #1a0a0a);
+  border: 1px solid var(--mark-glow);
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+  text-align: center;
+  box-shadow: 0 0 20px rgba(255, 102, 68, 0.15);
+  display: none;
+}
+.mark-banner.active {
+  display: block;
+  animation: markPulse 3s ease-in-out infinite;
+}
+@keyframes markPulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(255, 102, 68, 0.15); }
+  50% { box-shadow: 0 0 30px rgba(255, 102, 68, 0.3); }
+}
+.mark-banner h3 {
+  font-family: var(--font-display);
+  color: var(--mark-glow);
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+}
+.mark-banner .stage {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--mark-glow);
+}
+.mark-banner .mark-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-style: italic;
+  margin-top: 0.5rem;
+}
+
+/* Grid Layout */
+.sheet-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+@media (max-width: 640px) {
+  .sheet-grid { grid-template-columns: 1fr; }
+}
+
+/* Cards */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: var(--shadow);
+}
+.card h2 {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  color: var(--accent-gold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Ability Scores */
+.ability-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+.ability {
+  text-align: center;
+  padding: 0.5rem;
+  background: var(--bg-primary);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+.ability .name {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.ability .score {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+.ability .mod {
+  font-size: 0.85rem;
+  color: var(--accent-gold);
+  font-family: var(--font-mono);
+}
+
+/* Combat Stats */
+.combat-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+.combat-stat {
+  text-align: center;
+  padding: 0.5rem;
+  background: var(--bg-primary);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+.combat-stat .name {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.combat-stat .value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--accent-gold);
+  font-family: var(--font-mono);
+}
+
+/* Equipment List */
+.equipment-list {
+  list-style: none;
+}
+.equipment-list li {
+  padding: 0.4rem 0;
+  border-bottom: 1px solid rgba(42, 42, 74, 0.5);
+  font-size: 0.9rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.equipment-list li:last-child {
+  border-bottom: none;
+}
+.equipment-list .item-name {
+  color: var(--text-primary);
+}
+.equipment-list .key-item {
+  color: var(--accent-gold);
+  font-weight: 600;
+}
+.equipment-list .item-tag {
+  font-size: 0.7rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  background: rgba(212, 168, 80, 0.15);
+  color: var(--accent-gold);
+}
+
+/* Conditions */
+.conditions-list {
+  list-style: none;
+}
+.conditions-list li {
+  padding: 0.4rem 0;
+  border-bottom: 1px solid rgba(42, 42, 74, 0.5);
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.conditions-list li:last-child { border-bottom: none; }
+.condition-icon {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.condition-icon.danger { background: var(--accent-red); }
+.condition-icon.warning { background: var(--accent-amber); }
+.condition-icon.info { background: var(--accent-blue); }
+
+/* Spell Slots */
+.spell-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.spell-slot-level {
+  text-align: center;
+}
+.spell-slot-level .lvl {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-bottom: 0.2rem;
+}
+.spell-slot-dots {
+  display: flex;
+  gap: 3px;
+}
+.spell-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--accent-purple);
+  background: transparent;
+}
+.spell-dot.used {
+  background: var(--accent-purple);
+}
+
+/* Treasure */
+.treasure-row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.coin {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+}
+.coin .coin-type {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+.coin.pp { color: #b0b0c0; }
+.coin.gp { color: var(--accent-gold); }
+.coin.sp { color: #a0a0a0; }
+.coin.cp { color: #b87333; }
+
+/* Fronts / Narrative */
+.front-item {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(42, 42, 74, 0.5);
+}
+.front-item:last-child { border-bottom: none; }
+.front-name {
+  font-weight: 600;
+  color: var(--accent-red);
+  font-size: 0.9rem;
+}
+.front-progress {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 0.2rem;
+}
+
+/* Location */
+.location-info {
+  text-align: center;
+  padding: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+.location-name {
+  font-family: var(--font-display);
+  color: var(--accent-gold);
+  font-size: 1rem;
+}
+
+/* Key Items (lore viewer) */
+.key-item-card {
+  background: var(--bg-primary);
+  border: 1px solid rgba(212, 168, 80, 0.3);
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.key-item-card:hover {
+  border-color: var(--accent-gold);
+}
+.key-item-card .ki-name {
+  font-weight: 600;
+  color: var(--accent-gold);
+  font-size: 0.9rem;
+}
+.key-item-card .ki-desc {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-style: italic;
+  margin-top: 0.25rem;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+.key-item-card.expanded .ki-desc {
+  max-height: 200px;
+}
+.key-item-card .ki-quest {
+  font-size: 0.7rem;
+  color: var(--accent-purple);
+  margin-top: 0.25rem;
+}
+.key-item-card .ki-header {
+  margin-bottom: 0.25rem;
+}
+.key-item-card .ki-body {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+.key-item-card .ki-image {
+  width: 80px;
+  height: 80px;
+  border-radius: 4px;
+  object-fit: cover;
+  border: 1px solid rgba(212, 168, 80, 0.3);
+  flex-shrink: 0;
+}
+.sheet-footer {
+  text-align: center;
+  padding-top: 1.5rem;
+  margin-top: 1.5rem;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+.sheet-footer a {
+  color: var(--accent-gold);
+  text-decoration: none;
+}
+
+/* Auth indicator */
+.auth-indicator {
+  position: fixed;
+  top: 0.75rem;
+  right: 0.75rem;
+  font-size: 0.7rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+.auth-indicator.authenticated {
+  border-color: var(--accent-green);
+  color: var(--accent-green);
+}

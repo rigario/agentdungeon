@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Dreaming Hunger — Demo</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
+
+  :root {
+    --bg-dark: #0a0a0f;
+    --bg-panel: #141419;
+    --bg-card: #1a1a22;
+    --gold: #B8860B;
+    --gold-bright: #DAA520;
+    --gold-dim: #8B6914;
+    --red: #8B0000;
+    --red-glow: #DC143C;
+    --text: #C8C0B0;
+    --text-dim: #8A8070;
+    --text-bright: #F0E8D8;
+    --danger: #CD5C5C;
+    --safe: #6B8E23;
+    --mystery: #7B68EE;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg-dark);
+    color: var(--text);
+    font-family: 'Crimson Text', Georgia, serif;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  .scene {
+    display: none;
+    position: absolute;
+    inset: 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    opacity: 0;
+    transition: opacity 1s ease;
+  }
+  .scene.active {
+    display: flex;
+    opacity: 1;
+  }
+
+  .progress-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--gold), var(--gold-bright));
+    z-index: 100;
+    transition: width 0.3s linear;
+  }
+
+  .scene-nav {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    z-index: 100;
+  }
+  .scene-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--gold-dim);
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .scene-dot.active {
+    background: var(--gold-bright);
+    box-shadow: 0 0 8px var(--gold);
+    transform: scale(1.3);
+  }
+
+  .timer {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    font-family: 'Cinzel', serif;
+    font-size: 0.9rem;
+    color: var(--gold-dim);
+    z-index: 100;
+  }
+
+  .controls-hint {
+    position: fixed;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    z-index: 100;
+    opacity: 0.6;
+  }
+
+  .title-scene h1 {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(2rem, 5vw, 4rem);
+    font-weight: 900;
+    color: var(--gold);
+    text-shadow: 0 0 40px rgba(184, 134, 11, 0.3);
+    margin-bottom: 1rem;
+    letter-spacing: 4px;
+  }
+  .title-scene .subtitle {
+    font-size: clamp(1rem, 2vw, 1.5rem);
+    color: var(--text);
+    font-style: italic;
+    margin-bottom: 2rem;
+    max-width: 600px;
+    text-align: center;
+    line-height: 1.6;
+  }
+  .title-scene .tagline {
+    font-family: 'Cinzel', serif;
+    font-size: 0.9rem;
+    color: var(--red-glow);
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { opacity: 0.6; text-shadow: 0 0 10px rgba(220, 20, 60, 0.3); }
+    50% { opacity: 1; text-shadow: 0 0 20px rgba(220, 20, 60, 0.6); }
+  }
+
+  .sheet-container {
+    background: var(--bg-panel);
+    border: 1px solid var(--gold-dim);
+    border-radius: 8px;
+    max-width: 800px;
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: 2rem;
+    box-shadow: 0 0 30px rgba(184, 134, 11, 0.1);
+  }
+  .sheet-header {
+    text-align: center;
+    border-bottom: 2px solid var(--gold-dim);
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .sheet-header h2 {
+    font-family: 'Cinzel', serif;
+    font-size: 1.8rem;
+    color: var(--gold-bright);
+  }
+  .sheet-header .char-meta {
+    color: var(--text-dim);
+    font-size: 1rem;
+    margin-top: 0.3rem;
+  }
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .stat-box {
+    background: var(--bg-card);
+    border: 1px solid var(--gold-dim);
+    border-radius: 6px;
+    padding: 0.8rem;
+    text-align: center;
+  }
+  .stat-box .label {
+    font-family: 'Cinzel', serif;
+    font-size: 0.7rem;
+    color: var(--gold);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .stat-box .value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text-bright);
+    margin: 0.3rem 0;
+  }
+  .stat-box .modifier {
+    font-size: 0.9rem;
+    color: var(--text-dim);
+  }
+  .mark-indicator {
+    background: linear-gradient(135deg, var(--red), #4a0000);
+    border: 1px solid var(--red-glow);
+    border-radius: 6px;
+    padding: 1rem;
+    text-align: center;
+    margin-top: 1rem;
+    animation: mark-pulse 3s ease-in-out infinite;
+  }
+  @keyframes mark-pulse {
+    0%, 100% { box-shadow: 0 0 10px rgba(220, 20, 60, 0.2); }
+    50% { box-shadow: 0 0 25px rgba(220, 20, 60, 0.5); }
+  }
+  .mark-indicator h3 {
+    font-family: 'Cinzel', serif;
+    color: var(--red-glow);
+    font-size: 1rem;
+    letter-spacing: 3px;
+  }
+  .mark-indicator p {
+    font-size: 0.85rem;
+    color: #e8a0a0;
+    margin-top: 0.5rem;
+    font-style: italic;
+  }
+
+  .map-container { max-width: 900px; width: 100%; }
+  .map-container h2 {
+    font-family: 'Cinzel', serif;
+    color: var(--gold);
+    text-align: center;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+  }
+  .map-svg-wrap {
+    background: var(--bg-panel);
+    border: 1px solid var(--gold-dim);
+    border-radius: 8px;
+    padding: 1.5rem;
+  }
+  .map-svg-wrap svg { width: 100%; height: auto; }
+  .location-label {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    fill: var(--text);
+  }
+  .location-node { cursor: pointer; transition: all 0.3s; }
+
+  .lore-container { max-width: 700px; width: 100%; }
+  .lore-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--gold-dim);
+    border-radius: 8px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+  }
+  .lore-card h3 {
+    font-family: 'Cinzel', serif;
+    color: var(--gold-bright);
+    font-size: 1.3rem;
+    margin-bottom: 0.5rem;
+  }
+  .lore-card .item-type {
+    font-size: 0.75rem;
+    color: var(--mystery);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+  .lore-card p {
+    line-height: 1.7;
+    color: var(--text);
+    font-style: italic;
+  }
+  .lore-card .deeper {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--gold-dim);
+    color: var(--text-dim);
+    font-size: 0.95rem;
+  }
+
+  .encounter-container { max-width: 700px; width: 100%; }
+  .npc-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--gold-dim);
+    border-radius: 8px;
+    padding: 2rem;
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+  }
+  .npc-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: var(--bg-card);
+    border: 2px solid var(--gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    flex-shrink: 0;
+  }
+  .npc-info h3 {
+    font-family: 'Cinzel', serif;
+    color: var(--gold-bright);
+    font-size: 1.3rem;
+    margin-bottom: 0.3rem;
+  }
+  .npc-info .archetype {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+  .npc-info .dialogue {
+    font-style: italic;
+    color: var(--text);
+    line-height: 1.6;
+    padding: 0.8rem;
+    background: var(--bg-card);
+    border-left: 3px solid var(--gold);
+    border-radius: 0 4px 4px 0;
+  }
+  .encounter-result {
+    margin-top: 1.5rem;
+    background: var(--bg-card);
+    border: 1px solid var(--red);
+    border-radius: 6px;
+    padding: 1rem;
+    text-align: center;
+  }
+  .encounter-result h4 {
+    font-family: 'Cinzel', serif;
+    color: var(--red-glow);
+    margin-bottom: 0.5rem;
+  }
+  .dice-roll {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-bright);
+    margin: 0.5rem 0;
+  }
+  .dice-roll .dc {
+    font-size: 1rem;
+    color: var(--text-dim);
+  }
+
+  .tech-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+    max-width: 800px;
+    width: 100%;
+  }
+  .tech-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--gold-dim);
+    border-radius: 8px;
+    padding: 1.2rem;
+    text-align: center;
+  }
+  .tech-card .icon { font-size: 2rem; margin-bottom: 0.5rem; }
+  .tech-card h4 {
+    font-family: 'Cinzel', serif;
+    color: var(--gold);
+    font-size: 0.9rem;
+    margin-bottom: 0.3rem;
+  }
+  .tech-card p {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    line-height: 1.4;
+  }
+
+  .cta-scene h2 {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(1.5rem, 3vw, 2.5rem);
+    color: var(--gold);
+    text-align: center;
+    margin-bottom: 1rem;
+  }
+  .cta-scene .question {
+    font-size: clamp(1rem, 2vw, 1.4rem);
+    font-style: italic;
+    color: var(--text);
+    text-align: center;
+    max-width: 600px;
+    line-height: 1.6;
+    margin-bottom: 2rem;
+  }
+  .cta-scene .built-with {
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    color: var(--gold-dim);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+  }
+  .cta-scene .hermes-logo { font-size: 3rem; margin: 1rem 0; }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg-dark); }
+  ::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 3px; }
+
+  /* ===== CUTSCENE OVERLAY STYLES ===== */
+  .cutscene-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-dark);
+    transition: opacity 2s ease;
+  }
+  .cutscene-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .vignette-overlay {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(5,5,8,0.8) 100%);
+    pointer-events: none;
+    z-index: 201;
+  }
+
+  .cutscene-particles {
+    position: absolute;
+    inset: 0;
+    z-index: 200;
+    overflow: hidden;
+  }
+  .cutscene-particles .particle {
+    position: absolute;
+    border-radius: 50%;
+    animation: particleFloat linear infinite;
+    opacity: 0;
+  }
+  @keyframes particleFloat {
+    0% { opacity: 0; transform: translateY(100vh) scale(0); }
+    10% { opacity: 0.6; }
+    90% { opacity: 0.6; }
+    100% { opacity: 0; transform: translateY(-10vh) scale(1); }
+  }
+
+  /* Opening phases */
+  .opening-phase, .ending-phase {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 2s ease;
+    z-index: 202;
+  }
+  .opening-phase.active, .ending-phase.active { opacity: 1; }
+
+  .cutscene-text {
+    font-family: 'Crimson Text', serif;
+    font-style: italic;
+    font-size: clamp(1rem, 2.5vw, 1.6rem);
+    color: var(--text);
+    max-width: 600px;
+    text-align: center;
+    line-height: 2;
+  }
+  .fade-in-slow {
+    opacity: 0;
+    animation: fadeInSlow 4s ease forwards;
+  }
+  @keyframes fadeInSlow {
+    0% { opacity: 0; transform: translateY(20px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Seal animation */
+  .seal-rings {
+    position: relative;
+    width: 250px;
+    height: 250px;
+    margin-bottom: 1.5rem;
+  }
+  .seal-ring {
+    position: absolute;
+    inset: 0;
+    border: 2px solid var(--gold-dim);
+    border-radius: 50%;
+    animation: sealSpin 20s linear infinite;
+  }
+  .seal-ring.ring-2 {
+    inset: 18px;
+    border-color: var(--red);
+    animation-duration: 15s;
+    animation-direction: reverse;
+  }
+  .seal-ring.ring-3 {
+    inset: 36px;
+    border-color: var(--gold);
+    animation-duration: 25s;
+  }
+  @keyframes sealSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .seal-symbol {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    animation: sealPulse 3s ease-in-out infinite;
+  }
+  @keyframes sealPulse {
+    0%, 100% { transform: scale(1); filter: brightness(0.8); }
+    50% { transform: scale(1.15); filter: brightness(1.4); }
+  }
+  .seal-label {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(0.7rem, 1.2vw, 0.9rem);
+    color: var(--gold-dim);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+  }
+
+  .cutscene-skip-hint {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    opacity: 0.5;
+    z-index: 210;
+    letter-spacing: 1px;
+  }
+
+  /* Ending cutscene */
+  .epilogue-line {
+    font-family: 'Crimson Text', serif;
+    font-style: italic;
+    font-size: clamp(1rem, 2vw, 1.3rem);
+    color: var(--text);
+    max-width: 600px;
+    text-align: center;
+    line-height: 2;
+    opacity: 0;
+    transform: translateY(15px);
+    transition: all 1.5s ease;
+    margin-bottom: 0.5rem;
+  }
+  .epilogue-line.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .ending-mark-glow {
+    width: 110px;
+    height: 110px;
+    border: 2px solid var(--red-glow);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.3rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 0 40px rgba(220, 20, 60, 0.3);
+    animation: markAppear 3s ease forwards;
+  }
+  @keyframes markAppear {
+    0% { opacity: 0; transform: scale(0.5) rotate(-180deg); }
+    100% { opacity: 1; transform: scale(1) rotate(0deg); }
+  }
+  .the-end-title {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(1.5rem, 3vw, 2.5rem);
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 12px;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    opacity: 0;
+    animation: fadeInSlow 3s ease forwards;
+  }
+  .the-end-subtitle {
+    font-family: 'Crimson Text', serif;
+    font-style: italic;
+    font-size: 1.1rem;
+    color: var(--text-dim);
+    margin-bottom: 2rem;
+    opacity: 0;
+    animation: fadeInSlow 2s ease 1s forwards;
+  }
+  .the-end-credits {
+    font-family: 'Cinzel', serif;
+    font-size: 0.65rem;
+    color: var(--gold-dim);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+    opacity: 0;
+    animation: fadeInSlow 2s ease 2s forwards;
+  }
+</style>
+</head>
+<body>
+
+<div class="progress-bar" id="progressBar"></div>
+<div class="timer" id="timer">0:00</div>
+<div class="scene-nav" id="sceneNav"></div>
+<div class="controls-hint">&larr; &rarr; or Space to navigate &middot; Click dots to jump &middot; P to pause</div>
+
+<!-- ===== CUTSCENE OVERLAYS ===== -->
+<div class="cutscene-overlay" id="openingCutscene">
+  <div class="cutscene-particles" id="openingParticles"></div>
+  <div class="vignette-overlay"></div>
+  <div class="opening-phase active" id="oc-phase0">
+    <div class="cutscene-text fade-in-slow">
+      Before the world had a name,<br>
+      before the first story was told,<br>
+      something <em>dreamed</em>.
+    </div>
+  </div>
+  <div class="opening-phase" id="oc-phase1">
+    <div class="seal-rings">
+      <div class="seal-ring"></div>
+      <div class="seal-ring ring-2"></div>
+      <div class="seal-ring ring-3"></div>
+      <div class="seal-symbol">&#9877;</div>
+    </div>
+    <div class="seal-label">The Ancient Seal Holds&hellip; For Now</div>
+  </div>
+  <div class="opening-phase" id="oc-phase2">
+    <div class="cutscene-text" style="color: var(--red-glow);">
+      A crack. A whisper. A hunger.<br>
+      The Seal begins to fail.<br><br>
+      <span style="color: var(--text-dim); font-size: 0.9em;">
+        And something marked you<br>
+        before you even knew to be afraid.
+      </span>
+    </div>
+  </div>
+  <div class="cutscene-skip-hint">Space to advance &middot; Esc to skip</div>
+</div>
+
+<div class="cutscene-overlay hidden" id="endingCutscene">
+  <div class="cutscene-particles" id="endingParticles"></div>
+  <div class="vignette-overlay"></div>
+  <div class="ending-phase active" id="ec-phase0">
+    <div class="epilogue-line" data-delay="0">
+      The Seal holds. Or perhaps&hellip; it merely waits.
+    </div>
+    <div class="epilogue-line" data-delay="3000">
+      Del's eyes clear for a moment. The locket grows warm again.
+    </div>
+    <div class="epilogue-line" data-delay="6000">
+      &ldquo;You did what I could not,&rdquo; he whispers.<br>
+      &ldquo;But the Dreaming remembers. It always remembers.&rdquo;
+    </div>
+  </div>
+  <div class="ending-phase" id="ec-phase1">
+    <div class="ending-mark-glow">&#9877;</div>
+    <div class="epilogue-line visible" style="font-size: 1.1rem; color: var(--text-bright);">
+      The Mark of the Dreamer fades&hellip;<br>
+      but it does not disappear.
+    </div>
+  </div>
+  <div class="ending-phase" id="ec-phase2">
+    <div class="epilogue-line" data-delay="0" style="font-size: 1.2rem; line-height: 2.2;">
+      Your agent will remember this night.<br>
+      The world will continue to turn.<br>
+      The fronts will advance.<br><br>
+      And when you return&hellip;<br>
+      <span style="color: var(--gold);">the Dreaming will be waiting.</span>
+    </div>
+  </div>
+  <div class="ending-phase" id="ec-phase3">
+    <div class="the-end-title">The End</div>
+    <div class="the-end-subtitle">&mdash; or perhaps, only the beginning &mdash;</div>
+    <div class="the-end-credits">Built with Hermes Agent &middot; D&amp;D 5E SRD &middot; FastAPI</div>
+  </div>
+  <div class="cutscene-skip-hint">Space to advance &middot; R to restart</div>
+</div>
+<!-- ===== END CUTSCENE OVERLAYS ===== -->
+
+<!-- SCENE 0: Title / Hook -->
+<div class="scene title-scene active" data-scene="0" data-duration="8">
+  <h1>THE DREAMING HUNGER</h1>
+  <div class="subtitle">
+    An agent-driven D&amp;D RPG where your character can be possessed, marked, and hunted
+    by an ancient entity &mdash; even while you sleep.
+  </div>
+  <div class="tagline">Built with Hermes Agent</div>
+</div>
+
+<!-- SCENE 1: Character Sheet -->
+<div class="scene sheet-scene" data-scene="1" data-duration="12">
+  <div class="sheet-container">
+    <div class="sheet-header">
+      <h2 id="charName">Hero</h2>
+      <div class="char-meta" id="charMeta">Human &middot; Paladin Level 1</div>
+    </div>
+    <div class="stat-grid" id="statGrid">
+      <div class="stat-box"><div class="label">STR</div><div class="value">16</div><div class="modifier">+3</div></div>
+      <div class="stat-box"><div class="label">DEX</div><div class="value">12</div><div class="modifier">+1</div></div>
+      <div class="stat-box"><div class="label">CON</div><div class="value">14</div><div class="modifier">+2</div></div>
+      <div class="stat-box"><div class="label">INT</div><div class="value">10</div><div class="modifier">+0</div></div>
+      <div class="stat-box"><div class="label">WIS</div><div class="value">13</div><div class="modifier">+1</div></div>
+      <div class="stat-box"><div class="label">CHA</div><div class="value">15</div><div class="modifier">+2</div></div>
+    </div>
+    <div style="display:grid; grid-template-columns: repeat(3,1fr); gap:1rem; margin-bottom:1rem;">
+      <div class="stat-box"><div class="label">HP</div><div class="value" style="font-size:1.4rem;">12/12</div></div>
+      <div class="stat-box"><div class="label">AC</div><div class="value" style="font-size:1.4rem;">18</div></div>
+      <div class="stat-box"><div class="label">Speed</div><div class="value" style="font-size:1.4rem;">30ft</div></div>
+    </div>
+    <div class="mark-indicator">
+      <h3>&#9877; MARK OF THE DREAMER &#9877;</h3>
+      <p>The sigil burns cold against your skin. Something ancient has noticed you.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SCENE 2: World Map -->
+<div class="scene map-scene" data-scene="2" data-duration="10">
+  <div class="map-container">
+    <h2>&#10061; Thornhold Region &#10061;</h2>
+    <div class="map-svg-wrap">
+      <svg id="mapSvg" viewBox="0 0 700 450" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+  </div>
+</div>
+
+<!-- SCENE 3: Item Lore -->
+<div class="scene lore-scene" data-scene="3" data-duration="12">
+  <div class="lore-container">
+    <div class="lore-card">
+      <h3>Del's Locket</h3>
+      <div class="item-type">&#9670; Key Item &mdash; Memorial &#9670;</div>
+      <p>&ldquo;A tarnished silver locket, warm to the touch despite the cold air of the Tankard.
+         Inside, a miniature portrait of a woman with kind eyes &mdash; Del&rsquo;s wife, taken by the
+         plague three winters past. The locket hums faintly when the Mark pulses.&rdquo;</p>
+      <div class="deeper">
+        <strong>Deeper Lore:</strong> The locket was a gift from the Green Woman herself,
+        given to Del as a wedding blessing. When the Seal began to crack, the locket became
+        an anchor &mdash; the last piece of Del&rsquo;s humanity resisting the Dreaming&rsquo;s possession.
+        If the holder bears the Mark, the locket grows colder with each advancing stage.
+      </div>
+    </div>
+    <div class="lore-card">
+      <h3>Mark of the Dreamer &mdash; Sigil Fragment</h3>
+      <div class="item-type">&#9670; Key Item &mdash; Condition &#9670;</div>
+      <p>&ldquo;A raised brand on your skin, shifting between crimson and void-black. It pulses
+         in rhythm with something vast and sleeping beneath the Ancient Seal. You can feel
+         it dreaming &mdash; and it knows your name.&rdquo;</p>
+    </div>
+  </div>
+</div>
+
+<!-- SCENE 4: The Encounter -->
+<div class="scene encounter-scene" data-scene="4" data-duration="12">
+  <div class="encounter-container">
+    <div class="npc-card">
+      <div class="npc-avatar">&#128293;</div>
+      <div class="npc-info">
+        <h3>Del</h3>
+        <div class="archetype">Former Adventurer &middot; Possessed</div>
+        <div class="dialogue">
+          &ldquo;You shouldn&rsquo;t have come here. The Tankard was safe once &mdash; a place of rest between
+          worlds. But the Seal... the Seal is cracking, and what sleeps beneath it is hungry.
+          I tried to stop it. Now it wears my face.&rdquo;
+        </div>
+      </div>
+    </div>
+    <div class="encounter-result">
+      <h4>&#9877; WISDOM SAVE &#9877;</h4>
+      <div class="dice-roll">
+        &#127922; <span id="diceResult">14</span> <span class="dc">/ DC 13</span>
+      </div>
+      <p style="color: var(--safe); margin-top: 0.5rem;">Success &mdash; but the Mark still burns.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SCENE 5: The Tech -->
+<div class="scene tech-scene" data-scene="5" data-duration="10">
+  <h2 style="font-family: 'Cinzel', serif; color: var(--gold); text-align: center; font-size: 1.5rem; margin-bottom: 0.5rem;">
+    How It Works
+  </h2>
+  <div class="tech-grid">
+    <div class="tech-card">
+      <div class="icon">&#129302;</div>
+      <h4>Hermes Agent</h4>
+      <p>Persistent AI agent that runs the world, narrates encounters, and evolves the story across sessions.</p>
+    </div>
+    <div class="tech-card">
+      <div class="icon">&#128272;</div>
+      <h4>Agent Auth</h4>
+      <p>Ed25519 key pairs, social recovery via Gmail/X, human-in-the-loop delegation.</p>
+    </div>
+    <div class="tech-card">
+      <div class="icon">&#9876;&#65039;</div>
+      <h4>D&amp;D 5E Engine</h4>
+      <p>Full SRD 5.2 character sheets, combat, saving throws, conditions, and spell slots.</p>
+    </div>
+    <div class="tech-card">
+      <div class="icon">&#127757;</div>
+      <h4>Persistent World</h4>
+      <p>Fronts system with grim portents. The world evolves &mdash; threats advance even when you&rsquo;re away.</p>
+    </div>
+    <div class="tech-card">
+      <div class="icon">&#128101;</div>
+      <h4>Multi-Tenancy</h4>
+      <p>Multiple players, each with agent-operated characters. Ownership and permission levels.</p>
+    </div>
+    <div class="tech-card">
+      <div class="icon">&#9877;</div>
+      <h4>The Dreaming</h4>
+      <p>Mark of the Dreamer &mdash; 4 stages of possession. WIS saves, narrative consequences, genuine stakes.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SCENE 6: CTA -->
+<div class="scene cta-scene" data-scene="6" data-duration="8">
+  <h2>The DM That Never Sleeps</h2>
+  <div class="question">
+    Your agent plays while you sleep.<br>
+    The world evolves. The front advances.<br>
+    <strong>Will you survive the Dreaming Hunger?</strong>
+  </div>
+  <div class="hermes-logo">&#129302;</div>
+  <div class="built-with">Built with Hermes Agent</div>
+</div>
+
+<script>
+// ===== CUTSCENE SYSTEM =====
+let inOpeningCutscene = true;
+let inEndingCutscene = false;
+let cutscenePhase = 0;
+let cutsceneTimer = null;
+const OC_PHASES = 3; // 0, 1, 2
+const OC_DURATIONS = [6000, 7000, 6000];
+const EC_PHASES = 4;
+const EC_DURATIONS = [10000, 6000, 8000, 5000];
+
+function spawnParticles(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container || container.children.length > 0) return;
+  const colors = ['rgba(184,134,11,0.5)', 'rgba(220,20,60,0.4)', 'rgba(123,104,238,0.3)'];
+  for (let i = 0; i < 50; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = Math.random() * 3 + 1;
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const dur = Math.random() * 15 + 10;
+    const delay = Math.random() * dur;
+    Object.assign(p.style, {
+      width: size + 'px', height: size + 'px',
+      left: Math.random() * 100 + '%',
+      background: color,
+      boxShadow: `0 0 ${size * 3}px ${color}`,
+      animationDuration: dur + 's',
+      animationDelay: -delay + 's'
+    });
+    container.appendChild(p);
+  }
+}
+
+function showOCPhase(n) {
+  clearTimeout(cutsceneTimer);
+  document.querySelectorAll('.opening-phase').forEach(p => p.classList.remove('active'));
+  cutscenePhase = n;
+  const el = document.getElementById('oc-phase' + n);
+  if (el) el.classList.add('active');
+  if (n < OC_PHASES - 1) {
+    cutsceneTimer = setTimeout(() => showOCPhase(n + 1), OC_DURATIONS[n]);
+  }
+}
+
+function showECPhase(n) {
+  clearTimeout(cutsceneTimer);
+  document.querySelectorAll('.ending-phase').forEach(p => p.classList.remove('active'));
+  cutscenePhase = n;
+  const el = document.getElementById('ec-phase' + n);
+  if (el) {
+    el.classList.add('active');
+    el.querySelectorAll('.epilogue-line[data-delay]').forEach(line => {
+      const d = parseInt(line.dataset.delay) || 0;
+      setTimeout(() => line.classList.add('visible'), d);
+    });
+  }
+  if (n < EC_PHASES - 1) {
+    cutsceneTimer = setTimeout(() => showECPhase(n + 1), EC_DURATIONS[n]);
+  }
+}
+
+function skipOpening() {
+  clearTimeout(cutsceneTimer);
+  inOpeningCutscene = false;
+  document.getElementById('openingCutscene').classList.add('hidden');
+  spawnParticles('openingParticles'); // ensure particles exist if they reopen
+}
+
+function startEnding() {
+  inEndingCutscene = true;
+  paused = true;
+  const ec = document.getElementById('endingCutscene');
+  ec.classList.remove('hidden');
+  spawnParticles('endingParticles');
+  showECPhase(0);
+}
+
+function skipEnding() {
+  clearTimeout(cutsceneTimer);
+  inEndingCutscene = false;
+  paused = false;
+  document.getElementById('endingCutscene').classList.add('hidden');
+  jump(0);
+}
+
+// Init opening cutscene
+spawnParticles('openingParticles');
+showOCPhase(0);
+
+// ===== EXISTING DEMO LOGIC =====
+const SCENES = document.querySelectorAll('.scene');
+const TOTAL = SCENES.length;
+const durations = Array.from(SCENES).map(s => parseInt(s.dataset.duration) || 8);
+let cur = 0, sceneTick = 0, globalTick = 0, paused = false;
+
+const nav = document.getElementById('sceneNav');
+SCENES.forEach((_, i) => {
+  const d = document.createElement('div');
+  d.className = 'scene-dot' + (i === 0 ? ' active' : '');
+  d.onclick = () => jump(i);
+  nav.appendChild(d);
+});
+
+function jump(i) {
+  if (i < 0 || i >= TOTAL) return;
+  // If trying to go past last scene, trigger ending cutscene
+  if (i >= TOTAL - 1 && cur === TOTAL - 1 && !inEndingCutscene) {
+    startEnding();
+    return;
+  }
+  SCENES[cur].classList.remove('active');
+  cur = i; sceneTick = 0;
+  SCENES[cur].classList.add('active');
+  document.querySelectorAll('.scene-dot').forEach((d, j) => d.classList.toggle('active', j === cur));
+  if (cur === 4) diceAnim();
+}
+
+document.addEventListener('keydown', e => {
+  // Cutscene keyboard handling
+  if (inOpeningCutscene) {
+    if (e.key === ' ' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      if (cutscenePhase < OC_PHASES - 1) {
+        showOCPhase(cutscenePhase + 1);
+      } else {
+        skipOpening();
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      skipOpening();
+    }
+    return;
+  }
+  if (inEndingCutscene) {
+    if (e.key === ' ' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      if (cutscenePhase < EC_PHASES - 1) {
+        showECPhase(cutscenePhase + 1);
+      } else {
+        skipEnding();
+      }
+    } else if (e.key === 'Escape' || e.key === 'r') {
+      e.preventDefault();
+      skipEnding();
+    }
+    return;
+  }
+  // Normal demo navigation
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); jump(cur + 1); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); jump(cur - 1); }
+  else if (e.key === 'p') paused = !paused;
+});
+
+function tick() {
+  // Skip demo ticks during cutscenes
+  if (inOpeningCutscene || inEndingCutscene) {
+    requestAnimationFrame(tick);
+    return;
+  }
+  if (!paused) {
+    sceneTick++; globalTick++;
+    const dur = durations[cur];
+    const pct = Math.min(sceneTick / (dur * 10), 1);
+    document.getElementById('progressBar').style.width = ((cur + pct) / TOTAL * 100) + '%';
+    const m = Math.floor(globalTick / 600), s = Math.floor((globalTick % 600) / 10);
+    document.getElementById('timer').textContent = m + ':' + String(s).padStart(2, '0');
+    if (sceneTick >= dur * 10) {
+      if (cur < TOTAL - 1) jump(cur + 1);
+      else startEnding(); // After last scene, trigger ending cutscene
+    }
+  }
+  requestAnimationFrame(tick);
+}
+
+function diceAnim() {
+  const el = document.getElementById('diceResult');
+  let n = 0;
+  const iv = setInterval(() => { el.textContent = Math.floor(Math.random() * 20) + 1; if (++n > 15) { clearInterval(iv); el.textContent = '14'; } }, 80);
+}
+
+// Load map
+(async () => {
+  try {
+    const res = await fetch('/api/map/data');
+    const data = await res.json();
+    const locs = data.locations || [];
+    const pos = { 'thornhold':[350,200], 'rusty-tankard':[250,280], 'whispering-woods':[150,150], 'ancient-seal':[550,100], 'crystal-cave':[480,320], 'farmstead':[200,350], 'crossroads':[350,300], 'old-bridge':[450,250], 'watchtower':[500,180], 'shadowfen':[300,100] };
+    const dc = { 1:'#6B8E23', 2:'#B8860B', 3:'#CD853F', 4:'#CD5C5C', 5:'#8B0000' };
+    let svg = '';
+    const drawn = new Set();
+    locs.forEach(l => { const f = pos[l.id]; if (!f) return; (l.connections||[]).forEach(t => { const k=[l.id,t].sort().join('-'); if (drawn.has(k)) return; drawn.add(k); const to=pos[t]; if(to) svg+=`<line x1="${f[0]}" y1="${f[1]}" x2="${to[0]}" y2="${to[1]}" stroke="#3a3520" stroke-width="2" stroke-dasharray="6,4"/>`; }); });
+    locs.forEach(l => { const p=pos[l.id]; if(!p) return; const c=dc[l.danger_level]||'#B8860B'; svg+=`<g class="location-node"><circle cx="${p[0]}" cy="${p[1]}" r="${l.id==='rusty-tankard'?10:7}" fill="${c}" stroke="#DAA520" stroke-width="1.5"/><text x="${p[0]}" y="${p[1]-14}" class="location-label" text-anchor="middle">${l.name}</text></g>`; });
+    svg += `<text x="20" y="430" fill="#8A8070" font-size="10" font-family="Cinzel,serif">Danger:</text>`;
+    Object.entries(dc).forEach(([l,c],i) => { svg+=`<circle cx="${90+i*55}" cy="426" r="5" fill="${c}"/><text x="${100+i*55}" y="430" fill="#8A8070" font-size="10">${'\u2605'.repeat(parseInt(l))}</text>`; });
+    svg += `<text x="350" y="30" fill="#B8860B" font-size="14" font-family="Cinzel,serif" text-anchor="middle" letter-spacing="3">THORNHOLD REGION</text>`;
+    document.getElementById('mapSvg').innerHTML = svg;
+  } catch(e) { console.log('Map load error:', e); }
+})();
+
+// Load character
+(async () => {
+  try {
+    const res = await fetch('/characters');
+    const chars = await res.json();
+    const c = chars.find(x => x.name === 'Hero') || chars[0];
+    if (!c) return;
+    document.getElementById('charName').textContent = c.name;
+    const r = c.race?.name||'Human', cl = c.classes?.[0]?.name||'Fighter', lv = c.classes?.[0]?.level||1;
+    document.getElementById('charMeta').textContent = r+' \u00b7 '+cl+' Level '+lv;
+  } catch(e) {}
+})();
+
+tick();
+</script>
+</body>
+</html>
