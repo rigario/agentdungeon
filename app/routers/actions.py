@@ -727,6 +727,19 @@ def submit_action(character_id: str, body: ActionRequest):
                                 "it's enough. The Dreaming Hunger knows your name now."
                             )
 
+        # Collateral near town: if mark_stage >= 3 and fighting on south-road
+        if result.get("combat") and result["combat"].get("victory") and body.target == "south-road":
+            mark_row = conn.execute(
+                "SELECT mark_of_dreamer_stage FROM characters WHERE id = ?",
+                (character_id,)
+            ).fetchone()
+            if mark_row and mark_row["mark_of_dreamer_stage"] >= 3:
+                conn.execute(
+                    """INSERT OR IGNORE INTO narrative_flags (character_id, flag_key, flag_value, source)
+                       VALUES (?, 'collateral_near_town', '1', 'combat')""",
+                    (character_id,)
+                )
+
         # Log events
         for ev in result["events"]:
             _log_event(conn, character_id, ev["type"], location_id, ev["description"],
@@ -824,6 +837,19 @@ def submit_action(character_id: str, body: ActionRequest):
                 world_effect = get_portent_world_effect(portent_idx)
                 if world_effect:
                     combat_result.setdefault("portent_world_effect", world_effect)
+
+        # Collateral near town: if mark_stage >= 3 and fighting on south-road
+        if combat_result["victory"] and location_id == "south-road":
+            mark_row = conn.execute(
+                "SELECT mark_of_dreamer_stage FROM characters WHERE id = ?",
+                (character_id,)
+            ).fetchone()
+            if mark_row and mark_row["mark_of_dreamer_stage"] >= 3:
+                conn.execute(
+                    """INSERT OR IGNORE INTO narrative_flags (character_id, flag_key, flag_value, source)
+                       VALUES (?, 'collateral_near_town', '1', 'combat')""",
+                    (character_id,)
+                )
 
                 # If unmarked, push the mark closer
                 mark_row = conn.execute(
@@ -1246,6 +1272,23 @@ def submit_action(character_id: str, body: ActionRequest):
         else:
             narration = f"You search {location['name']} but find nothing of value."
             events = [{"type": "explore", "description": narration}]
+
+
+        # Load flags for location-specific logic
+        pf = _get_character_flags(character_id)
+
+        # Location-specific exploration: Thornhold statue observation
+        if location_id == "thornhold" and not pf.get("thornhold_statue_observed"):
+            conn.execute(
+                """INSERT OR IGNORE INTO narrative_flags (character_id, flag_key, flag_value, source)
+                   VALUES (?, 'thornhold_statue_observed', '1', 'explore')""",
+                (character_id,)
+            )
+            if roll >= 15:
+                narration += " You also notice the old statue in the town square — it's pointing northeast, toward the Whisperwood. The hand is carved with the same symbols you've seen on the seal fragments."
+            else:
+                narration += " You glance at the statue in the town square but can't quite make out what it's pointing at."
+
 
         _log_event(conn, character_id, "explore", location_id, narration, {"roll": roll})
 
