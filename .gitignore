@@ -12,9 +12,11 @@ build/
 *.db-wal
 *.db-shm
 
-# Environment
+# Environment (keep .env.example tracked)
 .env
-.env.*
+.env.local
+.env.production
+.env.vps
 
 # Test/cache
 .pytest_cache/
