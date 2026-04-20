@@ -2,13 +2,17 @@
 
 The DM runtime sits between the player and the rules server.
 It narrates, routes intent, and manages session memory.
-It NEVER validates rules — the rules server is authoritative."""
+It NEVER validates rules — the rules server is authoritative.
+
+Contract: see app.contract for formal payload schemas and authority boundaries.
+"""
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import HOST, PORT
+from app.contract import CONTRACT_VERSION, CONTRACT_DOC, AuthorityBoundary, RoutingPolicy
 from app.routers import turn
 
 
@@ -16,6 +20,7 @@ from app.routers import turn
 async def lifespan(app: FastAPI):
     """Startup/shutdown lifecycle."""
     print(f"DM Runtime starting on {HOST}:{PORT}")
+    print(f"Contract version: {CONTRACT_VERSION}")
     print(f"Rules server: {app.state.rules_url if hasattr(app.state, 'rules_url') else 'not configured'}")
     yield
     print("DM Runtime shutting down")
@@ -46,6 +51,31 @@ async def root():
     return {
         "service": "d20-dm-runtime",
         "version": "0.1.0",
+        "contract_version": CONTRACT_VERSION,
         "docs": "/docs",
         "health": "/dm/health",
+        "contract": "/dm/contract",
+    }
+
+
+@app.get("/dm/contract")
+async def get_contract():
+    """Expose the DM runtime contract for introspection.
+
+    Returns authority boundaries, routing policy, and contract version.
+    Useful for debugging, validation, and player-agent onboarding.
+    """
+    return {
+        "contract_version": CONTRACT_VERSION,
+        "reference_doc": CONTRACT_DOC,
+        "authority": {
+            "dm_owns": sorted(AuthorityBoundary.DM_OWNED),
+            "server_owns": sorted(AuthorityBoundary.SERVER_OWNED),
+            "forbidden": sorted(AuthorityBoundary.FORBIDDEN),
+        },
+        "routing": {
+            "sync": {k.value: v.value for k, v in RoutingPolicy.SYNC_ENDPOINTS.items()},
+            "async": {k.value: v.value for k, v in RoutingPolicy.ASYNC_ENDPOINTS.items()},
+        },
+        "invariant": "The DM runtime is not the game engine. It is the narrative interpreter sitting on top of an authoritative rules server.",
     }
