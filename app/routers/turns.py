@@ -215,6 +215,8 @@ def _get_char(cid: str) -> dict:
     conn.close()
     if not row:
         raise HTTPException(404, f"Character not found: {cid}")
+    if row["is_archived"]:
+        raise HTTPException(403, f"Character is archived: {cid}. Restore first.")
     return dict(row)
 
 
@@ -1035,6 +1037,20 @@ def start_turn(character_id: str, body: TurnIntent, auth: dict = Depends(get_aut
     )
     conn.commit()
     conn.close()
+
+    # Post-turn: check NPC movement triggers (narrative flags may have changed)
+    try:
+        from app.services.npc_movement import process_movement_triggers
+        flag_rows = conn.execute("SELECT flag_key, flag_value FROM narrative_flags").fetchall()
+        narrative_flags = {r[0]: r[1] for r in flag_rows}
+        quest_rows = conn.execute("SELECT DISTINCT quest_id FROM character_quests WHERE status = 'completed'").fetchall()
+        completed_quests = [r[0] for r in quest_rows]
+        conn.close()
+        npc_moves = process_movement_triggers(narrative_flags, completed_quests)
+        if npc_moves:
+            result["npc_movements"] = npc_moves
+    except Exception:
+        pass  # Non-critical — don't break turn on movement failure
 
     return result
 

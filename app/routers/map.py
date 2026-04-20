@@ -13,7 +13,7 @@ router = APIRouter(tags=["map"])
 
 @router.get("/api/map/data")
 def get_map_data():
-    """Get all locations and their connections for the world map."""
+    """Get all locations and their connections for the world map, including NPC positions."""
     conn = get_db()
     try:
         rows = conn.execute(
@@ -21,6 +21,17 @@ def get_map_data():
             "encounter_threshold, recommended_level, connected_to "
             "FROM locations ORDER BY hostility_level, name"
         ).fetchall()
+
+        # Get NPC locations
+        npc_rows = conn.execute(
+            "SELECT id, name, current_location_id FROM npcs WHERE current_location_id IS NOT NULL"
+        ).fetchall()
+        npcs_by_location = {}
+        for nr in npc_rows:
+            loc_id = nr["current_location_id"]
+            if loc_id not in npcs_by_location:
+                npcs_by_location[loc_id] = []
+            npcs_by_location[loc_id].append({"id": nr["id"], "name": nr["name"]})
 
         locations = []
         for r in rows:
@@ -40,6 +51,7 @@ def get_map_data():
                 "encounter_threshold": r["encounter_threshold"],
                 "recommended_level": r["recommended_level"],
                 "connected_to": conns,
+                "npcs": npcs_by_location.get(r["id"], []),
             })
 
         return {

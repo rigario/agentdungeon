@@ -939,6 +939,9 @@ NPCS = [
         "quests_json": json.dumps([]),
         "is_quest_giver": 0,
         "notes": "Aldric is the slow-burn source of the Hollow Eye's presence in Thornhold. Exposing him is optional — and has consequences for who trusts you in town.",
+                "current_location_id": "rusty-tankard",
+                "default_location_id": "rusty-tankard",
+                "movement_rules_json": '{"can_visit": ["rusty-tankard", "thornhold"], "schedule": "static", "triggers": []}',
     },
     {
         "id": "npc-ser-maren",
@@ -1008,6 +1011,9 @@ NPCS = [
         ]),
         "is_quest_giver": 1,
         "notes": "Ser Maren is the anchor NPC for the main quest chain. She connects the mark, the seal, and the cult into one coherent narrative.",
+                "current_location_id": "thornhold",
+                "default_location_id": "thornhold",
+                "movement_rules_json": '{"can_visit": ["thornhold", "south-road", "crossroads"], "schedule": "patrol", "triggers": [{"flag": "collateral_near_town", "target": "south-road", "description": "Maren rides out to investigate reports of danger near town"}]}',
     },
     {
         "id": "npc-marta",
@@ -1067,6 +1073,9 @@ NPCS = [
         "quests_json": json.dumps([]),
         "is_quest_giver": 0,
         "notes": "Marta is the lore repository and the Hollow Eye intelligence gatherer. She's the fastest way to learn about Brother Kol and Sister Drenna without fighting.",
+                "current_location_id": "thornhold",
+                "default_location_id": "thornhold",
+                "movement_rules_json": '{"can_visit": ["thornhold", "crossroads"], "schedule": "static", "triggers": []}',
     },
 
     # ---- Road ----
@@ -1116,6 +1125,9 @@ NPCS = [
         "quests_json": json.dumps([]),
         "is_quest_giver": 0,
         "notes": "Kira is the passive intel gatherer. She's met the Hollow Eye, the orcs, and has seen Del. She connects the road to the larger narrative.",
+                "current_location_id": "crossroads",
+                "default_location_id": "crossroads",
+                "movement_rules_json": '{"can_visit": ["crossroads", "south-road", "thornhold"], "schedule": "travel", "triggers": []}',
     },
 
     # ---- Forest ----
@@ -1209,6 +1221,9 @@ NPCS = [
         ]),
         "is_quest_giver": 1,
         "notes": "The Green Woman is the seal knowledge repository and the mark-curse specialist. She is central to the cure path. She is the most important NPC after Del — and she may not survive helping you.",
+                "current_location_id": "forest-edge",
+                "default_location_id": "forest-edge",
+                "movement_rules_json": '{"can_visit": ["forest-edge", "deep-forest", "moonpetal-glade"], "schedule": "progressive", "triggers": [{"flag": "green_woman_suppression_1", "target": "deep-forest", "description": "The Green Woman retreats deeper into Whisperwood"}, {"flag": "green_woman_suppression_2", "target": "moonpetal-glade", "description": "The Green Woman has withdrawn to the Moonpetal Glade"}, {"flag": "green_woman_suppression_3", "target": null, "description": "The Green Woman has vanished from the forest entirely"}]}',
     },
     {
         "id": "npc-del-ghost",
@@ -1274,6 +1289,9 @@ NPCS = [
     # ---- Mountain ----
     {
         "id": "npc-torren",
+                "current_location_id": "rusty-tankard",
+                "default_location_id": "rusty-tankard",
+                "movement_rules_json": '{"can_visit": ["rusty-tankard"], "schedule": "static", "triggers": []}',
         "name": "Torren the Hunter",
         "archetype": "hermit",
         "biome": "mountain",
@@ -1319,6 +1337,9 @@ NPCS = [
         "quests_json": json.dumps([]),
         "is_quest_giver": 0,
         "notes": "Torren is the mountain-connection NPC. He provides intel about Brother Kol and the mine tunnels.",
+                "current_location_id": "mountain-pass",
+                "default_location_id": "mountain-pass",
+                "movement_rules_json": '{"can_visit": ["mountain-pass", "crossroads"], "schedule": "static", "triggers": [{"flag": "kol_backstory_known", "target": "cave-entrance", "description": "Torren descends from the pass, now knowing Kol's true nature"}]}',
     },
 
     # ---- Hollow Eye Cultists ----
@@ -1371,6 +1392,9 @@ NPCS = [
         "is_quest_giver": 0,
         "is_enemy": 1,
         "notes": "Brother Kol is the final boss encounter of the cult arc. He should not be killed on sight — the agent should have the option to engage with his philosophy. The moral complexity is: he's wrong, but he's not lying about his experience. If the player learns his backstory (via Drenna), they can recruit him as an ally for the Communion ending.",
+                "current_location_id": "cave-depths",
+                "default_location_id": "cave-depths",
+                "movement_rules_json": '{"can_visit": ["cave-depths", "seal-chamber"], "schedule": "static", "triggers": [{"flag": "seal_keys_placed", "target": "seal-chamber", "description": "Brother Kol moves to the Seal Chamber for the final ritual"}]}',
     },
     {
         "id": "npc-sister-drenna",
@@ -1440,6 +1464,9 @@ NPCS = [
         ]),
         "is_quest_giver": 1,
         "notes": "Sister Drenna is the moral choice NPC. Saving her child gives you tactical advantage (ritual delay) but risks exposure. She connects to Kol's backstory and the endgame — if both Drenna and Kol survive, they can talk Kol down from fighting.",
+                "current_location_id": "south-road",
+                "default_location_id": "south-road",
+                "movement_rules_json": '{"can_visit": ["south-road", "crossroads", "forest-edge"], "schedule": "static", "triggers": [{"quest_complete": "quest-save-drenna-child", "target": "thornhold", "description": "Drenna returns to Thornhold with her child, grateful for rescue"}]}',
     },
 ]
 
@@ -1557,8 +1584,9 @@ def seed():
         conn.execute(
             """INSERT OR REPLACE INTO npcs
                (id, name, archetype, biome, personality, dialogue_templates,
-                trades_json, quests_json, is_quest_giver, is_spirit, is_enemy, notes)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                trades_json, quests_json, is_quest_giver, is_spirit, is_enemy, notes,
+                current_location_id, default_location_id, movement_rules_json)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 npc["id"], npc["name"], npc["archetype"], npc["biome"],
                 npc["personality"], npc["dialogue_templates"],
@@ -1567,6 +1595,9 @@ def seed():
                 npc.get("is_spirit", 0),
                 npc.get("is_enemy", 0),
                 npc.get("notes", ""),
+                npc.get("current_location_id"),
+                npc.get("default_location_id"),
+                npc.get("movement_rules_json", "{}"),
             )
         )
 

@@ -108,6 +108,9 @@ def init_db():
             is_enemy INTEGER DEFAULT 0,
             notes TEXT,
             image_url TEXT,
+            current_location_id TEXT REFERENCES locations(id),
+            default_location_id TEXT REFERENCES locations(id),
+            movement_rules_json TEXT DEFAULT '{}',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
@@ -322,6 +325,25 @@ def init_db():
         -- Character ownership columns (added here so new DBs are complete;
         -- existing DBs need the migration script in scripts/migrate_auth.py)
         -- Note: ALTER TABLE is handled by migration, not by init_db()
+
+        -- Per-character quest tracking
+        CREATE TABLE IF NOT EXISTS character_quests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            character_id TEXT NOT NULL,
+            quest_id TEXT NOT NULL,
+            quest_title TEXT NOT NULL,
+            quest_description TEXT,
+            giver_npc_id TEXT,
+            giver_npc_name TEXT,
+            status TEXT DEFAULT 'accepted',  -- 'accepted' | 'completed' | 'failed'
+            reward_xp INTEGER DEFAULT 0,
+            reward_gold INTEGER DEFAULT 0,
+            reward_item TEXT,
+            accepted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            completed_at TIMESTAMP,
+            FOREIGN KEY (character_id) REFERENCES characters(id),
+            UNIQUE(character_id, quest_id)
+        );
     """)
     conn.commit()
     conn.close()
