@@ -15,10 +15,11 @@ import hashlib
 import random
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 
 from app.services.database import get_db
+from app.services.auth_helpers import get_auth, require_character_ownership
 
 router = APIRouter(prefix="/narrative", tags=["narrative"])
 
@@ -131,13 +132,14 @@ def get_front(front_id: str, character_id: str = None):
 
 
 @router.post("/advance")
-def advance_front(payload: AdvanceFront):
+def advance_front(payload: AdvanceFront, auth: dict = Depends(get_auth)):
     """Advance a front to its next grim portent (per-character: multi-tenancy).
     
     Called by the server's cron job (typically every 2 in-game days).
     Returns the new current portent. When all portents fire, the front's
     impending doom is marked as triggered.
     """
+    require_character_ownership(payload.character_id, auth)
     import json as _json
     from app.services.database import init_character_fronts
 
@@ -208,8 +210,9 @@ def advance_front(payload: AdvanceFront):
 # ---------------------------------------------------------------------------
 
 @router.get("/flags/{character_id}")
-def get_flags(character_id: str):
+def get_flags(character_id: str, auth: dict = Depends(get_auth)):
     """Get all narrative flags for a character."""
+    require_character_ownership(character_id, auth)
     conn = get_db()
     rows = conn.execute(
         "SELECT flag_key, flag_value, source, set_at FROM narrative_flags "
@@ -221,8 +224,9 @@ def get_flags(character_id: str):
 
 
 @router.post("/flags")
-def set_flag(payload: NarrativeFlagSet):
+def set_flag(payload: NarrativeFlagSet, auth: dict = Depends(get_auth)):
     """Set a narrative flag for a character. Upserts."""
+    require_character_ownership(payload.character_id, auth)
     conn = get_db()
     conn.execute(
         """INSERT INTO narrative_flags (character_id, flag_key, flag_value, source)
@@ -243,8 +247,9 @@ def set_flag(payload: NarrativeFlagSet):
 # ---------------------------------------------------------------------------
 
 @router.get("/mark/{character_id}")
-def get_mark_stage(character_id: str):
+def get_mark_stage(character_id: str, auth: dict = Depends(get_auth)):
     """Get the current mark stage for a character (0 = unmarked, 4 = cured)."""
+    require_character_ownership(character_id, auth)
     conn = get_db()
     row = conn.execute(
         "SELECT mark_of_dreamer_stage FROM characters WHERE id = ?", (character_id,)
@@ -276,8 +281,9 @@ def get_mark_stage(character_id: str):
 
 
 @router.post("/mark/{character_id}")
-def advance_mark_stage(character_id: str, payload: MarkAdvance):
+def advance_mark_stage(character_id: str, payload: MarkAdvance, auth: dict = Depends(get_auth)):
     """Advance a character's mark stage. Called by encounter resolution."""
+    require_character_ownership(character_id, auth)
     stage = max(0, min(4, payload.stage))  # Clamp 0-4
     conn = get_db()
     conn.execute(
@@ -303,13 +309,14 @@ def advance_mark_stage(character_id: str, payload: MarkAdvance):
 # ---------------------------------------------------------------------------
 
 @router.get("/del-roll/{character_id}")
-def roll_del_ghost(character_id: str):
+def roll_del_ghost(character_id: str, auth: dict = Depends(get_auth)):
     """
     Roll the Del ghost visit for a character's first night.
     Uses a seeded D20 so the result is deterministic and stable.
     
     DC 13 WIS save. Pass → Del visits. Fail → no visit.
     """
+    require_character_ownership(character_id, auth)
     seed_str = f"{character_id}-del-ghost-visit"
     seed = int(hashlib.md5(seed_str.encode()).hexdigest()[:8], 16)
     rng = random.Random(seed)
@@ -346,7 +353,7 @@ def roll_del_ghost(character_id: str):
 # ---------------------------------------------------------------------------
 
 @router.post("/suppress/{character_id}")
-def suppress_mark(character_id: str):
+def suppress_mark(character_id: str, auth: dict = Depends(get_auth)):
     """Suppress a character's mark via the Green Woman.
     
     3 uses max. Each use sets mark to 0 and starts a countdown.
@@ -357,6 +364,7 @@ def suppress_mark(character_id: str):
     
     After 3 uses, Merge ending is LOCKED at endgame.
     """
+    require_character_ownership(character_id, auth)
     import json as _json
     
     conn = get_db()
@@ -455,8 +463,9 @@ def suppress_mark(character_id: str):
 
 
 @router.get("/suppression-status/{character_id}")
-def get_suppression_status(character_id: str):
+def get_suppression_status(character_id: str, auth: dict = Depends(get_auth)):
     """Check current suppression countdown and Green Woman availability."""
+    require_character_ownership(character_id, auth)
     conn = get_db()
     
     rows = conn.execute(
@@ -492,7 +501,7 @@ class EndgameChoice(BaseModel):
 
 
 @router.post("/endgame/{character_id}")
-def resolve_endgame(character_id: str, payload: EndgameChoice):
+def resolve_endgame(character_id: str, payload: EndgameChoice, auth: dict = Depends(get_auth)):
     """Resolve the endgame at the seal chamber.
     
     Three endings:
@@ -502,6 +511,7 @@ def resolve_endgame(character_id: str, payload: EndgameChoice):
     - merge: Green Woman merges with seal. Strongest ending. She dies.
       Requires: green_woman_alive (suppressions_used < 3).
     """
+    require_character_ownership(character_id, auth)
     conn = get_db()
     
     # Load character state

@@ -6,6 +6,7 @@ Returns world map data for the visual map UI.
 import json
 from fastapi import APIRouter
 from app.services.database import get_db
+from app.services.auth_helpers import get_auth  # noqa: F401 — available for future auth enforcement
 
 router = APIRouter(tags=["map"])
 

@@ -7,9 +7,10 @@ Task P2: Key item inspect endpoint with multi-layer lore.
 """
 
 import json
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from app.services.database import get_db
 from app.services.key_items import inspect_key_item, inspect_all_key_items, KEY_ITEMS, get_key_items
+from app.services.auth_helpers import get_auth, require_character_ownership
 
 router = APIRouter(prefix="/items", tags=["items"])
 
@@ -66,12 +67,13 @@ def list_items(key_items_only: bool = False):
 # --- Character Inventory ---
 
 @router.get("/inventory/{character_id}")
-def get_character_inventory(character_id: str):
+def get_character_inventory(character_id: str, auth: dict = Depends(get_auth)):
     """Get all items in a character's inventory.
 
     Returns items from the items table linked via character_items,
     with quantity and equipped status.
     """
+    require_character_ownership(character_id, auth)
     conn = get_db()
 
     # Verify character exists
@@ -106,11 +108,12 @@ def get_character_inventory(character_id: str):
 
 
 @router.post("/inventory/{character_id}/{item_id}")
-def add_to_inventory(character_id: str, item_id: str, quantity: int = 1, equip: bool = False):
+def add_to_inventory(character_id: str, item_id: str, quantity: int = 1, equip: bool = False, auth: dict = Depends(get_auth)):
     """Add an item to a character's inventory.
 
     If the item is already in inventory, increments quantity.
     """
+    require_character_ownership(character_id, auth)
     conn = get_db()
 
     # Verify character and item exist
@@ -156,8 +159,9 @@ def add_to_inventory(character_id: str, item_id: str, quantity: int = 1, equip: 
 
 
 @router.delete("/inventory/{character_id}/{item_id}")
-def remove_from_inventory(character_id: str, item_id: str):
+def remove_from_inventory(character_id: str, item_id: str, auth: dict = Depends(get_auth)):
     """Remove an item from a character's inventory entirely."""
+    require_character_ownership(character_id, auth)
     conn = get_db()
 
     existing = conn.execute(
@@ -180,8 +184,9 @@ def remove_from_inventory(character_id: str, item_id: str):
 
 
 @router.patch("/inventory/{character_id}/{item_id}/equip")
-def toggle_equip(character_id: str, item_id: str, equip: bool = True):
+def toggle_equip(character_id: str, item_id: str, equip: bool = True, auth: dict = Depends(get_auth)):
     """Equip or unequip an item in a character's inventory."""
+    require_character_ownership(character_id, auth)
     conn = get_db()
 
     existing = conn.execute(
@@ -206,12 +211,13 @@ def toggle_equip(character_id: str, item_id: str, equip: bool = True):
 # --- Key Item Inspect (P2: multi-layer lore) ---
 
 @router.get("/key-items/{character_id}")
-def list_character_key_items(character_id: str):
+def list_character_key_items(character_id: str, auth: dict = Depends(get_auth)):
     """List all key items a character owns, with enriched lore.
 
     Returns key items from equipment_json with surface descriptions,
     deeper lore, and mark-stage-aware narrative text.
     """
+    require_character_ownership(character_id, auth)
     conn = get_db()
     char = conn.execute("SELECT id FROM characters WHERE id = ?", (character_id,)).fetchone()
     if not char:
@@ -229,7 +235,7 @@ def list_character_key_items(character_id: str):
 
 
 @router.get("/key-items/{character_id}/{item_name}")
-def inspect_character_key_item(character_id: str, item_name: str):
+def inspect_character_key_item(character_id: str, item_name: str, auth: dict = Depends(get_auth)):
     """Inspect a specific key item with multi-layer lore.
 
     Returns:
@@ -243,6 +249,7 @@ def inspect_character_key_item(character_id: str, item_name: str):
     has progressed through the Dreaming Hunger arc — items feel different
     at stage 0 (innocent) vs stage 4 (consumed).
     """
+    require_character_ownership(character_id, auth)
     conn = get_db()
     char = conn.execute("SELECT id FROM characters WHERE id = ?", (character_id,)).fetchone()
     if not char:

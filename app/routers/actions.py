@@ -10,11 +10,12 @@ import json
 import hashlib
 import random
 from datetime import datetime
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from app.models.schemas import ActionRequest, ActionResponse
 from app.services.database import get_db
 from app.services.srd_reference import get_monsters_by_cr, ability_modifier, get_spells, _spellcasting_ability
 from app.services.key_items import add_key_item, remove_key_item, has_key_item, get_key_items
+from app.services.auth_helpers import get_auth, require_character_ownership
 
 router = APIRouter(prefix="/characters/{character_id}", tags=["actions"])
 
@@ -578,7 +579,7 @@ def _resolve_rest(char: dict, rest_type: str, rng: random.Random) -> dict:
 # ---------------------------------------------------------------------------
 
 @router.post("/actions")
-def submit_action(character_id: str, body: ActionRequest):
+def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(get_auth)):
     """Submit an action. Server resolves it against game rules.
 
     Action types:
@@ -588,6 +589,7 @@ def submit_action(character_id: str, body: ActionRequest):
     - interact: interact with NPC or object at current location
     - explore: search current location for loot or info
     """
+    require_character_ownership(character_id, auth)
     timestamp = datetime.utcnow().isoformat()
 
     char = _get_character(character_id)

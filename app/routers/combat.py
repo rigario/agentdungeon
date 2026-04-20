@@ -11,11 +11,12 @@ import json
 import uuid
 import hashlib
 import random
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 from typing import Optional
 from app.services.database import get_db
 from app.services.srd_reference import ability_modifier
+from app.services.auth_helpers import get_auth, require_character_ownership
 
 router = APIRouter(prefix="/characters/{character_id}/combat", tags=["combat"])
 
@@ -167,13 +168,15 @@ def _combat_end_check(combat_id: str, cid: str, player_hp: int, conn) -> str | N
 
 @router.post("/start")
 def start_combat(character_id: str, encounter_name: str = "Wild Encounter",
-                 enemies_json: str = "[]", initiative_roll: Optional[int] = None):
+                 enemies_json: str = "[]", initiative_roll: Optional[int] = None,
+                 auth: dict = Depends(get_auth)):
     """Start combat. Agent rolls initiative, server resolves enemies who go before player.
 
     Args:
         initiative_roll: Agent's d20 roll for initiative (1-20). Required.
         If enemies go first, their attacks are included in the response.
     """
+    require_character_ownership(character_id, auth)
     char = _get_char(character_id)
     if _get_combat(character_id):
         raise HTTPException(409, "Already in active combat")
@@ -289,8 +292,9 @@ def start_combat(character_id: str, encounter_name: str = "Wild Encounter",
 
 
 @router.get("")
-def get_combat(character_id: str):
+def get_combat(character_id: str, auth: dict = Depends(get_auth)):
     """Get current combat state."""
+    require_character_ownership(character_id, auth)
     combat = _get_combat(character_id)
     if not combat:
         raise HTTPException(404, "No active combat")
@@ -311,7 +315,7 @@ def get_combat(character_id: str):
 
 
 @router.post("/act")
-def combat_act(character_id: str, body: CombatAction):
+def combat_act(character_id: str, body: CombatAction, auth: dict = Depends(get_auth)):
     """Submit one action. Server resolves it + all enemy turns = one full round.
 
     Actions:
@@ -320,6 +324,7 @@ def combat_act(character_id: str, body: CombatAction):
     - defend: Dodge action (enemies attack at disadvantage)
     - use_item: use a consumable
     """
+    require_character_ownership(character_id, auth)
     combat = _get_combat(character_id)
     if not combat:
         raise HTTPException(404, "No active combat")
@@ -478,9 +483,10 @@ def combat_act(character_id: str, body: CombatAction):
 
 
 @router.post("/flee")
-def flee(character_id: str):
+def flee(character_id: str, auth: dict = Depends(get_auth)):
     """Shortcut for action=flee."""
-    return combat_act(character_id, CombatAction(action="flee"))
+    require_character_ownership(character_id, auth)
+    return combat_act(character_id, CombatAction(action="flee"), auth=auth)
 
 
 # ---------------------------------------------------------------------------
@@ -491,8 +497,9 @@ approval_router = APIRouter(tags=["approval"])
 
 
 @approval_router.post("/characters/{character_id}/approval-check")
-def check_approval(character_id: str, body: ApprovalCheck):
+def check_approval(character_id: str, body: ApprovalCheck, auth: dict = Depends(get_auth)):
     """Check if an action needs human approval."""
+    require_character_ownership(character_id, auth)
     char = _get_char(character_id)
     config = json.loads(char.get("approval_config", "{}"))
     hp_pct = (char["hp_current"] / char["hp_max"] * 100) if char["hp_max"] > 0 else 100

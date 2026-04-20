@@ -5,8 +5,9 @@ Part of the hackathon sprint Task 4.3: NPC/Item Images.
 """
 
 import json
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from app.services.database import get_db
+from app.services.auth_helpers import get_auth
 
 router = APIRouter(prefix="/npcs", tags=["npcs"])
 

@@ -1,15 +1,17 @@
 """D20 Agent RPG — Event log endpoints."""
 
 import json
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from app.services.database import get_db
+from app.services.auth_helpers import get_auth, require_character_ownership
 
 router = APIRouter(prefix="/characters/{character_id}", tags=["events"])
 
 
 @router.get("/event-log")
-def get_event_log(character_id: str, since: str = Query(None, description="ISO timestamp filter")):
+def get_event_log(character_id: str, since: str = Query(None, description="ISO timestamp filter"), auth: dict = Depends(get_auth)):
     """Get chronological event log for a character."""
+    require_character_ownership(character_id, auth)
     conn = get_db()
 
     # Verify character exists

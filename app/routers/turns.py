@@ -19,11 +19,12 @@ import random
 import datetime
 import re
 import sqlite3
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 from typing import Optional
 from app.services.database import get_db
 from app.services.srd_reference import ability_modifier
+from app.services.auth_helpers import get_auth, require_character_ownership
 
 router = APIRouter(prefix="/characters/{character_id}/turn", tags=["turns"])
 
@@ -1013,8 +1014,9 @@ def _simulate_turn(character_id: str, intent: TurnIntent) -> dict:
 # ---------------------------------------------------------------------------
 
 @router.post("/start")
-def start_turn(character_id: str, body: TurnIntent):
+def start_turn(character_id: str, body: TurnIntent, auth: dict = Depends(get_auth)):
     """Submit a turn intent. Server simulates with full transparency."""
+    require_character_ownership(character_id, auth)
     conn = get_db()
     active_combat = conn.execute(
         "SELECT id FROM combats WHERE character_id = ? AND status = 'active'", (character_id,)
@@ -1038,8 +1040,9 @@ def start_turn(character_id: str, body: TurnIntent):
 
 
 @router.get("/result/{turn_id}")
-def get_turn_result(character_id: str, turn_id: str):
+def get_turn_result(character_id: str, turn_id: str, auth: dict = Depends(get_auth)):
     """Pull a specific turn result."""
+    require_character_ownership(character_id, auth)
     conn = get_db()
     row = conn.execute("SELECT * FROM turn_results WHERE turn_id = ? AND character_id = ?", (turn_id, character_id)).fetchone()
     conn.close()
@@ -1049,8 +1052,9 @@ def get_turn_result(character_id: str, turn_id: str):
 
 
 @router.get("/latest")
-def get_latest_turn(character_id: str):
+def get_latest_turn(character_id: str, auth: dict = Depends(get_auth)):
     """Pull most recent turn result."""
+    require_character_ownership(character_id, auth)
     conn = get_db()
     row = conn.execute("SELECT * FROM turn_results WHERE character_id = ? ORDER BY created_at DESC LIMIT 1", (character_id,)).fetchone()
     conn.close()

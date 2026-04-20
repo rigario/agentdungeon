@@ -15,6 +15,7 @@ import json
 import sqlite3
 
 from app.services.database import get_db
+from app.services.auth_helpers import get_auth, require_character_ownership
 
 router = APIRouter()
 
@@ -393,8 +394,9 @@ def generate_warnings(flags: Dict, mark_stage: int, location: str) -> List[str]:
 # ============================================================================
 
 @router.get("/character/{character_id}/summary", response_model=NarrativeSummary)
-def get_character_narrative_summary(character_id: str, conn: sqlite3.Connection = Depends(get_db)):
+def get_character_narrative_summary(character_id: str, conn: sqlite3.Connection = Depends(get_db), auth: dict = Depends(get_auth)):
     """Get complete narrative summary for a character."""
+    require_character_ownership(character_id, auth)
     
     # Get character info
     cursor = conn.execute(
@@ -456,8 +458,9 @@ def get_character_narrative_summary(character_id: str, conn: sqlite3.Connection 
 
 
 @router.get("/character/{character_id}/flags", response_model=List[FlagInfo])
-def get_character_flags_endpoint(character_id: str, conn: sqlite3.Connection = Depends(get_db)):
+def get_character_flags_endpoint(character_id: str, conn: sqlite3.Connection = Depends(get_db), auth: dict = Depends(get_auth)):
     """Get all narrative flags for a character with descriptions."""
+    require_character_ownership(character_id, auth)
     
     # Verify character exists
     cursor = conn.execute("SELECT id FROM characters WHERE id = ?", (character_id,))
@@ -481,8 +484,9 @@ def get_character_flags_endpoint(character_id: str, conn: sqlite3.Connection = D
 
 
 @router.get("/character/{character_id}/endings")
-def get_character_endings(character_id: str, conn: sqlite3.Connection = Depends(get_db)):
+def get_character_endings(character_id: str, conn: sqlite3.Connection = Depends(get_db), auth: dict = Depends(get_auth)):
     """Get ending reachability status for a character."""
+    require_character_ownership(character_id, auth)
     
     cursor = conn.execute(
         "SELECT mark_of_dreamer_stage FROM characters WHERE id = ?",
@@ -497,8 +501,9 @@ def get_character_endings(character_id: str, conn: sqlite3.Connection = Depends(
 
 
 @router.get("/character/{character_id}/dialogue")
-def get_character_dialogue_progress(character_id: str, conn: sqlite3.Connection = Depends(get_db)):
+def get_character_dialogue_progress(character_id: str, conn: sqlite3.Connection = Depends(get_db), auth: dict = Depends(get_auth)):
     """Get NPC dialogue chain progress for a character."""
+    require_character_ownership(character_id, auth)
     
     cursor = conn.execute("SELECT id FROM characters WHERE id = ?", (character_id,))
     if not cursor.fetchone():
