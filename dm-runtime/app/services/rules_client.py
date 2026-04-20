@@ -39,7 +39,14 @@ async def submit_action(character_id: str, payload: dict) -> dict:
 
 
 async def start_turn(character_id: str, payload: dict) -> dict:
-    """Start an adventure turn."""
+    """Start an adventure turn.
+
+    Accepts either {"intent": "..."} or {"goal": "..."}.
+    Normalizes to {"goal": "..."} for the server contract.
+    """
+    # Normalize: server expects {"goal": ...}, DM runtime sends {"intent": ...}
+    if "goal" not in payload and "intent" in payload:
+        payload = {**payload, "goal": payload.pop("intent")}
     r = await _client.post(f"/characters/{character_id}/turn/start", json=payload)
     r.raise_for_status()
     return r.json()

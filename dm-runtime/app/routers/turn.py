@@ -1,25 +1,26 @@
 """DM Runtime — Turn router.
 
 Accepts player messages, routes to rules server, returns narrated output.
-Uses formal contract schemas from app.contract for type safety."""
+Uses IntentRouter for classification + dispatch, contract schemas for type safety.
+"""
 
 from fastapi import APIRouter, HTTPException
 
 from app.contract import (
-    IntentClassification,
-    IntentType,
-    ServerEndpoint,
     DMResponse,
     NarrationPayload,
     MechanicsPayload,
     ChoiceOption,
     ServerTrace,
-    RoutingPolicy,
 )
 from app.services import rules_client
-from app.services.synthesis import classify_intent, synthesize_narration
+from app.services.intent_router import IntentRouter, classify_intent
+from app.services.synthesis import synthesize_narration
 
 router = APIRouter(prefix="/dm", tags=["dm"])
+
+# Singleton router instance
+_intent_router = IntentRouter(rules_client)
 
 
 @router.post("/turn", response_model=DMResponse)
@@ -27,10 +28,11 @@ async def dm_turn(body: dict):
     """Process a player message through the DM runtime.
 
     Flow:
-    1. Classify intent from player message
-    2. Route to appropriate rules server endpoint (per routing policy)
-    3. Synthesize server output into narrated payload (within authority boundary)
-    4. Return final player-facing response
+    1. Classify intent from player message (IntentRouter)
+    2. Check for active combat → override routing
+    3. Route to appropriate rules server endpoint
+    4. Synthesize server output into narrated payload (within authority boundary)
+    5. Return contract-compliant DMResponse
     """
     character_id = body.get("character_id")
     message = body.get("message", "")
@@ -39,41 +41,26 @@ async def dm_turn(body: dict):
     if not character_id:
         raise HTTPException(status_code=400, detail="character_id is required")
 
-    # Step 1: Classify intent → IntentClassification
+    # Step 1-3: Route through IntentRouter (classifies, checks combat, dispatches)
+    result = await _intent_router.route(character_id, message)
+
+    # Step 4: Handle errors
+    if not result.success:
+        status = result.error_status or 502
+        raise HTTPException(status_code=status, detail=result.error)
+
+    # Step 5: Synthesize narration from server result
     intent = classify_intent(message)
-    intent_enum = IntentType(intent["type"])
-    endpoint = RoutingPolicy.get_endpoint(intent_enum)
+    intent_dict = {
+        "type": intent.type.value,
+        "target": intent.target,
+        "details": intent.details,
+        "server_endpoint": intent.server_endpoint.value,
+    }
+    world_context = result.world_context or {}
+    narrated = synthesize_narration(result.to_dict(), intent_dict, world_context)
 
-    # Step 2: Route to rules server (per contract routing policy)
-    try:
-        if endpoint == ServerEndpoint.ACTIONS:
-            result = await rules_client.submit_action(character_id, intent["details"])
-        elif endpoint == ServerEndpoint.COMBAT:
-            try:
-                combat_state = await rules_client.get_combat(character_id)
-                if combat_state.get("status") == "active":
-                    result = await rules_client.combat_act(character_id, intent["details"])
-                else:
-                    result = await rules_client.start_combat(
-                        character_id, intent.get("target", "Unknown"), "[]"
-                    )
-            except Exception:
-                result = await rules_client.submit_action(character_id, intent["details"])
-        elif endpoint == ServerEndpoint.TURN:
-            result = await rules_client.start_turn(character_id, {"intent": message})
-        else:
-            result = await rules_client.submit_action(character_id, intent["details"])
-    except Exception as e:
-        raise HTTPException(
-            status_code=502,
-            detail=f"Rules server error: {str(e)}",
-        )
-
-    # Step 3: Synthesize narration (within authority boundary)
-    world_context = result.get("world_context", {})
-    narrated = synthesize_narration(result, intent, world_context)
-
-    # Step 4: Build contract-compliant response
+    # Step 6: Build contract-compliant response
     return DMResponse(
         narration=NarrationPayload(**narrated["narration"]),
         mechanics=MechanicsPayload(**narrated["mechanics"]),
@@ -82,9 +69,9 @@ async def dm_turn(body: dict):
             turn_id=narrated["server_trace"].get("turn_id"),
             decision_point=narrated["server_trace"].get("decision_point"),
             available_actions=narrated["server_trace"].get("available_actions", []),
-            intent_used=intent,
-            server_endpoint_called=endpoint.value,
-            raw_server_response_keys=list(result.keys()),
+            intent_used=intent_dict,
+            server_endpoint_called=result.endpoint_called,
+            raw_server_response_keys=list(result.raw_response.keys()),
         ),
         session_id=session_id,
     )
@@ -92,19 +79,21 @@ async def dm_turn(body: dict):
 
 @router.get("/health")
 async def dm_health():
-    """DM runtime health check."""
+    """DM runtime health check — includes rules server connectivity."""
     try:
         rules_health = await rules_client.health()
         return {
             "status": "healthy",
             "dm_runtime": "ok",
             "rules_server": rules_health,
+            "intent_router": "ok",
         }
     except Exception as e:
         return {
             "status": "degraded",
             "dm_runtime": "ok",
             "rules_server": f"error: {str(e)}",
+            "intent_router": "ok (rules server unreachable)",
         }
 
 
@@ -124,3 +113,27 @@ async def create_character(payload: dict):
         return await rules_client.create_character(payload)
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
+
+
+@router.post("/intent/analyze")
+async def analyze_intent(body: dict):
+    """Debug endpoint — classify intent without executing.
+
+    Useful for testing intent classification in isolation.
+    """
+    message = body.get("message", "")
+    if not message:
+        raise HTTPException(status_code=400, detail="message is required")
+
+    intent = classify_intent(message)
+    return {
+        "message": message,
+        "classification": {
+            "type": intent.type.value,
+            "target": intent.target,
+            "action_type": intent.action_type,
+            "details": intent.details,
+            "confidence": intent.confidence,
+            "server_endpoint": intent.server_endpoint.value,
+        },
+    }
