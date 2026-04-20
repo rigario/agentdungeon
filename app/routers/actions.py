@@ -1323,6 +1323,15 @@ def submit_action(character_id: str, body: ActionRequest):
         npc = dict(rng.choice(npcs))
         dialogues = json.loads(npc.get("dialogue_templates", "[]"))
 
+        # Set encounter flag for named NPCs (kol_brother_met, etc.)
+        if npc["id"] == "npc-brother-kol":
+            conn.execute(
+                """INSERT INTO narrative_flags (character_id, flag_key, flag_value, source)
+                   VALUES (?, 'kol_brother_met', '1', 'npc_encounter')
+                   ON CONFLICT(character_id, flag_key) DO NOTHING""",
+                (character_id,)
+            )
+
         # Load character's narrative flags for dialogue gating
         char_flags = {}
         if dialogues:

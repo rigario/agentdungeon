@@ -1355,12 +1355,22 @@ NPCS = [
                     "narrative": "Brother Kol was marked and suppressed by the Green Woman. The Hunger returned stronger. He believes suppression failed.",
                 },
             },
+            {
+                "template": "You... know what happened to me. Drenna told you. Then you know I'm not wrong — I just chose a different door. If you're going into the seal, you don't have to go alone. I've walked with the Hunger longer than anyone. Let me walk with you.",
+                "context": "kol_ally_recruit",
+                "requires_flag": "kol_backstory_known",
+                "clue_reward": {
+                    "flag": "kol_ally",
+                    "value": "1",
+                    "narrative": "Brother Kol agrees to join you. He's not your enemy — he's a man who chose a different path through the same darkness.",
+                },
+            },
         ]),
         "trades_json": json.dumps([]),
         "quests_json": json.dumps([]),
         "is_quest_giver": 0,
         "is_enemy": 1,
-        "notes": "Brother Kol is the final boss encounter of the cult arc. He should not be killed on sight — the agent should have the option to engage with his philosophy. The moral complexity is: he's wrong, but he's not lying about his experience.",
+        "notes": "Brother Kol is the final boss encounter of the cult arc. He should not be killed on sight — the agent should have the option to engage with his philosophy. The moral complexity is: he's wrong, but he's not lying about his experience. If the player learns his backstory (via Drenna), they can recruit him as an ally for the Communion ending.",
     },
     {
         "id": "npc-sister-drenna",
