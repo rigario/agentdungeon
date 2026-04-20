@@ -540,13 +540,33 @@ def get_global_narrative_state(conn: sqlite3.Connection = Depends(get_db)):
     )
     common_flags = [(row["flag_key"], row["count"]) for row in cursor.fetchall()]
     
-    # Flag gaps - flags that are read but never set
-    # This requires static analysis, so we return known gaps from audit
-    known_gaps = [
-        {"flag": "thornhold_statue_observed", "issue": "Never set by any code path", "impact": "Antechamber puzzle unbeatable"},
-        {"flag": "collateral_near_town", "issue": "Never set by any code path", "impact": "Thornhold exile dead code"},
-        {"flag": "kol_ally", "issue": "Checked in Communion ending but never set", "impact": "Redemption path mentioned but not implemented"},
-    ]
+    # Flag gaps — flags suspected of being read but never set.
+    # Cross-check against DB: if a flag has any rows in narrative_flags, it's wired.
+    suspected_gaps = {
+        "thornhold_statue_observed": ("Observed Thornhold statue (Antechamber puzzle req)", "Antechamber puzzle path"),
+        "collateral_near_town": ("Collateral damage near Thornhold", "Thornhold exile / Constantine branch"),
+        "kol_ally": ("Kol redemption / Communion path", "Redemption ending mentioned but no acquisition path"),
+    }
+    if suspected_gaps:
+        placeholders = ",".join("?" * len(suspected_gaps))
+        cursor = conn.execute(
+            f"SELECT DISTINCT flag_key FROM narrative_flags WHERE flag_key IN ({placeholders})",
+            list(suspected_gaps.keys()),
+        )
+        flags_with_rows = {row["flag_key"] for row in cursor.fetchall()}
+    else:
+        flags_with_rows = set()
+    known_gaps = []
+    for flag_key, (description, impact) in suspected_gaps.items():
+        if flag_key not in flags_with_rows:
+            known_gaps.append({
+                "flag": flag_key,
+                "issue": "Never set by any code path (zero DB occurrences)",
+                "impact": impact,
+            })
+    # If all suspected gaps have been resolved, note that
+    if not known_gaps and suspected_gaps:
+        known_gaps = [{"flag": "_all_clear", "issue": "All previously flagged gaps now have DB entries", "impact": "Audit gap list fully resolved"}]
     
     return GlobalNarrativeState(
         total_characters=total_chars,
