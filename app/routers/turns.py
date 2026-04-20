@@ -408,17 +408,23 @@ def _build_world_context(
             "is_active": bool(f["is_active"]),
         })
 
-    # 7. Atmospheric overlay (mark + portent aware)
+    # 7. Atmospheric overlay (mark + portent + time-of-day aware)
     from app.services.atmosphere import get_atmospheric_description
 
-    char_data = conn.execute("SELECT mark_of_dreamer_stage FROM characters WHERE id = ?", (character_id,)).fetchone()
-    mark_stage = dict(char_data)["mark_of_dreamer_stage"] if char_data else 0
+    char_data = conn.execute("SELECT mark_of_dreamer_stage, game_hour FROM characters WHERE id = ?", (character_id,)).fetchone()
+    char_dict = dict(char_data)
+    mark_stage = char_dict["mark_of_dreamer_stage"] if char_data else 0
+    game_hour = char_dict.get("game_hour", 8) if char_data else 8
     # Use the portent index already fetched from character_fronts above
     portent_index = fronts[0]["current_portent_index"] if fronts else 0
 
-    atmosphere = get_atmospheric_description(location_id, mark_stage, portent_index)
+    atmosphere = get_atmospheric_description(location_id, mark_stage, portent_index, game_hour=game_hour, biome=loc.get("biome"))
 
+    from app.services.time_of_day import get_time_period, get_period_description, format_game_time
+    
     conn.close()
+
+    period = get_time_period(game_hour)
 
     return {
         "location": {
@@ -431,6 +437,12 @@ def _build_world_context(
             "recommended_level": loc.get("recommended_level", 1),
             "mark_influence": mark_stage,  # 0-4, lets agent calibrate tone
             "front_portent": portent_index,  # 0-7, how far the doom has advanced
+        },
+        "time": {
+            "game_hour": game_hour,
+            "game_time": format_game_time(game_hour),
+            "period": period,
+            "period_description": get_period_description(period),
         },
         "connections": connected,
         "npcs": npcs_present,

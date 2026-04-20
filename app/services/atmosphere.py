@@ -13,6 +13,7 @@ The agent receives these as structured context to narrate from.
 
 import json
 from app.services.database import get_db
+from app.services.time_of_day import get_time_atmosphere, get_time_period
 
 # ---------------------------------------------------------------------------
 # Location Atmosphere Overlays
@@ -188,18 +189,24 @@ PORTENT_WORLD_EFFECTS = {
 # Public API
 # ---------------------------------------------------------------------------
 
-def get_atmospheric_description(location_id: str, mark_stage: int, portent_index: int) -> str | None:
-    """Get the atmospheric overlay for a location based on mark stage and portent.
+def get_atmospheric_description(location_id: str, mark_stage: int, portent_index: int, game_hour: int = None, biome: str = None) -> str | None:
+    """Get the atmospheric overlay for a location based on mark stage, portent, and time of day.
     
     Returns None if no overlay applies (unmarked characters at low portents 
     in safe areas — the base description is sufficient).
     """
+    # Start with time-of-day atmosphere if game_hour provided
+    time_text = None
+    if game_hour is not None and biome:
+        time_text = get_time_atmosphere(game_hour, biome)
+    
     loc_data = _LOCATION_ATMOSPHERE.get(location_id)
     if not loc_data:
-        return None
+        return time_text
     
     # Find the most specific overlay for this mark stage
     # Try the character's actual mark stage, then fall back to lower stages
+    mark_text = None
     for stage in range(mark_stage, -1, -1):
         stage_overlays = loc_data.get(stage)
         if not stage_overlays:
@@ -207,9 +214,15 @@ def get_atmospheric_description(location_id: str, mark_stage: int, portent_index
         
         for (pmin, pmax), text in stage_overlays.items():
             if pmin <= portent_index <= pmax:
-                return text
+                mark_text = text
+                break
+        if mark_text:
+            break
     
-    return None
+    # Combine time atmosphere + mark atmosphere
+    if time_text and mark_text:
+        return f"{time_text} {mark_text}"
+    return mark_text or time_text
 
 
 def get_dream_narration(mark_stage: int, rng) -> str | None:

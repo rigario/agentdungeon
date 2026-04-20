@@ -16,6 +16,7 @@ from app.services.database import get_db
 from app.services.srd_reference import get_monsters_by_cr, ability_modifier, get_spells, _spellcasting_ability
 from app.services.key_items import add_key_item, remove_key_item, has_key_item, get_key_items
 from app.services.auth_helpers import get_auth, require_character_ownership
+from app.services.time_of_day import advance_time, get_action_time_cost, get_time_period, get_character_time, get_encounter_threshold_modifier
 
 router = APIRouter(prefix="/characters/{character_id}", tags=["actions"])
 
@@ -46,12 +47,14 @@ def _roll_dice(rng: random.Random, dice_str: str) -> int:
 
 
 def _get_character(character_id: str) -> dict:
-    """Fetch character from DB as dict."""
+    """Fetch character from DB as dict. Rejects archived characters."""
     conn = get_db()
     row = conn.execute("SELECT * FROM characters WHERE id = ?", (character_id,)).fetchone()
     conn.close()
     if not row:
         raise HTTPException(404, f"Character not found: {character_id}")
+    if row["is_archived"]:
+        raise HTTPException(403, f"Character is archived: {character_id}. Restore first.")
     return dict(row)
 
 
@@ -81,8 +84,17 @@ def _check_encounter(char: dict, location: dict, rng: random.Random) -> dict | N
     
     Special case: The Rusty Tankard dispatches the Del possession opening
     encounter on the character's very first visit, regardless of the D20 roll.
+    
+    Time-of-day: encounter threshold is modified by game_hour — night is
+    more dangerous (lower threshold = more encounters).
     """
     threshold = location.get("encounter_threshold", 10)
+    
+    # Apply time-of-day modifier to threshold
+    game_hour = char.get("game_hour", 8)
+    time_mod = get_encounter_threshold_modifier(game_hour)
+    adjusted_threshold = max(1, int(threshold * time_mod))
+    
     roll = _roll_d20(rng)
 
     # Check for the Del opening encounter at the Rusty Tankard
@@ -111,7 +123,7 @@ def _check_encounter(char: dict, location: dict, rng: random.Random) -> dict | N
                 enc["is_opening"] = True
                 return enc
 
-    if roll >= threshold:
+    if roll >= adjusted_threshold:
         return None  # Safe passage
 
     # Normal encounter selection — skip opening encounters and already-completed ones (multi-tenancy)
@@ -144,7 +156,10 @@ def _check_encounter(char: dict, location: dict, rng: random.Random) -> dict | N
     encounter["enemies"] = json.loads(encounter["enemies_json"])
     encounter["loot"] = json.loads(encounter.get("loot_json", "[]"))
     encounter["d20_roll"] = roll
-    encounter["threshold"] = threshold
+    encounter["threshold"] = adjusted_threshold
+    encounter["base_threshold"] = threshold
+    encounter["time_modifier"] = time_mod
+    encounter["game_hour"] = game_hour
 
     return encounter
 
@@ -747,6 +762,9 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
             _log_event(conn, character_id, ev["type"], location_id, ev["description"],
                        {"action": "move", "target": body.target})
 
+        # Advance game clock (1 hour for travel)
+        time_info = advance_time(character_id, get_action_time_cost("move"))
+
         conn.commit()
         conn.close()
 
@@ -762,6 +780,7 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
             },
             "encounter": result.get("encounter"),
             "combat": result.get("combat"),
+            "time_info": time_info,
         }
 
     elif body.action_type == "attack":
@@ -874,6 +893,9 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
             _log_event(conn, character_id, ev["type"], location_id, ev["description"],
                        {"action": "attack", "encounter": encounter.get("name")})
 
+        # Advance game clock (30 min for combat)
+        time_info = advance_time(character_id, get_action_time_cost("attack"))
+
         conn.commit()
         conn.close()
 
@@ -896,6 +918,7 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
                 "location_id": char["location_id"],
             },
             "combat": combat_result,
+            "time_info": time_info,
         }
 
     elif body.action_type == "cast":
@@ -1164,6 +1187,9 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
                     (json.dumps(slots), character_id),
                 )
 
+        # Advance game clock (10 min for casting)
+        time_info = advance_time(character_id, 10)
+
         conn.commit()
         conn.close()
 
@@ -1175,6 +1201,7 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
                 "hp": {"current": new_hp if 'new_hp' in dir() else char["hp_current"], "max": char["hp_max"]},
                 "location_id": char["location_id"],
             },
+            "time_info": time_info,
         }
 
     elif body.action_type == "rest":
@@ -1246,6 +1273,10 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
         _log_event(conn, character_id, "rest", location_id, result["events"][0]["description"],
                    {"action": "rest", "type": rest_type})
 
+        # Advance game clock (1h short rest / 8h long rest)
+        rest_minutes = get_action_time_cost("rest_long") if rest_type == "long" else get_action_time_cost("rest_short")
+        time_info = advance_time(character_id, rest_minutes)
+
         conn.commit()
         conn.close()
 
@@ -1257,6 +1288,7 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
                 "hp": {"current": new_hp, "max": char["hp_max"]},
                 "location_id": char["location_id"],
             },
+            "time_info": time_info,
         }
 
     elif body.action_type == "explore":
@@ -1294,6 +1326,9 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
 
         _log_event(conn, character_id, "explore", location_id, narration, {"roll": roll})
 
+        # Advance game clock (30 min for exploration)
+        time_info = advance_time(character_id, get_action_time_cost("explore"))
+
         conn.commit()
         conn.close()
 
@@ -1305,6 +1340,7 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
                 "hp": {"current": char["hp_current"], "max": char["hp_max"]},
                 "location_id": char["location_id"],
             },
+            "time_info": time_info,
         }
 
     elif body.action_type == "interact":
@@ -1379,6 +1415,9 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
                    f"You speak with {npc['name']}. {dialogue}",
                    {"npc_id": npc["id"], "npc_name": npc["name"]})
 
+        # Advance game clock (15 min for NPC interaction)
+        time_info = advance_time(character_id, get_action_time_cost("interact"))
+
         conn.commit()
         conn.close()
 
@@ -1391,6 +1430,7 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
                 "location_id": char["location_id"],
             },
             "npc": {"name": npc["name"], "archetype": npc["archetype"], "trades": json.loads(npc.get("trades_json", "[]"))},
+            "time_info": time_info,
         }
 
         # Include clue reward info if one was applied
@@ -1626,6 +1666,234 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
             },
         }
 
+    elif body.action_type == "quest":
+        # ---------------------------------------------------------------
+        # Quest acceptance and completion — quest state tracking per character
+        # ---------------------------------------------------------------
+        quest_action = (body.details or {}).get("action", "accept")
+        quest_id = body.target
+
+        if quest_action == "accept":
+            if not quest_id:
+                conn.close()
+                raise HTTPException(400, "Quest accept requires 'target' (quest ID). Use a quest ID from an NPC's quests_json.")
+
+            # Look up quest definition from NPCs
+            conn2 = get_db()
+            npcs_with_quests = conn2.execute(
+                "SELECT id, name, quests_json FROM npcs WHERE is_quest_giver = 1"
+            ).fetchall()
+            conn2.close()
+
+            quest_def = None
+            quest_giver = None
+            for npc_row in npcs_with_quests:
+                quests = json.loads(npc_row["quests_json"]) if npc_row["quests_json"] else []
+                for q in quests:
+                    if q.get("id") == quest_id:
+                        quest_def = q
+                        quest_giver = {"id": npc_row["id"], "name": npc_row["name"]}
+                        break
+                if quest_def:
+                    break
+
+            if not quest_def:
+                conn.close()
+                raise HTTPException(404, f"Quest not found: {quest_id}. Known quests: quest_clear_ritual_site, quest_moonpetal, quest-save-drenna-child")
+
+            # Check if already accepted or completed
+            existing = conn.execute(
+                "SELECT status FROM character_quests WHERE character_id = ? AND quest_id = ?",
+                (character_id, quest_id)
+            ).fetchone()
+
+            if existing:
+                status = existing["status"]
+                conn.close()
+                return {
+                    "success": False,
+                    "narration": f"You've already {'completed' if status == 'completed' else 'accepted'} this quest: {quest_def['title']}.",
+                    "events": [],
+                    "character_state": {
+                        "hp": {"current": char["hp_current"], "max": char["hp_max"]},
+                        "location_id": char["location_id"],
+                    },
+                    "quest": {"id": quest_id, "title": quest_def["title"], "status": status},
+                }
+
+            # Insert quest record
+            conn.execute(
+                """INSERT INTO character_quests
+                   (character_id, quest_id, quest_title, quest_description,
+                    giver_npc_id, giver_npc_name, status, reward_xp, reward_gold, reward_item)
+                   VALUES (?, ?, ?, ?, ?, ?, 'accepted', ?, ?, ?)""",
+                (character_id, quest_id, quest_def["title"], quest_def.get("description", ""),
+                 quest_giver["id"], quest_giver["name"],
+                 quest_def.get("reward_xp", 0), quest_def.get("reward_gold", 0),
+                 quest_def.get("reward_item"))
+            )
+
+            # Set narrative flag for quest acceptance
+            conn.execute(
+                """INSERT INTO narrative_flags (character_id, flag_key, flag_value, source)
+                   VALUES (?, ?, '1', 'quest_accepted')
+                   ON CONFLICT(character_id, flag_key) DO NOTHING""",
+                (character_id, f"quest_accepted_{quest_id}")
+            )
+
+            _log_event(conn, character_id, "quest_accepted", location_id,
+                       f"Quest accepted: {quest_def['title']} (from {quest_giver['name']})",
+                       {"quest_id": quest_id, "quest_title": quest_def["title"],
+                        "giver": quest_giver["name"], "reward_xp": quest_def.get("reward_xp", 0)})
+
+            conn.commit()
+            conn.close()
+
+            narration = (
+                f"You accept the quest from {quest_giver['name']}: \"{quest_def['title']}\". "
+                f"{quest_def.get('description', '')}"
+            )
+            if quest_def.get("reward_xp"):
+                narration += f" Reward: {quest_def['reward_xp']} XP"
+            if quest_def.get("reward_gold"):
+                narration += f", {quest_def['reward_gold']} gold"
+            if quest_def.get("reward_item"):
+                narration += f", {quest_def['reward_item']}"
+
+            return {
+                "success": True,
+                "narration": narration,
+                "events": [{"type": "quest_accepted", "quest_id": quest_id,
+                            "quest_title": quest_def["title"], "giver": quest_giver["name"]}],
+                "character_state": {
+                    "hp": {"current": char["hp_current"], "max": char["hp_max"]},
+                    "location_id": char["location_id"],
+                },
+                "quest": {"id": quest_id, "title": quest_def["title"], "status": "accepted",
+                          "reward_xp": quest_def.get("reward_xp", 0),
+                          "reward_gold": quest_def.get("reward_gold", 0)},
+            }
+
+        elif quest_action == "complete":
+            if not quest_id:
+                conn.close()
+                raise HTTPException(400, "Quest complete requires 'target' (quest ID).")
+
+            # Check if quest is accepted
+            quest_row = conn.execute(
+                "SELECT * FROM character_quests WHERE character_id = ? AND quest_id = ? AND status = 'accepted'",
+                (character_id, quest_id)
+            ).fetchone()
+
+            if not quest_row:
+                conn.close()
+                raise HTTPException(404, f"No active quest found: {quest_id}. Accept the quest first.")
+
+            quest_row = dict(quest_row)
+
+            # Mark quest as completed
+            conn.execute(
+                """UPDATE character_quests
+                   SET status = 'completed', completed_at = CURRENT_TIMESTAMP
+                   WHERE character_id = ? AND quest_id = ?""",
+                (character_id, quest_id)
+            )
+
+            # Set narrative flag for quest completion
+            conn.execute(
+                """INSERT INTO narrative_flags (character_id, flag_key, flag_value, source)
+                   VALUES (?, ?, '1', 'quest_completed')
+                   ON CONFLICT(character_id, flag_key) DO UPDATE SET flag_value = '1'""",
+                (character_id, f"quest_completed_{quest_id}")
+            )
+
+            # Award XP
+            xp_reward = quest_row["reward_xp"]
+            if xp_reward > 0:
+                new_xp = char["xp"] + xp_reward
+                conn.execute("UPDATE characters SET xp = ? WHERE id = ?", (new_xp, character_id))
+
+            # Award gold
+            gold_reward = quest_row["reward_gold"]
+            if gold_reward > 0:
+                current_gold = json.loads(char.get("treasure_json", '{"gp":0}')).get("gp", 0)
+                conn.execute(
+                    "UPDATE characters SET treasure_json = ? WHERE id = ?",
+                    (json.dumps({"gp": current_gold + gold_reward, "sp": 0, "cp": 0, "pp": 0, "ep": 0}),
+                     character_id)
+                )
+
+            _log_event(conn, character_id, "quest_completed", location_id,
+                       f"Quest completed: {quest_row['quest_title']} (XP +{xp_reward}, Gold +{gold_reward})",
+                       {"quest_id": quest_id, "quest_title": quest_row["quest_title"],
+                        "xp_reward": xp_reward, "gold_reward": gold_reward})
+
+            conn.commit()
+            conn.close()
+
+            narration = f"Quest completed: {quest_row['quest_title']}!"
+            rewards = []
+            if xp_reward > 0:
+                rewards.append(f"+{xp_reward} XP")
+            if gold_reward > 0:
+                rewards.append(f"+{gold_reward} gold")
+            if quest_row.get("reward_item"):
+                rewards.append(quest_row["reward_item"])
+            if rewards:
+                narration += f" Rewards: {', '.join(rewards)}."
+
+            return {
+                "success": True,
+                "narration": narration,
+                "events": [{"type": "quest_completed", "quest_id": quest_id,
+                            "quest_title": quest_row["quest_title"],
+                            "xp_reward": xp_reward, "gold_reward": gold_reward}],
+                "character_state": {
+                    "hp": {"current": char["hp_current"], "max": char["hp_max"]},
+                    "location_id": char["location_id"],
+                    "xp": char["xp"] + xp_reward,
+                },
+                "quest": {"id": quest_id, "title": quest_row["quest_title"], "status": "completed",
+                          "xp_reward": xp_reward, "gold_reward": gold_reward},
+            }
+
+        elif quest_action == "list":
+            # List all quests for this character
+            quests = conn.execute(
+                "SELECT * FROM character_quests WHERE character_id = ? ORDER BY accepted_at DESC",
+                (character_id,)
+            ).fetchall()
+            conn.close()
+
+            quest_list = []
+            for q in quests:
+                q = dict(q)
+                quest_list.append({
+                    "quest_id": q["quest_id"],
+                    "title": q["quest_title"],
+                    "status": q["status"],
+                    "giver": q["giver_npc_name"],
+                    "reward_xp": q["reward_xp"],
+                    "reward_gold": q["reward_gold"],
+                    "accepted_at": q["accepted_at"],
+                    "completed_at": q["completed_at"],
+                })
+
+            return {
+                "success": True,
+                "narration": f"You have {len(quest_list)} quest(s). " +
+                             "; ".join(f"{q['title']} ({q['status']})" for q in quest_list) if quest_list else "You have no active quests.",
+                "events": [],
+                "character_state": {
+                    "hp": {"current": char["hp_current"], "max": char["hp_max"]},
+                    "location_id": char["location_id"],
+                },
+                "quests": quest_list,
+            }
+        else:
+            conn.close()
+            raise HTTPException(400, f"Unknown quest action: {quest_action}. Valid: accept, complete, list")
+
     else:
         conn.close()
-        raise HTTPException(400, f"Unknown action type: {body.action_type}. Valid: move, attack, cast, rest, explore, interact, puzzle")
+        raise HTTPException(400, f"Unknown action type: {body.action_type}. Valid: move, attack, cast, rest, explore, interact, puzzle, quest")
