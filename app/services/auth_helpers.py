@@ -65,15 +65,17 @@ def require_character_ownership(character_id: str, auth: dict, allow_agent: bool
 
 
 def check_character_exists(character_id: str) -> dict:
-    """Verify a character exists and return its row as dict.
+    """Verify a character exists and is not archived, return its row as dict.
 
-    Raises 404 if not found.
+    Raises 404 if not found, 403 if archived.
     """
     conn = get_db()
     try:
         row = conn.execute("SELECT * FROM characters WHERE id = ?", (character_id,)).fetchone()
         if not row:
             raise HTTPException(404, f"Character not found: {character_id}")
+        if row["is_archived"]:
+            raise HTTPException(403, f"Character is archived: {character_id}. Restore first.")
         return dict(row)
     finally:
         conn.close()

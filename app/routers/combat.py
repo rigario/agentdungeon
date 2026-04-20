@@ -62,6 +62,8 @@ def _get_char(cid: str) -> dict:
     conn.close()
     if not row:
         raise HTTPException(404, f"Character not found: {cid}")
+    if row["is_archived"]:
+        raise HTTPException(403, f"Character is archived: {cid}. Restore first.")
     return dict(row)
 
 

@@ -1,0 +1,247 @@
+[
+  {
+    "name": "npc-aldric",
+    "prompt": "D&D fantasy innkeeper: Aldric, a round tired middle-aged man with a receding hairline, perpetually wiping a mug, standing behind a worn wooden bar counter in a warm tavern, candlelit, modest clothes with a stained apron, nervous eyes, medieval fantasy, portrait style",
+    "preset": "snes",
+    "block": 2,
+    "genre": "npc"
+  },
+  {
+    "name": "npc-ser-maren",
+    "prompt": "D&D fantasy guard captain: Ser Maren, a stern battle-scarred woman in chainmail armor, short gray hair, weary face with deep lines, standing guard beside a stone hand statue in a town square at dusk, hand on sword hilt, watchful and tired, medieval fantasy portrait",
+    "preset": "snes",
+    "block": 2,
+    "genre": "npc"
+  },
+  {
+    "name": "npc-marta",
+    "prompt": "D&D fantasy merchant woman: Marta, a shrewd observant woman in her 40s with sharp eyes, wearing practical merchant clothes and a coin purse at her belt, standing at a market stall with adventuring supplies, calculating expression, autumn market square background, medieval fantasy portrait",
+    "preset": "snes",
+    "block": 2,
+    "genre": "npc"
+  },
+  {
+    "name": "npc-kira",
+    "prompt": "D&D fantasy wagon master: Kira, a tough practical woman in traveling clothes, leather vest and dust-covered boots, standing beside a broken wagon wheel on a dusty road, thick brush on either side, sunset light, frontier trader look, medieval fantasy portrait",
+    "preset": "snes",
+    "block": 2,
+    "genre": "npc"
+  },
+  {
+    "name": "npc-sister-drenna",
+    "prompt": "D&D fantasy cultist with doubt: Sister Drenna, a worried woman in her 30s wearing a hooded brown robe with a faint eye symbol, torn between fear and hope, standing at a crossroads signpost at twilight, one hand on her marked forearm, anxious expression, medieval fantasy portrait",
+    "preset": "snes",
+    "block": 2,
+    "genre": "npc"
+  },
+  {
+    "name": "npc-dels-spirit",
+    "prompt": "D&D ghostly apparition: Del's Spirit, a translucent ghostly young man with a pained expression, ethereal blue-white glow, floating in a dimly lit tavern room, reaching out with one hand, psychic impression of a dead traveler, eerie and sad, dark fantasy",
+    "preset": "snes",
+    "block": 2,
+    "genre": "npc"
+  },
+  {
+    "name": "npc-torren",
+    "prompt": "D&D fantasy mountain hunter: Torren, a gruff scarred mountain man with a thick beard, wearing leather and fur, carrying a shortbow, standing on a rocky mountain pass with wind howling, craggy peaks behind him, survivalist look, medieval fantasy portrait",
+    "preset": "snes",
+    "block": 2,
+    "genre": "npc"
+  },
+  {
+    "name": "enc-hollow-eye-road",
+    "prompt": "D&D dark fantasy encounter: three masked figures in hooded robes stepping from roadside brush on a dusty merchant road, one aiming a crossbow, two chanting low, milestone stones scratched with sigils, tense twilight, dark fantasy RPG encounter art",
+    "preset": "snes",
+    "block": 2,
+    "genre": "encounter"
+  },
+  {
+    "name": "enc-starving-wolves",
+    "prompt": "D&D encounter: two thin starving wolves with visible ribs, emerging from dark undergrowth on a forest road, yellow fearful eyes, driven from deep forest, desperate and cornered, moody dark fantasy RPG art",
+    "preset": "snes",
+    "block": 2,
+    "genre": "encounter"
+  },
+  {
+    "name": "enc-goblin-scouts",
+    "prompt": "D&D encounter: three green goblins dropping from tree canopy with scimitars, one holding a small mirror for signaling, shrill laughter, dark forest edge background, sneaky and organized, dark fantasy RPG encounter art",
+    "preset": "snes",
+    "block": 2,
+    "genre": "encounter"
+  },
+  {
+    "name": "enc-stirring-dead",
+    "prompt": "D&D encounter: skeletal hands clawing free from earth near a massive fallen oak in a dark forest, amber flicker in empty eye sockets, four confused shambling skeletons, one wearing rusted green cloak remains, eerie dark fantasy encounter art",
+    "preset": "snes",
+    "block": 2,
+    "genre": "encounter"
+  },
+  {
+    "name": "enc-cave-zombies",
+    "prompt": "D&D encounter: lurching figures in torn dark robes emerging from a cave darkness, Hollow Eye symbols on their backs, whispering in pain, amber-eyed zombies once human, underground cavern with moss, horror dark fantasy encounter art",
+    "preset": "snes",
+    "block": 2,
+    "genre": "encounter"
+  },
+  {
+    "name": "enc-corrupted-spider",
+    "prompt": "D&D encounter: a massive giant spider descending from a cave ceiling, swollen and corrupted, far larger than normal, thick webs draped over bones on the cavern floor, fangs dripping with venom, amber-lit underground chamber, dark fantasy encounter art",
+    "preset": "snes",
+    "block": 2,
+    "genre": "encounter"
+  },
+  {
+    "name": "enc-breaking-rite",
+    "prompt": "D&D climactic encounter: Brother Kol in hooded robes standing before a glowing cracked seal stone in a cave, arms raised with ritual dagger, two kneeling cultists chanting, amber cracks glowing brighter in the stone, underground ritual chamber, dark fantasy boss encounter art",
+    "preset": "snes",
+    "block": 2,
+    "genre": "encounter"
+  },
+  {
+    "name": "enc-toll-collector",
+    "prompt": "D&D encounter: Garrick the Scarred, a heavy-set scarred bandit captain sitting on an overturned cart counting coins, longsword at his side, two bandit thugs behind him, dusty road with milestone stones, mercenary road toll, dark fantasy encounter art",
+    "preset": "snes",
+    "block": 2,
+    "genre": "encounter"
+  },
+  {
+    "name": "enc-withered-grove",
+    "prompt": "D&D encounter: Thessaly the dryad, a beautiful desperate woman half-merged with a dying oak tree, bark peeling leaves blackened, vines lashing out, corrupted forest grove with dead trees, pleading yet dangerous, dark fantasy encounter art",
+    "preset": "snes",
+    "block": 2,
+    "genre": "encounter"
+  },
+  {
+    "name": "enc-merchant-ghost",
+    "prompt": "D&D encounter: translucent specter of a merchant in fine robed clothes rising from a half-sunk cart at a crossroads, skeletal in death, ghostly blue-white glow, abandoned goods scattered, eerie dark fantasy encounter art",
+    "preset": "snes",
+    "block": 2,
+    "genre": "encounter"
+  },
+  {
+    "name": "enc-old-root",
+    "prompt": "D&D encounter: the Old Root, an ancient treant half-trunk half-creature, massive tree splitting open to reveal a walking tree being, groaning with centuries of age, deep dark Whisperwood forest background, testing all who pass, dark fantasy encounter art",
+    "preset": "arcade",
+    "block": 2,
+    "genre": "encounter"
+  },
+  {
+    "name": "enc-stonefist",
+    "prompt": "D&D encounter: Stonefist, a massive hill giant sitting on a rocky mountain pass, hurling boulders at cliff faces for fun, grinning broadly, snowy craggy peaks and howling wind, territorial but bribeable, dark fantasy encounter art",
+    "preset": "arcade",
+    "block": 2,
+    "genre": "encounter"
+  },
+  {
+    "name": "enc-eye-stalker",
+    "prompt": "D&D cosmic horror encounter: a Gibbering Mouther, a horrifying mass of mouths and eyes covering a dark cave wall, all eyes blinking in unison, mouths whispering names, amorphous blob of flesh and eyes, dark cave entrance, eldritch dark fantasy horror encounter art",
+    "preset": "neon",
+    "block": 2,
+    "genre": "encounter"
+  },
+  {
+    "name": "enc-moonpetal-warden",
+    "prompt": "D&D encounter: the Warden of Petals, a humanoid shape made of twisting roots and bark forming from the base of a tall stone monolith, no face but clear purpose, surrounded by pale blue-white moonpetal flowers in a ring of standing stones, moonlit forest glade, ancient guardian, dark fantasy encounter art",
+    "preset": "snes",
+    "block": 2,
+    "genre": "encounter"
+  },
+  {
+    "name": "enc-orc-refugees",
+    "prompt": "D&D encounter: two gaunt gray-skinned orcs on a mountain path, one carrying a child-sized pack, war horns sounding long distress calls, desperate refugees not raiders, rocky pass with sheer drops, wind and snow, dark fantasy encounter art",
+    "preset": "snes",
+    "block": 2,
+    "genre": "encounter"
+  },
+  {
+    "name": "loc-rusty-tankard",
+    "prompt": "D&D fantasy location: interior of The Rusty Tankard inn, warm hearth fire, worn wooden tables and low ceilings, hanging lanterns, a bar counter with mugs, room 3 corner on the second floor visible, cozy but uneasy medieval tavern, dark fantasy RPG location art",
+    "preset": "arcade",
+    "block": 2,
+    "genre": "location"
+  },
+  {
+    "name": "loc-south-road",
+    "prompt": "D&D fantasy location: a dusty merchant road running through hilly terrain with thick brush on both sides, wagon ruts in the dirt, occasional milestone stones scratched with eye sigils, bandit territory, late afternoon, dark fantasy RPG location art",
+    "preset": "arcade",
+    "block": 2,
+    "genre": "location"
+  },
+  {
+    "name": "loc-crossroads",
+    "prompt": "D&D fantasy location: a weathered signpost at a junction of three roads, an abandoned merchant cart half-sunk in mud, eerie silence, crossroads at twilight, danger signs on the post, dark fantasy RPG location art",
+    "preset": "arcade",
+    "block": 2,
+    "genre": "location"
+  },
+  {
+    "name": "loc-deep-whisperwood",
+    "prompt": "D&D fantasy location: deep dark enchanted forest with closed canopy blocking light, strange glowing fungi on rotting logs, barely visible trail, claw marks on bark, large clean-picked bones at base of great oak, ominous and ancient, dark fantasy RPG location art",
+    "preset": "arcade",
+    "block": 2,
+    "genre": "location"
+  },
+  {
+    "name": "loc-greypeak-pass",
+    "prompt": "D&D fantasy location: a narrow rocky mountain pass climbing into grey peaks, howling wind between crags, loose scree and sheer drops, treacherous mountain path, snow dusting, dramatic vertical cliffs, dark fantasy RPG location art",
+    "preset": "arcade",
+    "block": 2,
+    "genre": "location"
+  },
+  {
+    "name": "loc-cave-entrance",
+    "prompt": "D&D fantasy location: a dark cave mouth in a moss-covered hillside, half-hidden by ferns, cold air flowing out, bones scattered near the entrance, carved Hollow Eye sigils on the walls, fork in the passage visible inside, ominous dungeon entrance, dark fantasy RPG location art",
+    "preset": "arcade",
+    "block": 2,
+    "genre": "location"
+  },
+  {
+    "name": "loc-moonpetal-glade",
+    "prompt": "D&D fantasy location: a ring of tall standing stones around a central monolith twice the height, covered in ancient worn carvings, clusters of pale blue-white luminous moonpetal flowers at the base, air smells of ozone and honey, moonlit forest clearing, mystical ancient place, dark fantasy RPG location art",
+    "preset": "arcade",
+    "block": 2,
+    "genre": "location"
+  },
+  {
+    "name": "item-mark-of-dreamer",
+    "prompt": "D&D fantasy item close-up: a glowing amber sigil branded on a forearm, the Mark of the Dreamer, intricate eye-and-hand symbol burning with faint amber light on human skin, magical brand, dark fantasy item art, centered composition on dark background",
+    "preset": "neon",
+    "block": 2,
+    "genre": "item"
+  },
+  {
+    "name": "item-dels-signet-ring",
+    "prompt": "D&D fantasy item close-up: a plain copper signet ring with scratched letters HE inside, worn and tarnished, sitting on a wooden table with tavern candlelight, simple but significant item, dark fantasy item art, centered composition",
+    "preset": "snes",
+    "block": 2,
+    "genre": "item"
+  },
+  {
+    "name": "item-kols-ritual-dagger",
+    "prompt": "D&D fantasy item close-up: a copper ritual dagger with etched Mark of the Dreamer symbols on the blade, used for marking rituals, lying on dark stone, amber reflection on the metal, sinister cult weapon, dark fantasy item art, centered composition",
+    "preset": "snes",
+    "block": 2,
+    "genre": "item"
+  },
+  {
+    "name": "item-moonpetal-bundle",
+    "prompt": "D&D fantasy item close-up: three pale blue-white luminous moonpetal flowers bundled together, faintly warm and glowing, sitting on mossy stone, magical healing flowers, ethereal soft light, dark fantasy item art, centered composition",
+    "preset": "snes",
+    "block": 2,
+    "genre": "item"
+  },
+  {
+    "name": "item-hollow-eye-sigil",
+    "prompt": "D&D fantasy item close-up: a small iron stylus used for scratching eye sigils on milestone stones, crude but purposeful, lying on a dusty road, Hollow Eye cult marking tool, dark fantasy item art, centered composition",
+    "preset": "snes",
+    "block": 2,
+    "genre": "item"
+  },
+  {
+    "name": "item-eye-stalker-core",
+    "prompt": "D&D fantasy item close-up: a crystallized eye, glassy and amber-colored, slightly luminous, a weird magical artifact from an eldritch creature, sitting on dark cavern stone, cosmic horror item art, centered composition",
+    "preset": "neon",
+    "block": 2,
+    "genre": "item"
+  }
+]

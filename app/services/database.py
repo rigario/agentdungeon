@@ -344,6 +344,34 @@ def init_db():
             FOREIGN KEY (character_id) REFERENCES characters(id),
             UNIQUE(character_id, quest_id)
         );
+
+        -- =========================================================
+        -- PLAYTEST CADENCE (accelerated tick mode)
+        -- =========================================================
+
+        -- Global playtest configuration (single row, id=1)
+        CREATE TABLE IF NOT EXISTS playtest_config (
+            id INTEGER PRIMARY KEY DEFAULT 1,
+            cadence_mode TEXT DEFAULT 'normal',  -- 'normal' | 'playtest'
+            tick_interval_seconds INTEGER DEFAULT 180,
+            doom_ticks_per_portent INTEGER DEFAULT 3,
+            is_active INTEGER DEFAULT 0,
+            total_ticks INTEGER DEFAULT 0,
+            last_tick_at TIMESTAMP,
+            started_at TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- Per-character doom clock (tick counter for playtest cadence)
+        CREATE TABLE IF NOT EXISTS doom_clock (
+            character_id TEXT PRIMARY KEY,
+            total_ticks INTEGER DEFAULT 0,
+            portents_triggered INTEGER DEFAULT 0,
+            last_tick_at TIMESTAMP,
+            is_active INTEGER DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (character_id) REFERENCES characters(id)
+        );
     """)
     conn.commit()
     conn.close()

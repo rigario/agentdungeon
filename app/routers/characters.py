@@ -293,14 +293,17 @@ def list_characters(include_archived: bool = Query(False, description="Include a
 
 
 @router.get("/{character_id}", response_model=CharacterResponse)
-def get_character(character_id: str):
-    """Get character state in community-compatible format."""
+def get_character(character_id: str, include_archived: bool = Query(False, description="Include archived characters")):
+    """Get character state in community-compatible format. Archived excluded by default."""
     conn = get_db()
     row = conn.execute("SELECT * FROM characters WHERE id = ?", (character_id,)).fetchone()
     conn.close()
 
     if not row:
         raise HTTPException(404, f"Character not found: {character_id}")
+
+    if row["is_archived"] and not include_archived:
+        raise HTTPException(404, f"Character is archived: {character_id}. Use POST /characters/{character_id}/restore to recover.")
 
     return _row_to_response(row)
 
