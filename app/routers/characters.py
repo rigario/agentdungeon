@@ -533,9 +533,29 @@ def delete_character(character_id: str):
         (character_id, f"{existing['name']} has been archived.")
     )
 
+    # Cascade delete child rows before deleting character (FK constraints use NO ACTION)
+    child_tables = [
+        "character_encounter_history",
+        "character_fronts",
+        "character_items",
+        "event_log",
+        "narrative_flags",
+        "turn_results",
+    ]
+    for table in child_tables:
+        conn.execute(f"DELETE FROM {table} WHERE character_id = ?", (character_id,))
+
+    # Clean up combats (and their participants) referencing this character
+    combat_ids = [r[0] for r in conn.execute("SELECT id FROM combats WHERE character_id = ?", (character_id,)).fetchall()]
+    for cid in combat_ids:
+        conn.execute("DELETE FROM combat_participants WHERE combat_id = ?", (cid,))
+    conn.execute("DELETE FROM combats WHERE character_id = ?", (character_id,))
+
     conn.execute("DELETE FROM characters WHERE id = ?", (character_id,))
     conn.commit()
     conn.close()
+
+    return {"deleted": True, "character_id": character_id}
 
 
 @router.get("/{character_id}/key-items")
