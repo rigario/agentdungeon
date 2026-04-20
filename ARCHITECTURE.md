@@ -2,6 +2,13 @@
 
 ## System Overview
 
+Current implementation status:
+- **Server/referee is real and running** — rules, state, combat, turn simulation, fronts, flags, and `world_context` are implemented.
+- **DM-compatible payloads are real and running** — the turn engine already returns `narrative`, `asks`, `world_context`, `decision_log`, and `combat_log`.
+- **Standalone DM runtime is NOT yet built** — there is no separate service/process in this repo that accepts player input, calls the correct server routes, maintains scene/session continuity, and returns the final narrated payload.
+
+See `DM-RUNTIME-ARCHITECTURE.md` for the implementation-facing target design.
+
 Three independent entities that never mix responsibilities:
 
 ```

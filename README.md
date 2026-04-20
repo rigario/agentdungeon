@@ -118,10 +118,25 @@ All content stays fully licensed and attributed.
 - [x] NPC system with flag-gated dialogue
 - [x] Transparent combat engine (every roll logged)
 - [x] Turn engine with decision points
-- [ ] XP rewards from combat
+- [x] Basic player-facing narrative payload (`narrative` + `asks` + `world_context`)
+- [ ] Unified progression rewards across all execution paths
 - [ ] SRD feat definitions and validation
 - [ ] Spell list validation on level-up
-- [ ] DM agent implementation
+- [ ] Standalone DM runtime implementation (server-side DM context exists; separate storyteller runtime does not)
+
+## DM Runtime Status
+
+Current reality:
+- The server already produces DM-facing material through `turn_results`: `narrative`, `asks`, `world_context`, `decision_log`, and `combat_log`.
+- The server also enforces a `scope_contract` inside `world_context` so the future DM runtime cannot invent off-contract entities.
+- There is **not yet** a separate DM runtime/service that accepts player input, routes to the correct server API, maintains scene continuity, and returns the final narrated payload.
+
+Target split:
+- **Server** — authoritative rules, state, rolls, fronts, flags, and `world_context`
+- **DM Runtime** — narration, NPC voice, pacing, choice framing, session continuity
+- **Player Agent/Human** — intent + approvals
+
+See `DM-RUNTIME-ARCHITECTURE.md` for the current-vs-target gap and proposed implementation path.
 
 **Phase 2 — Async Narrative Crossovers** (planned)
 - Shared world map with multiple characters

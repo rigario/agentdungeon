@@ -10,6 +10,7 @@ from app.services.database import init_db
 from app.services.auth_middleware import AuthMiddleware
 from app.routers import health, characters, events, actions, combat, turns, narrative, items, auth, npcs, map as map_router
 from app.routers.combat import approval_router
+from app.routers import narrative_introspect
 
 
 @asynccontextmanager
@@ -79,6 +80,7 @@ app.include_router(items.router)
 app.include_router(npcs.router)
 app.include_router(auth.router)
 app.include_router(map_router.router)
+app.include_router(narrative_introspect.router, prefix="/narrative-introspect", tags=["narrative-introspect"])
 
 
 if __name__ == "__main__":

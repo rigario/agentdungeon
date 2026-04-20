@@ -1,12 +1,80 @@
 services:
-  d20-server:
-    build: .
-    container_name: rigario-d20
+  d20-rules-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: d20-rules-server
     ports:
-      - "8600:8600"
+      - '127.0.0.1:8600:8600'
     volumes:
-      - ./data:/app/data
+      - d20-data:/app/data
     environment:
-      - D20_DB_PATH=/app/data/d20.db
-      - D20_PORT=8600
+      - 'D20_DB_PATH=/app/data/d20.db'
+      - 'D20_PORT=8600'
+      - 'D20_HOST=0.0.0.0'
+      - 'D20_RNG_SEED=rigario-d20'
+    networks:
+      - d20-net
+      - coolify
+    healthcheck:
+      test: 'python -c "import urllib.request; urllib.request.urlopen(\"http://localhost:8600/health\")"'
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     restart: unless-stopped
+
+  d20-redis:
+    image: redis:7-alpine
+    container_name: d20-redis
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+    volumes:
+      - d20-redis-data:/data
+    networks:
+      - d20-net
+    healthcheck:
+      test: 'redis-cli ping'
+      interval: 15s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+  d20-dm-runtime:
+    build:
+      context: ./dm-runtime
+      dockerfile: Dockerfile
+    container_name: d20-dm-runtime
+    ports:
+      - '127.0.0.1:8610:8610'
+    environment:
+      - 'DM_PORT=8610'
+      - 'DM_HOST=0.0.0.0'
+      - 'DM_RULES_SERVER_URL=http://d20-rules-server:8600'
+      - 'DM_REDIS_URL=redis://d20-redis:6379/0'
+    networks:
+      - d20-net
+      - coolify
+    depends_on:
+      d20-rules-server:
+        condition: service_healthy
+      d20-redis:
+        condition: service_healthy
+    healthcheck:
+      test: 'python -c "import urllib.request; urllib.request.urlopen(\"http://localhost:8610/dm/health\")"'
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
+networks:
+  d20-net:
+    driver: bridge
+  coolify:
+    external: true
+
+volumes:
+  d20-data:
+    driver: local
+  d20-redis-data:
+    driver: local
