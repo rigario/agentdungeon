@@ -132,6 +132,8 @@ class CharacterResponse(BaseModel):
     location_id: Optional[str] = None
     approval_config: dict = {}
     aggression_slider: int = 50
+    is_archived: bool = False
+    archived_at: Optional[str] = None
     provenance: Provenance = Provenance()
 
 

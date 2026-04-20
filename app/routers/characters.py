@@ -7,7 +7,7 @@ community-compatible format for maximum portability.
 import json
 import hashlib
 import uuid
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends, Request, Query
 from pydantic import BaseModel
 from typing import Optional
 from app.services.key_items import get_key_items, has_key_item
@@ -46,6 +46,8 @@ def _row_to_response(row) -> dict:
         sheet["location_id"] = d["location_id"]
         sheet["approval_config"] = json.loads(d.get("approval_config", "{}"))
         sheet["aggression_slider"] = d.get("aggression_slider", 50)
+        sheet["is_archived"] = bool(d.get("is_archived", 0))
+        sheet["archived_at"] = d.get("archived_at")
         # Preserve data_source from sheet, add signature/created_at from DB
         if "provenance" not in sheet:
             sheet["provenance"] = {}
@@ -82,6 +84,8 @@ def _row_to_response(row) -> dict:
         "location_id": d["location_id"],
         "approval_config": json.loads(d.get("approval_config", "{}")),
         "aggression_slider": d.get("aggression_slider", 50),
+        "is_archived": bool(d.get("is_archived", 0)),
+        "archived_at": d.get("archived_at"),
         "provenance": {
             "created_at": d.get("created_at", ""),
             "signature": d.get("sheet_signature", ""),
@@ -277,10 +281,13 @@ def create_character(
 
 
 @router.get("", response_model=list[CharacterResponse])
-def list_characters():
-    """List all characters in community-compatible format."""
+def list_characters(include_archived: bool = Query(False, description="Include archived characters")):
+    """List all characters in community-compatible format. Archived excluded by default."""
     conn = get_db()
-    rows = conn.execute("SELECT * FROM characters ORDER BY created_at DESC").fetchall()
+    if include_archived:
+        rows = conn.execute("SELECT * FROM characters ORDER BY created_at DESC").fetchall()
+    else:
+        rows = conn.execute("SELECT * FROM characters WHERE is_archived = 0 ORDER BY created_at DESC").fetchall()
     conn.close()
     return [_row_to_response(row) for row in rows]
 
@@ -519,7 +526,7 @@ def level_up_character(character_id: str, choices: dict):
 
 @router.delete("/{character_id}")
 def delete_character(character_id: str):
-    """Soft-delete a character (archive)."""
+    """Soft-delete a character (archive). Character data is preserved for recovery."""
     conn = get_db()
 
     existing = conn.execute("SELECT * FROM characters WHERE id = ?", (character_id,)).fetchone()
@@ -527,35 +534,61 @@ def delete_character(character_id: str):
         conn.close()
         raise HTTPException(404, f"Character not found: {character_id}")
 
+    if existing["is_archived"]:
+        conn.close()
+        raise HTTPException(400, f"Character already archived: {character_id}")
+
+    # Archive instead of hard delete — all child data preserved
+    conn.execute(
+        """UPDATE characters
+           SET is_archived = 1, archived_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+           WHERE id = ?""",
+        (character_id,)
+    )
+
     conn.execute(
         """INSERT INTO event_log (character_id, event_type, description)
            VALUES (?, 'character_archived', ?)""",
-        (character_id, f"{existing['name']} has been archived.")
+        (character_id, f"{existing['name']} has been archived (recoverable).")
     )
 
-    # Cascade delete child rows before deleting character (FK constraints use NO ACTION)
-    child_tables = [
-        "character_encounter_history",
-        "character_fronts",
-        "character_items",
-        "event_log",
-        "narrative_flags",
-        "turn_results",
-    ]
-    for table in child_tables:
-        conn.execute(f"DELETE FROM {table} WHERE character_id = ?", (character_id,))
-
-    # Clean up combats (and their participants) referencing this character
-    combat_ids = [r[0] for r in conn.execute("SELECT id FROM combats WHERE character_id = ?", (character_id,)).fetchall()]
-    for cid in combat_ids:
-        conn.execute("DELETE FROM combat_participants WHERE combat_id = ?", (cid,))
-    conn.execute("DELETE FROM combats WHERE character_id = ?", (character_id,))
-
-    conn.execute("DELETE FROM characters WHERE id = ?", (character_id,))
     conn.commit()
     conn.close()
 
-    return {"deleted": True, "character_id": character_id}
+    return {"archived": True, "character_id": character_id}
+
+
+@router.post("/{character_id}/restore")
+def restore_character(character_id: str):
+    """Restore an archived character. Reverses soft-delete."""
+    conn = get_db()
+
+    existing = conn.execute("SELECT * FROM characters WHERE id = ?", (character_id,)).fetchone()
+    if not existing:
+        conn.close()
+        raise HTTPException(404, f"Character not found: {character_id}")
+
+    if not existing["is_archived"]:
+        conn.close()
+        raise HTTPException(400, f"Character is not archived: {character_id}")
+
+    conn.execute(
+        """UPDATE characters
+           SET is_archived = 0, archived_at = NULL, updated_at = CURRENT_TIMESTAMP
+           WHERE id = ?""",
+        (character_id,)
+    )
+
+    conn.execute(
+        """INSERT INTO event_log (character_id, event_type, description)
+           VALUES (?, 'character_restored', ?)""",
+        (character_id, f"{existing['name']} has been restored from archive.")
+    )
+
+    conn.commit()
+    conn.close()
+
+    return {"restored": True, "character_id": character_id}
 
 
 @router.get("/{character_id}/key-items")

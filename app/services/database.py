@@ -58,6 +58,8 @@ def init_db():
             user_id TEXT,
             agent_id TEXT,
             agent_permission_level TEXT DEFAULT 'none',
+            is_archived INTEGER DEFAULT 0,
+            archived_at TIMESTAMP,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
