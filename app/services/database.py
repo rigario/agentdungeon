@@ -55,6 +55,9 @@ def init_db():
             sheet_signature TEXT,
             approval_config TEXT DEFAULT '{}',
             aggression_slider INTEGER DEFAULT 50,
+            user_id TEXT,
+            agent_id TEXT,
+            agent_permission_level TEXT DEFAULT 'none',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
@@ -102,6 +105,7 @@ def init_db():
             is_spirit INTEGER DEFAULT 0,
             is_enemy INTEGER DEFAULT 0,
             notes TEXT,
+            image_url TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
@@ -210,6 +214,31 @@ def init_db():
             UNIQUE(character_id, encounter_id),
             FOREIGN KEY (character_id) REFERENCES characters(id),
             FOREIGN KEY (encounter_id) REFERENCES encounters(id)
+        );
+
+        -- Items catalog (key items, loot, equipment)
+        CREATE TABLE IF NOT EXISTS items (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            description TEXT,
+            lore_text TEXT,
+            is_key_item BOOLEAN DEFAULT 0,
+            image_url TEXT,
+            item_type TEXT DEFAULT 'misc',
+            rarity TEXT DEFAULT 'common',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- Per-character inventory (many-to-many)
+        CREATE TABLE IF NOT EXISTS character_items (
+            character_id TEXT NOT NULL,
+            item_id TEXT NOT NULL,
+            quantity INTEGER DEFAULT 1,
+            is_equipped BOOLEAN DEFAULT 0,
+            acquired_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (character_id) REFERENCES characters(id),
+            FOREIGN KEY (item_id) REFERENCES items(id),
+            PRIMARY KEY (character_id, item_id)
         );
 
         -- =========================================================
