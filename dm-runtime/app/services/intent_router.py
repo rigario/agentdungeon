@@ -125,7 +125,6 @@ _INTENT_PATTERNS: list[tuple[IntentType, str, list[str]]] = [
 _BROAD_PATTERNS = [
     r"^\s*(explore|adventure|wander|roam|survive|continue|keep going|what now|next)\s*[.!]?\s*$",
     r"^\s*(find .*|go .*|do .*)until\s+",
-    r"^\s*explore\s+\w+",
 ]
 
 

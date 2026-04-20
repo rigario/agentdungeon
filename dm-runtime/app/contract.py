@@ -51,8 +51,7 @@ class IntentClassification(BaseModel):
     details: dict = Field(default_factory=dict)
     server_endpoint: ServerEndpoint
 
-    class Config:
-        frozen = True
+    model_config = {"frozen": True}
 
 
 # =============================================================================
