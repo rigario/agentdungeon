@@ -117,8 +117,8 @@ class TestHealth:
     def test_rules_server_root(self, rules):
         r = rules.get("/")
         assert r.status_code == 200
-        data = r.json()
-        assert "service" in data
+        # Root now serves landing page HTML, not JSON API response
+        assert "text/html" in r.headers.get("content-type", "")
 
     @skip_no_dm
     def test_dm_runtime_health(self, dm):
