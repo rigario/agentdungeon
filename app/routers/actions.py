@@ -15,7 +15,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from app.models.schemas import ActionRequest, ActionResponse
 from app.services.database import get_db
 from app.services.srd_reference import get_monsters_by_cr, ability_modifier, get_spells, _spellcasting_ability
-from app.services.key_items import add_key_item, remove_key_item, has_key_item, get_key_items
+from app.services.key_items import add_key_item, remove_key_item, has_key_item, get_key_items, KEY_ITEMS
 from app.services.auth_helpers import get_auth, require_character_ownership
 from app.services.time_of_day import advance_time, get_action_time_cost, get_time_period, get_character_time, get_encounter_threshold_modifier
 
@@ -700,6 +700,18 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
                                      (json.dumps({"gp": new_gold, "sp": 0, "cp": 0, "pp": 0, "ep": 0}), character_id))
                         result["narration"] += f" Looted {gold_gain} gold."
 
+                    # Award key items from loot
+                    for loot_entry in loot:
+                        item_name_raw = loot_entry.get("item", "")
+                        # Match loot item name against KEY_ITEMS by checking if any key item
+                        # display_name or name appears in the loot entry
+                        for ki_name, ki_def in KEY_ITEMS.items():
+                            if (ki_def["display_name"].lower() in item_name_raw.lower() or
+                                    ki_name.replace("_", " ") in item_name_raw.lower()):
+                                added = add_key_item(character_id, ki_name, conn)
+                                if added:
+                                    result["narration"] += f" Found {ki_def['display_name']}."
+
             conn.execute("UPDATE characters SET location_id = ?, hp_current = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
                          (body.target, new_hp, character_id))
 
@@ -835,6 +847,18 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
             current_gold = json.loads(char.get("treasure_json", '{"gp":0}')).get("gp", 0)
             conn.execute("UPDATE characters SET treasure_json = ? WHERE id = ?",
                          (json.dumps({"gp": current_gold + gold_gain, "sp": 0, "cp": 0, "pp": 0, "ep": 0}), character_id))
+
+        # Award key items from loot
+        if combat_result["victory"]:
+            for loot_entry in combat_result.get("loot", []):
+                item_name_raw = loot_entry.get("item", "")
+                for ki_name, ki_def in KEY_ITEMS.items():
+                    if (ki_def["display_name"].lower() in item_name_raw.lower() or
+                            ki_name.replace("_", " ") in item_name_raw.lower()):
+                        added = add_key_item(character_id, ki_name, conn)
+                        if added:
+                            combat_result.setdefault("narration", "")
+                            combat_result["narration"] += f" Found {ki_def['display_name']}."
 
         # ---------------------------------------------------------------
         # Portent auto-advance — fires on combat victory in trigger locations
@@ -1366,7 +1390,21 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
                 "character_state": {"hp": {"current": char["hp_current"], "max": char["hp_max"]}, "location_id": char["location_id"]},
             }
 
-        npc = dict(rng.choice(npcs))
+        # If target specified, try to find a matching NPC by name (case-insensitive)
+        npc = None
+        if body.target:
+            target_lower = body.target.lower().strip()
+            for n in npcs:
+                n_dict = dict(n)
+                name_lower = n_dict.get("name", "").lower()
+                # Match if target is a substring of name or vice versa
+                if target_lower in name_lower or name_lower in target_lower:
+                    npc = n_dict
+                    break
+
+        # Fall back to random NPC if no target match
+        if npc is None:
+            npc = dict(rng.choice(npcs))
         dialogues = json.loads(npc.get("dialogue_templates", "[]"))
 
         # Set encounter flag for named NPCs (kol_brother_met, etc.)
@@ -1849,6 +1887,19 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
                 rewards.append(quest_row["reward_item"])
             if rewards:
                 narration += f" Rewards: {', '.join(rewards)}."
+
+            # Award key items tied to this quest
+            quest_id_completed = quest_row.get("quest_id") or quest_id
+            quest_keywords = quest_id_completed.replace("-", "_").replace(" ", "_").lower()
+            for ki_name, ki_def in KEY_ITEMS.items():
+                ki_quest = (ki_def.get("quest") or "").replace("-", "_").lower()
+                # Match if quest field overlaps with quest ID or key item name is referenced
+                if (ki_quest and ki_quest in quest_keywords) or \
+                   (quest_keywords and quest_keywords in ki_quest) or \
+                   any(kw in quest_keywords for kw in ki_name.split("_") if len(kw) > 3):
+                    added = add_key_item(character_id, ki_name, conn)
+                    if added:
+                        narration += f" Found {ki_def['display_name']}."
 
             return {
                 "success": True,

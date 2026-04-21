@@ -619,6 +619,7 @@ ENCOUNTERS = [
         "loot_json": json.dumps([
             {"item": "Gold Pieces", "quantity": 35},
             {"item": "Brother Kol's Ritual Dagger", "quantity": 1, "description": "Copper blade etched with the Mark of the Dreamer. Used for marking rituals."},
+            {"item": "Kol's Journal", "quantity": 1, "description": "Brother Kol's personal journal, pinned to the cave wall with his dagger. The final entry reads: 'It spoke to me. It was kind.' Contains the Hunger's true name and backstory."},
             {"item": "Seal Stone Fragment", "quantity": 1, "description": "A piece of the seal that has cracked off. It pulses faintly warm. This is evidence of active weakening."},
             {"item": "Vashara's Orders", "quantity": 1, "description": "A letter: 'Kol — we have four marks. We need seven for the Rite. The last traveler at the Tankard was perfect. Finish the marking before the guard captain notices.'"},
         ]),
@@ -667,6 +668,7 @@ ENCOUNTERS = [
         "max_level": 4,
         "loot_json": json.dumps([
             {"item": "Garrick's Ledger", "quantity": 1, "description": "A leather book listing every traveler marked on the south road. Dates, names, descriptions. Kol's handwriting — he checks it weekly."},
+            {"item": "Elara's Insignia", "quantity": 1, "description": "A small wooden token carved with a sun. Elara, Sister Drenna's daughter, made this herself. Proof that she was here — and that she's still alive."},
             {"item": "Silver Ring of Warding", "quantity": 1, "description": "A silver ring etched with protection sigils. Once belonged to a seal-keeper. +1 to WIS saves vs mark effects."},
             {"item": "Gold Pieces", "quantity": 30},
         ]),

@@ -548,7 +548,6 @@ def get_global_narrative_state(conn: sqlite3.Connection = Depends(get_db)):
     # Flag gaps — flags suspected of being read but never set.
     # Cross-check against DB: if a flag has any rows in narrative_flags, it's wired.
     suspected_gaps = {
-        "thornhold_statue_observed": ("Observed Thornhold statue (Antechamber puzzle req)", "Antechamber puzzle path"),
         "collateral_near_town": ("Collateral damage near Thornhold", "Thornhold exile / Constantine branch"),
         "kol_ally": ("Kol redemption / Communion path", "Redemption ending mentioned but no acquisition path"),
     }

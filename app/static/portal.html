@@ -73,6 +73,34 @@
   .stat-badge.level { color: var(--accent-gold); border-color: rgba(200,160,64,0.3); }
   .stat-badge.xp { color: var(--accent-blue); border-color: rgba(64,96,160,0.3); }
 
+  /* Last-updated indicator */
+  .last-updated {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-align: right;
+    padding: 0.3rem 2rem 0;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .last-updated .refresh-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent-green);
+    margin-right: 4px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+  /* Mobile compact */
+  @media (max-width: 768px) {
+    .portal-header { padding: 1rem; flex-direction: column; align-items: flex-start; }
+    .char-summary { flex-wrap: wrap; gap: 0.5rem; }
+    .portal-grid { padding: 1rem; gap: 1rem; }
+    .ability-grid { grid-template-columns: repeat(3, 1fr); }
+    .portal-title { font-size: 1.2rem; }
+  }
+
   /* Layout */
   .portal-grid {
     display: grid;
@@ -329,6 +357,8 @@ function renderPortal(data) {
     </div>
   </div>
 
+  <div class="last-updated"><span class="refresh-dot"></span>Last updated: ${new Date().toLocaleTimeString()}</div>
+
   <div class="portal-grid">
     <!-- Ability Scores + Sheet -->
     <div class="card">
@@ -433,23 +463,41 @@ function renderError(err) {
   `;
 }
 
-async function init() {
+let refreshInterval = null;
+
+async function fetchPortalState() {
   const token = getToken();
   if (!token) {
     renderError('No share token found in URL. Use /portal/{token}/view');
-    return;
+    return false;
   }
   try {
     const resp = await fetch(`/portal/${token}/state`);
     if (!resp.ok) {
       const body = await resp.json().catch(() => ({}));
-      renderError(body.detail?.error || `Token validation failed (${resp.status})`);
-      return;
+      const detail = body.detail || {};
+      if (detail.error === 'token_expired' || detail.error === 'token_revoked') {
+        clearInterval(refreshInterval);
+        renderError('This portal link has expired or been revoked. Ask your agent for a new share link.');
+        return false;
+      }
+      renderError(detail.error || `Token validation failed (${resp.status})`);
+      return false;
     }
     const data = await resp.json();
     renderPortal(data);
+    return true;
   } catch (e) {
     renderError('Failed to load portal state: ' + e.message);
+    return false;
+  }
+}
+
+async function init() {
+  const ok = await fetchPortalState();
+  if (ok) {
+    // Auto-refresh every 30 seconds
+    refreshInterval = setInterval(fetchPortalState, 30000);
   }
 }
 

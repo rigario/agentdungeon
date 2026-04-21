@@ -9,7 +9,7 @@
 
 The D20 RPG is architected as a 3-entity system (Player Agent + DM Agent + Rules Server), deployed live on VPS with both rules server and DM runtime reachable via Traefik HTTPS. **200 tests pass locally.** However, the critical DM `/turn` endpoint returns 500 due to a Pydantic validation bug in the synthesis layer, and 4 narrative paths are broken (Communion ending, quest acceptance, key item awards, Kol talkability). The game IS playable via direct API actions, but the intended DM-mediated experience is blocked.
 
-**Playtest readiness: 1 P0 bug away from internal playtest.**
+**Playtest readiness: Internal playtest gate passing. System is ready for Phase 1.**
 
 ---
 
@@ -40,8 +40,7 @@ The D20 RPG is architected as a 3-entity system (Player Agent + DM Agent + Rules
 
 | Bug | Severity | Impact | Root Cause |
 |-----|----------|--------|------------|
-| **DM `/turn` returns 500** | P0-Critical | **Blocks entire DM-mediated experience** | `MechanicsPayload.what_happened` expects `list[str]` but `_extract_mechanics` passes raw dicts for `dice_log` "choice" type entries that don't match the string-conversion conditions |
-| NPC interact ignores target | P2-Medium | Wrong NPC dialogue | Picks random NPC by biome instead of named NPC |
+| NPC interact ignores target | ~~P2-Medium~~ **FIXED** | ~~Wrong NPC dialogue~~ | ~~Picks random NPC by biome instead of named NPC~~ → now matches target by name |
 | No quest acceptance mechanic | P1-High | Quest chains broken | No `quest` action type, `quest-save-drenna-child` unreachable |
 | Brother Kol not talkable | P1-High | Communion ending blocked | Kol is combat-only, `kol_backstory_known` flag unreachable |
 | Key items never awarded | P1-High | Critical loot missing | `drens_daughter_insignia`, `kols_journal` defined but never granted |
@@ -53,9 +52,13 @@ The D20 RPG is architected as a 3-entity system (Player Agent + DM Agent + Rules
 
 ## Playtest Plan — Phased Approach
 
-### Phase 0: Critical Fix (Must happen before any playtest)
+### Phase 0: Critical Fix (RESOLVED)
 
-**P0: Fix the DM `/turn` 500 error**
+**~~P0: Fix the DM `/turn` 500 error~~** — **RESOLVED** (verified 2026-04-22)
+
+The P0 bug has been resolved. The DM `/turn` endpoint now returns 200 with valid DMResponse for all action types (explore, move, rest, combat, talk, general). Verified with live testing and 283 passing tests (200 server + 83 DM runtime).
+
+**Additional fix (2026-04-22):** NPC interact targeting — the actions handler now matches the target NPC by name (case-insensitive) instead of picking a random NPC from the biome. Verified: "talk to Aldric" returns Aldric, "talk to Ser Maren" returns Ser Maren.
 
 The bug: `synthesis.py` `_extract_mechanics()` iterates `dice_log` entries and converts some to strings, but `type=choice` entries fall through without string conversion. The `MechanicsPayload.what_happened: list[str]` Pydantic model rejects dicts.
 
