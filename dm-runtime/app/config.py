@@ -20,7 +20,7 @@ FIRE_PASS_API_KEY = os.environ.get("DM_FIRE_PASS_API_KEY", "")
 FIRE_PASS_BASE_URL = os.environ.get("DM_FIRE_PASS_BASE_URL", "https://api.firepass.ai/v1")
 
 # Direct Kimi fallback (if not using Fire Pass proxy)
-KIMI_API_KEY = os.environ.get("KIMI_API_KEY", "")
+KIMI_API_KEY = os.environ.get("DM_KIMI_API_KEY", "")
 KIMI_BASE_URL = os.environ.get("KIMI_BASE_URL", "https://api.moonshot.cn/v1")
 
 # Narrator settings
