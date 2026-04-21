@@ -37,6 +37,32 @@
     font-size: 17px;
     line-height: 1.7;
     overflow-x: hidden;
+    position: relative;
+  }
+
+  /* Full-bleed background image */
+  .bg-art {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background: url('/static/pixel-art/cave-depths-seal.png') center center / cover no-repeat;
+    image-rendering: auto;
+    filter: blur(3px) brightness(0.12) saturate(0.5);
+    pointer-events: none;
+  }
+  /* Grain/noise overlay for texture */
+  .bg-art::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-conic-gradient(rgba(255,255,255,0.01) 0% 25%, transparent 0% 50%) 0 0 / 3px 3px;
+    opacity: 0.4;
+  }
+
+  /* Content sits above background */
+  .content-wrap {
+    position: relative;
+    z-index: 1;
   }
 
   /* Hero */
@@ -55,7 +81,7 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: radial-gradient(ellipse at 50% 80%, rgba(160,48,48,0.08) 0%, transparent 60%),
+    background: radial-gradient(ellipse at 50% 80%, rgba(160,48,48,0.12) 0%, transparent 60%),
                 radial-gradient(ellipse at 30% 20%, var(--glow-gold) 0%, transparent 50%);
     pointer-events: none;
   }
@@ -209,8 +235,13 @@
     background: var(--bg-card-hover);
   }
   .feature-icon {
-    font-size: 1.75rem;
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 900;
+    color: var(--accent-gold);
     margin-bottom: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
   .feature-card h3 {
     font-family: var(--font-display);
@@ -228,7 +259,7 @@
   /* World section */
   .world-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 1rem;
     margin-top: 2rem;
   }
@@ -242,7 +273,7 @@
   .world-card:hover { border-color: rgba(200,160,64,0.3); }
   .world-card-img {
     width: 100%;
-    height: 100px;
+    height: 120px;
     object-fit: cover;
     image-rendering: pixelated;
   }
@@ -340,16 +371,20 @@
     .hero h1 { font-size: 2.2rem; }
     section { padding: 3rem 1.25rem; }
     .hero-art img { width: 140px; height: 90px; }
+    .world-grid { grid-template-columns: 1fr 1fr; }
   }
 </style>
 </head>
 <body>
 
+<div class="bg-art"></div>
+<div class="content-wrap">
+
 <!-- Hero -->
 <section class="hero">
   <div class="hero-badge">Hermes Agent Creative Hackathon</div>
   <h1>The Dreaming Hunger</h1>
-  <p class="hero-sub">An agent-driven D&D RPG where your AI plays the game, carries the narrative, and your character carries the consequences. The seal is cracking. The Hunger stirs.</p>
+  <p class="hero-sub">An agent-driven D&amp;D RPG where your AI plays the game, carries the narrative, and your character carries the consequences. The seal is cracking. The Hunger stirs.</p>
   <div class="hero-cta">
     <a href="/demo" class="btn btn-primary">Watch the Demo</a>
     <a href="#how-to-play" class="btn btn-outline">How to Play</a>
@@ -367,40 +402,40 @@
 <!-- What is it -->
 <section class="reveal">
   <div class="section-label">What is this</div>
-  <h2>Your AI agent plays a living D&D campaign</h2>
-  <p>The Dreaming Hunger is a persistent RPG built on D&D 5E rules. You create a character. Your AI agent takes over: exploring, fighting, negotiating, and making choices that advance a narrative with real stakes. The world changes whether you're watching or not.</p>
+  <h2>Your AI agent plays a living D&amp;D campaign</h2>
+  <p>The Dreaming Hunger is a persistent RPG built on D&amp;D 5E rules. You create a character. Your AI agent takes over: exploring, fighting, negotiating, and making choices that advance a narrative with real stakes. The world changes whether you're watching or not.</p>
   <p>The server enforces every rule. The DM agent narrates every moment. Your agent operates your character within bounds you set. When something important happens, you decide.</p>
 
   <div class="features">
     <div class="feature-card">
-      <div class="feature-icon">⚔️</div>
+      <div class="feature-icon">Combat</div>
       <h3>Real Combat, Real Risk</h3>
       <p>Full SRD 5.2 combat engine. Initiative, attacks, saves, death saves. Your character can die. Every roll is logged and reproducible.</p>
     </div>
     <div class="feature-card">
-      <div class="feature-icon">🔮</div>
+      <div class="feature-icon">Corruption</div>
       <h3>The Mark of the Dreamer</h3>
-      <p>An ancient sigil brands your character. Four stages of corruption. Each failed WIS save pulls you deeper. Suppression comes at a cost. There is no easy cure.</p>
+      <p>An ancient sigil brands your character. Four stages of corruption. Each failed save pulls you deeper. Suppression comes at a cost. There is no easy cure.</p>
     </div>
     <div class="feature-card">
-      <div class="feature-icon">⏳</div>
+      <div class="feature-icon">Doom</div>
       <h3>Fronts That Advance</h3>
-      <p>Eight grim portents march toward doom. The world doesn't wait for you. Livestock dream. The dead walk. The seal weeps blood. Time is not on your side.</p>
+      <p>Eight grim portents march toward catastrophe. The world doesn't wait for you. Livestock dream. The dead walk. The seal weeps blood. Time is not on your side.</p>
     </div>
     <div class="feature-card">
-      <div class="feature-icon">🤖</div>
+      <div class="feature-icon">Agent</div>
       <h3>Agent-First Design</h3>
       <p>Your AI agent operates your character via Ed25519 auth. You own the character. The agent executes. Set approval gates for what matters.</p>
     </div>
     <div class="feature-card">
-      <div class="feature-icon">🗺️</div>
-      <h3>A Handcrafted World</h3>
-      <p>9 locations, 9 NPCs with dialogue chains, 17 encounters with thematic loot. Not procedural — intentional. Every item tells a story.</p>
+      <div class="feature-icon">World</div>
+      <h3>A Handcrafted Realm</h3>
+      <p>A pocket realm of 9 locations, 9 NPCs with dialogue chains, 17 encounters with thematic loot. Not procedural. Every item tells a story.</p>
     </div>
     <div class="feature-card">
-      <div class="feature-icon">📜</div>
+      <div class="feature-icon">Endings</div>
       <h3>Multiple Endings</h3>
-      <p>Reseal the entity. Merge with it through understanding. Or sacrifice what remains. Which ending you reach depends on what you discover — and who survives.</p>
+      <p>Reseal the entity. Merge with it through understanding. Or sacrifice what remains. Which ending you reach depends on what you discover and who survives.</p>
     </div>
   </div>
 </section>
@@ -418,14 +453,7 @@
       <img class="world-card-img" src="/static/pixel-art/loc-rusty-tankard.png" alt="The Rusty Tankard" loading="lazy">
       <div class="world-card-body">
         <div class="world-card-name">The Rusty Tankard</div>
-        <div class="world-card-biome">Town · Tavern</div>
-      </div>
-    </div>
-    <div class="world-card">
-      <img class="world-card-img" src="/static/pixel-art/loc-south-road.png" alt="South Road" loading="lazy">
-      <div class="world-card-body">
-        <div class="world-card-name">South Road</div>
-        <div class="world-card-biome">Road</div>
+        <div class="world-card-biome">Town / Tavern</div>
       </div>
     </div>
     <div class="world-card">
@@ -436,45 +464,10 @@
       </div>
     </div>
     <div class="world-card">
-      <img class="world-card-img" src="/static/pixel-art/loc-crossroads.png" alt="The Crossroads" loading="lazy">
-      <div class="world-card-body">
-        <div class="world-card-name">The Crossroads</div>
-        <div class="world-card-biome">Road · Junction</div>
-      </div>
-    </div>
-    <div class="world-card">
-      <img class="world-card-img" src="/static/pixel-art/loc-deep-whisperwood.png" alt="Deep Whisperwood" loading="lazy">
-      <div class="world-card-body">
-        <div class="world-card-name">Deep Whisperwood</div>
-        <div class="world-card-biome">Forest · Deep</div>
-      </div>
-    </div>
-    <div class="world-card">
-      <img class="world-card-img" src="/static/pixel-art/loc-greypeak-pass.png" alt="Greypeak Pass" loading="lazy">
-      <div class="world-card-body">
-        <div class="world-card-name">Greypeak Pass</div>
-        <div class="world-card-biome">Mountain</div>
-      </div>
-    </div>
-    <div class="world-card">
-      <img class="world-card-img" src="/static/pixel-art/loc-cave-entrance.png" alt="Cave Entrance" loading="lazy">
-      <div class="world-card-body">
-        <div class="world-card-name">Whisperwood Cave</div>
-        <div class="world-card-biome">Cave · Entrance</div>
-      </div>
-    </div>
-    <div class="world-card">
       <img class="world-card-img" src="/static/pixel-art/cave-depths-seal.png" alt="The Seal Chamber" loading="lazy">
       <div class="world-card-body">
         <div class="world-card-name">The Seal Chamber</div>
-        <div class="world-card-biome">Cave · Depths</div>
-      </div>
-    </div>
-    <div class="world-card">
-      <img class="world-card-img" src="/static/pixel-art/loc-moonpetal-glade.png" alt="Moonpetal Glade" loading="lazy">
-      <div class="world-card-body">
-        <div class="world-card-name">Moonpetal Glade</div>
-        <div class="world-card-biome">Forest · Glade</div>
+        <div class="world-card-biome">Cave / Depths</div>
       </div>
     </div>
   </div>
@@ -507,7 +500,7 @@
       <div class="step-num">3</div>
       <div class="step-body">
         <h3>Create a character</h3>
-        <p>Choose race, class, name. The server validates everything against SRD 5.2. Your character sheet is portable — a community-compatible JSON schema with a provable signature.</p>
+        <p>Choose race, class, name. The server validates everything against SRD 5.2. Your character sheet is portable: a community-compatible JSON schema with a provable signature.</p>
       </div>
     </div>
     <div class="step">
@@ -533,13 +526,13 @@
 <section class="reveal">
   <div class="section-label">Under the Hood</div>
   <h2>Built with Hermes Agent</h2>
-  <p>The entire game — server, DM agent, player portal, pixel art pipeline — was built by AI agents running on Hermes. Every character validated against the SRD. Every encounter designed with narrative intent. Every asset generated and converted through an automated pixel art pipeline.</p>
+  <p>The entire game -- server, DM agent, player portal, pixel art pipeline -- was built by AI agents running on Hermes. Every character validated against the SRD. Every encounter designed with narrative intent. Every asset generated and converted through an automated pixel art pipeline.</p>
 
   <div class="tech-pills">
     <span class="pill">Hermes Agent</span>
     <span class="pill">FastAPI</span>
     <span class="pill">SQLite WAL</span>
-    <span class="pill">D&D 5E SRD 5.2</span>
+    <span class="pill">D&amp;D 5E SRD 5.2</span>
     <span class="pill">Ed25519 Auth</span>
     <span class="pill">OAuth 2.0</span>
     <span class="pill">56 REST Endpoints</span>
@@ -552,10 +545,12 @@
 </section>
 
 <footer>
-  <p>The Dreaming Hunger — Built for the <a href="https://nousresearch.com" target="_blank">Hermes Agent Creative Hackathon</a></p>
-  <p style="margin-top:0.5rem">D&D 5E SRD 5.2 content used under CC-BY 4.0. Adventure content is original work by Holocron Labs.</p>
-  <p style="margin-top:1rem"><a href="/docs">API Docs</a> · <a href="/map">World Map</a> · <a href="/npcs-page">NPCs</a> · <a href="/demo">Demo</a></p>
+  <p>The Dreaming Hunger -- Built for the <a href="https://nousresearch.com" target="_blank">Hermes Agent Creative Hackathon</a></p>
+  <p style="margin-top:0.5rem">D&amp;D 5E SRD 5.2 content used under CC-BY 4.0. Adventure content is original work by Holocron Labs.</p>
+  <p style="margin-top:1rem"><a href="/docs">API Docs</a> &middot; <a href="/map">World Map</a> &middot; <a href="/npcs-page">NPCs</a> &middot; <a href="/demo">Demo</a></p>
 </footer>
+
+</div><!-- /content-wrap -->
 
 <script>
 // Scroll reveal

@@ -687,7 +687,7 @@
 <!-- ===== END CUTSCENE OVERLAYS ===== -->
 
 <!-- SCENE 0: Title / Hook -->
-<div class="scene title-scene active" data-scene="0" data-duration="8">
+<div class="scene title-scene active" data-scene="0" data-duration="12">
   <h1>THE DREAMING HUNGER</h1>
   <div class="subtitle">
     An agent-driven D&amp;D RPG where your character can be possessed, marked, and hunted
@@ -697,7 +697,7 @@
 </div>
 
 <!-- SCENE 1: Character Sheet -->
-<div class="scene sheet-scene" data-scene="1" data-duration="12">
+<div class="scene sheet-scene" data-scene="1" data-duration="18">
   <div class="sheet-container">
     <div class="sheet-header">
       <h2 id="charName">Hero</h2>
@@ -724,7 +724,7 @@
 </div>
 
 <!-- SCENE 2: World Map -->
-<div class="scene map-scene" data-scene="2" data-duration="10">
+<div class="scene map-scene" data-scene="2" data-duration="15">
   <div class="map-container">
     <h2>&#10061; Thornhold Region &#10061;</h2>
     <div class="map-svg-wrap">
@@ -734,7 +734,7 @@
 </div>
 
 <!-- SCENE 3: Item Lore -->
-<div class="scene lore-scene" data-scene="3" data-duration="12">
+<div class="scene lore-scene" data-scene="3" data-duration="18">
   <div class="lore-container">
     <div class="lore-card">
       <h3>Del's Locket</h3>
@@ -760,7 +760,7 @@
 </div>
 
 <!-- SCENE 4: The Encounter -->
-<div class="scene encounter-scene" data-scene="4" data-duration="12">
+<div class="scene encounter-scene" data-scene="4" data-duration="18">
   <div class="encounter-container">
     <div class="npc-card">
       <div class="npc-avatar">&#128293;</div>
@@ -785,7 +785,7 @@
 </div>
 
 <!-- SCENE 5: The Tech -->
-<div class="scene tech-scene" data-scene="5" data-duration="10">
+<div class="scene tech-scene" data-scene="5" data-duration="14">
   <h2 style="font-family: 'Cinzel', serif; color: var(--gold); text-align: center; font-size: 1.5rem; margin-bottom: 0.5rem;">
     How It Works
   </h2>
@@ -824,7 +824,7 @@
 </div>
 
 <!-- SCENE 6: CTA -->
-<div class="scene cta-scene" data-scene="6" data-duration="8">
+<div class="scene cta-scene" data-scene="6" data-duration="14">
   <h2>The DM That Never Sleeps</h2>
   <div class="question">
     Your agent plays while you sleep.<br>
@@ -948,6 +948,7 @@ function jump(i) {
   }
   SCENES[cur].classList.remove('active');
   cur = i; sceneTick = 0;
+  lastTickTime = performance.now();
   SCENES[cur].classList.add('active');
   document.querySelectorAll('.scene-dot').forEach((d, j) => d.classList.toggle('active', j === cur));
   if (cur === 4) diceAnim();
@@ -989,24 +990,29 @@ document.addEventListener('keydown', e => {
   else if (e.key === 'p') paused = !paused;
 });
 
+let lastTickTime = performance.now();
 function tick() {
+  const now = performance.now();
   // Skip demo ticks during cutscenes
   if (inOpeningCutscene || inEndingCutscene) {
+    lastTickTime = now;
     requestAnimationFrame(tick);
     return;
   }
   if (!paused) {
-    sceneTick++; globalTick++;
+    const delta = (now - lastTickTime) / 1000; // seconds elapsed
+    sceneTick += delta; globalTick += delta;
     const dur = durations[cur];
-    const pct = Math.min(sceneTick / (dur * 10), 1);
+    const pct = Math.min(sceneTick / dur, 1);
     document.getElementById('progressBar').style.width = ((cur + pct) / TOTAL * 100) + '%';
-    const m = Math.floor(globalTick / 600), s = Math.floor((globalTick % 600) / 10);
+    const m = Math.floor(globalTick / 60), s = Math.floor(globalTick % 60);
     document.getElementById('timer').textContent = m + ':' + String(s).padStart(2, '0');
-    if (sceneTick >= dur * 10) {
+    if (sceneTick >= dur) {
       if (cur < TOTAL - 1) jump(cur + 1);
       else startEnding(); // After last scene, trigger ending cutscene
     }
   }
+  lastTickTime = now;
   requestAnimationFrame(tick);
 }
 
@@ -1049,6 +1055,125 @@ function diceAnim() {
 })();
 
 tick();
+
+// ===== AMBIENT MUSIC (Web Audio API) =====
+let audioCtx = null;
+let audioStarted = false;
+let masterGain = null;
+
+function initAmbient() {
+  if (audioStarted) return;
+  audioStarted = true;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = 0;
+  masterGain.connect(audioCtx.destination);
+
+  // Slow fade in
+  masterGain.gain.linearRampToValueAtTime(0.25, audioCtx.currentTime + 4);
+
+  // Deep drone (low C ~65Hz)
+  const drone1 = audioCtx.createOscillator();
+  drone1.type = 'sine';
+  drone1.frequency.value = 65.41;
+  const drone1Gain = audioCtx.createGain();
+  drone1Gain.gain.value = 0.3;
+  drone1.connect(drone1Gain).connect(masterGain);
+  drone1.start();
+
+  // Sub bass (32.7Hz)
+  const sub = audioCtx.createOscillator();
+  sub.type = 'sine';
+  sub.frequency.value = 32.7;
+  const subGain = audioCtx.createGain();
+  subGain.gain.value = 0.2;
+  sub.connect(subGain).connect(masterGain);
+  sub.start();
+
+  // Ominous fifth (98Hz G2)
+  const fifth = audioCtx.createOscillator();
+  fifth.type = 'triangle';
+  fifth.frequency.value = 98;
+  const fifthGain = audioCtx.createGain();
+  fifthGain.gain.value = 0.12;
+  fifth.connect(fifthGain).connect(masterGain);
+  fifth.start();
+
+  // Dissonant minor second (69.3Hz C#) -- very quiet, unsettling
+  const dis = audioCtx.createOscillator();
+  dis.type = 'sine';
+  dis.frequency.value = 69.3;
+  const disGain = audioCtx.createGain();
+  disGain.gain.value = 0.06;
+  dis.connect(disGain).connect(masterGain);
+  dis.start();
+
+  // Filtered noise texture
+  const bufferSize = audioCtx.sampleRate * 4;
+  const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const noiseData = noiseBuffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) noiseData[i] = (Math.random() * 2 - 1) * 0.5;
+  const noise = audioCtx.createBufferSource();
+  noise.buffer = noiseBuffer;
+  noise.loop = true;
+  const noiseFilter = audioCtx.createBiquadFilter();
+  noiseFilter.type = 'lowpass';
+  noiseFilter.frequency.value = 200;
+  noiseFilter.Q.value = 1;
+  const noiseGain = audioCtx.createGain();
+  noiseGain.gain.value = 0.04;
+  noise.connect(noiseFilter).connect(noiseGain).connect(masterGain);
+  noise.start();
+
+  // Slow LFO modulating the fifth volume (breathing effect)
+  const lfo = audioCtx.createOscillator();
+  lfo.type = 'sine';
+  lfo.frequency.value = 0.08; // 8 second cycle
+  const lfoGain = audioCtx.createGain();
+  lfoGain.gain.value = 0.05;
+  lfo.connect(lfoGain).connect(fifthGain.gain);
+  lfo.start();
+
+  // Slow pitch drift on the dissonant tone
+  const pitchLfo = audioCtx.createOscillator();
+  pitchLfo.type = 'sine';
+  pitchLfo.frequency.value = 0.03;
+  const pitchLfoGain = audioCtx.createGain();
+  pitchLfoGain.gain.value = 2;
+  pitchLfo.connect(pitchLfoGain).connect(dis.frequency);
+  pitchLfo.start();
+}
+
+// Mute button
+let muted = false;
+const muteBtn = document.createElement('div');
+muteBtn.innerHTML = '&#9835;'; // music note
+muteBtn.title = 'Toggle ambient music';
+Object.assign(muteBtn.style, {
+  position: 'fixed', top: '20px', left: '20px', zIndex: '100',
+  fontFamily: "'Cinzel', serif", fontSize: '1.2rem',
+  color: muted ? '#3a3520' : 'var(--gold-dim)',
+  cursor: 'pointer', opacity: '0.6', transition: 'opacity 0.3s',
+  userSelect: 'none'
+});
+muteBtn.onmouseenter = () => muteBtn.style.opacity = '1';
+muteBtn.onmouseleave = () => muteBtn.style.opacity = '0.6';
+muteBtn.onclick = () => {
+  if (!audioCtx) initAmbient();
+  muted = !muted;
+  muteBtn.style.color = muted ? '#3a3520' : 'var(--gold-dim)';
+  if (masterGain) {
+    masterGain.gain.linearRampToValueAtTime(muted ? 0 : 0.25, audioCtx.currentTime + 0.5);
+  }
+};
+document.body.appendChild(muteBtn);
+
+// Start audio on first user interaction
+['click', 'keydown', 'touchstart'].forEach(evt => {
+  document.addEventListener(evt, () => {
+    if (!audioCtx) initAmbient();
+  }, { once: true });
+});
 </script>
 </body>
 </html>
