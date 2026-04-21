@@ -750,46 +750,105 @@
   <div class="tagline">Built with Hermes Agent</div>
 </div>
 
-<!-- SCENE 1: The Character -->
+<!-- SCENE 1: The Character - D&D 5e Sheet Style -->
 <div class="scene sheet-scene" data-scene="1" data-duration="18">
-  <div class="sheet-container" style="background: linear-gradient(135deg, #141419 0%, #1a1a22 50%, #141419 100%); border: 2px solid var(--gold); border-radius: 12px; position: relative;">
-    <!-- Ornamental corners -->
-    <div style="position:absolute;top:8px;left:8px;width:16px;height:16px;border-top:2px solid var(--gold);border-left:2px solid var(--gold);"></div>
-    <div style="position:absolute;top:8px;right:8px;width:16px;height:16px;border-top:2px solid var(--gold);border-right:2px solid var(--gold);"></div>
-    <div style="position:absolute;bottom:8px;left:8px;width:16px;height:16px;border-bottom:2px solid var(--gold);border-left:2px solid var(--gold);"></div>
-    <div style="position:absolute;bottom:8px;right:8px;width:16px;height:16px;border-bottom:2px solid var(--gold);border-right:2px solid var(--gold);"></div>
+  <div class="sheet-container" style="background: #f4e9d8; color: #2c1810; border: 8px solid #5c4033; border-radius: 8px; box-shadow: 0 0 40px rgba(0,0,0,0.6); padding: 20px; max-width: 820px; margin: 0 auto; font-family: 'Crimson Text', serif;">
     <!-- Header with portrait -->
-    <div class="sheet-header" style="border-bottom: 2px solid var(--gold-dim); display: flex; align-items: center; gap: 1.25rem; padding-bottom: 1.25rem; margin-bottom: 1.25rem;">
-      <div style="width: 72px; height: 72px; border-radius: 50%; border: 2px solid var(--gold); overflow: hidden; flex-shrink: 0; background: var(--bg-card);">
-        <img src="/static/pixel-art/npc-aldric.png" style="width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated;" alt="Character portrait">
-      </div>
+    <div style="text-align: center; border-bottom: 3px double #5c4033; padding-bottom: 12px; margin-bottom: 18px;">
+      <div style="font-family: 'Cinzel', serif; font-size: 2.1rem; letter-spacing: 3px; color: #5c4033; margin-bottom: 4px;">AEGIS WARD</div>
+      <div style="font-size: 0.95rem; color: #6b4e31;">Human Fighter (Soldier) &bull; Level 1</div>
+      <div style="font-size: 0.8rem; color: #8b6f47; margin-top: 4px;">Alignment: Neutral &bull; XP: 0 &bull; Next Level: 300</div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 2fr 3fr 2fr; gap: 18px;">
+      <!-- LEFT: Ability Scores -->
       <div>
-        <h2 id="charName" style="margin-bottom: 0.15rem;">Kael Ironfist</h2>
-        <div class="char-meta" id="charMeta">Human &middot; Fighter Level 1</div>
+        <div style="background: #5c4033; color: #f4e9d8; text-align: center; padding: 6px; font-family: 'Cinzel', serif; font-size: 0.9rem; margin-bottom: 8px;">ABILITY SCORES</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.9rem;">
+          <div style="background: #e8d5b7; padding: 8px; border: 2px solid #5c4033; text-align: center;">
+            <div style="font-weight: bold; color: #5c4033;">STR</div>
+            <div style="font-size: 1.8rem; line-height: 1;">16</div>
+            <div style="color: #8b6f47; font-size: 0.8rem;">+3</div>
+          </div>
+          <div style="background: #e8d5b7; padding: 8px; border: 2px solid #5c4033; text-align: center;">
+            <div style="font-weight: bold; color: #5c4033;">DEX</div>
+            <div style="font-size: 1.8rem; line-height: 1;">15</div>
+            <div style="color: #8b6f47; font-size: 0.8rem;">+2</div>
+          </div>
+          <div style="background: #e8d5b7; padding: 8px; border: 2px solid #5c4033; text-align: center;">
+            <div style="font-weight: bold; color: #5c4033;">CON</div>
+            <div style="font-size: 1.8rem; line-height: 1;">14</div>
+            <div style="color: #8b6f47; font-size: 0.8rem;">+2</div>
+          </div>
+          <div style="background: #e8d5b7; padding: 8px; border: 2px solid #5c4033; text-align: center;">
+            <div style="font-weight: bold; color: #5c4033;">INT</div>
+            <div style="font-size: 1.8rem; line-height: 1;">11</div>
+            <div style="color: #8b6f47; font-size: 0.8rem;">+0</div>
+          </div>
+          <div style="background: #e8d5b7; padding: 8px; border: 2px solid #5c4033; text-align: center;">
+            <div style="font-weight: bold; color: #5c4033;">WIS</div>
+            <div style="font-size: 1.8rem; line-height: 1;">13</div>
+            <div style="color: #8b6f47; font-size: 0.8rem;">+1</div>
+          </div>
+          <div style="background: #e8d5b7; padding: 8px; border: 2px solid #5c4033; text-align: center;">
+            <div style="font-weight: bold; color: #5c4033;">CHA</div>
+            <div style="font-size: 1.8rem; line-height: 1;">9</div>
+            <div style="color: #8b6f47; font-size: 0.8rem;">&minus;1</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MIDDLE: Combat & Vitals -->
+      <div style="background: #f4e9d8; border: 4px solid #5c4033; padding: 14px; border-radius: 6px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; text-align: center;">
+          <div>
+            <div style="font-size: 2.4rem; font-weight: bold; color: #9c2a2a; line-height: 1;">12</div>
+            <div style="font-size: 0.75rem; color: #5c4033; margin-top: -4px;">HIT POINTS</div>
+            <div style="font-size: 0.8rem; color: #8b6f47;">12 / 12</div>
+          </div>
+          <div>
+            <div style="font-size: 2.4rem; font-weight: bold; color: #5c4033; line-height: 1;">12</div>
+            <div style="font-size: 0.75rem; color: #5c4033; margin-top: -4px;">ARMOR CLASS</div>
+            <div style="font-size: 0.8rem; color: #8b6f47;">Unarmored</div>
+          </div>
+        </div>
+        
+        <div style="margin-top: 18px; font-size: 0.9rem; line-height: 1.7;">
+          <div><strong>Speed:</strong> 30 ft</div>
+          <div><strong>Initiative:</strong> +2</div>
+          <div><strong>Proficiency:</strong> +2</div>
+          <div style="margin-top: 12px; border-top: 1px solid #8b6f47; padding-top: 8px;">
+            <strong>Saving Throws:</strong> STR &bull; CON
+          </div>
+          <div style="margin-top: 8px;">
+            <strong>Skills:</strong> Athletics &bull; Intimidation
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Features -->
+      <div>
+        <div style="background: #5c4033; color: #f4e9d8; text-align: center; padding: 6px; font-family: 'Cinzel', serif; font-size: 0.9rem; margin-bottom: 8px;">FEATURES & TRAITS</div>
+        <div style="font-size: 0.85rem; line-height: 1.5; background: #f4e9d8; padding: 12px; border: 2px solid #5c4033; min-height: 220px;">
+          <div style="margin-bottom: 12px;"><strong>Fighting Style</strong><br><span style="color: #6b4e31; font-size: 0.8rem;">You adopt a particular style of fighting.</span></div>
+          <div><strong>Second Wind</strong><br><span style="color: #6b4e31; font-size: 0.8rem;">Bonus action to regain hit points.</span></div>
+          <div style="margin-top: 16px; padding-top: 12px; border-top: 1px dashed #8b6f47;">
+            <strong>Languages:</strong> Common<br>
+            <strong>Equipment:</strong> Longsword, Shield, Chain Mail, Light Crossbow, 10gp
+          </div>
+        </div>
       </div>
     </div>
-    <!-- Ability scores in 3x2 grid, D&D style -->
-    <div class="stat-grid" id="statGrid" style="grid-template-columns: repeat(6, 1fr); gap: 0.75rem; margin-bottom: 1.25rem;">
-      <div class="stat-box" style="padding: 0.5rem;"><div class="label">STR</div><div class="value" style="font-size:1.4rem;">16</div><div class="modifier">+3</div></div>
-      <div class="stat-box" style="padding: 0.5rem;"><div class="label">DEX</div><div class="value" style="font-size:1.4rem;">12</div><div class="modifier">+1</div></div>
-      <div class="stat-box" style="padding: 0.5rem;"><div class="label">CON</div><div class="value" style="font-size:1.4rem;">14</div><div class="modifier">+2</div></div>
-      <div class="stat-box" style="padding: 0.5rem;"><div class="label">INT</div><div class="value" style="font-size:1.4rem;">10</div><div class="modifier">+0</div></div>
-      <div class="stat-box" style="padding: 0.5rem;"><div class="label">WIS</div><div class="value" style="font-size:1.4rem;">13</div><div class="modifier">+1</div></div>
-      <div class="stat-box" style="padding: 0.5rem;"><div class="label">CHA</div><div class="value" style="font-size:1.4rem;">15</div><div class="modifier">+2</div></div>
+
+    <!-- MARK OF THE DREAMER -->
+    <div style="margin-top: 22px; background: #3a2a1f; color: #e8c5a0; padding: 14px; border: 2px solid #9c2a2a; border-radius: 4px;">
+      <div style="color: #d44a4a; margin: 0 0 8px 0; font-family: 'Cinzel', serif; font-weight: bold;">MARK OF THE DREAMER &mdash; STAGE I</div>
+      <p style="margin: 0; font-size: 0.9rem; line-height: 1.5;">The sigil burns cold against your skin. Something ancient has noticed you. Every failed Wisdom save pulls you deeper into the Dreaming.</p>
     </div>
-    <!-- Combat stats row -->
-    <div style="display:grid; grid-template-columns: repeat(3,1fr); gap:0.75rem; margin-bottom:1rem;">
-      <div class="stat-box"><div class="label">HP</div><div class="value" style="font-size:1.2rem; color: #6B8E23;">12<span style="color: var(--text-dim); font-size:0.8rem;">/12</span></div></div>
-      <div class="stat-box"><div class="label">AC</div><div class="value" style="font-size:1.2rem;">18</div></div>
-      <div class="stat-box"><div class="label">Speed</div><div class="value" style="font-size:1.2rem;">30<span style="color: var(--text-dim); font-size:0.7rem;">ft</span></div></div>
+
+    <div style="text-align: center; margin-top: 18px; font-size: 0.75rem; color: #6b4e31; font-style: italic;">
+      Character data lives on the server &bull; Validated against SRD 5.2 &bull; Portable signed JSON
     </div>
-    <div class="mark-indicator">
-      <h3>MARK OF THE DREAMER</h3>
-      <p>Stage I &mdash; The sigil burns cold against your skin. Something ancient has noticed you. Every failed Wisdom save pulls you deeper.</p>
-    </div>
-    <p style="color: var(--text-dim); font-size: 0.8rem; margin-top: 0.75rem; text-align: center; font-style: italic;">
-      Validated against SRD 5.2. Portable as signed JSON. Your character, your data.
-    </p>
   </div>
 </div>
 
@@ -1149,12 +1208,12 @@ function diceAnim() {
   } catch(e) { console.log('Map load error:', e); }
 })();
 
-// Load character (use Kael Ironfist from DB)
+// Load character (use Aegis Ward from DB)
 (async () => {
   try {
     const res = await fetch('/characters');
     const chars = await res.json();
-    const c = chars.find(x => x.name === 'Kael Ironfist') || chars[0];
+    const c = chars.find(x => x.name === 'Aegis Ward') || chars[0];
     if (!c) return;
     document.getElementById('charName').textContent = c.name;
     const r = c.race?.name||'Human', cl = c.classes?.[0]?.name||'Fighter', lv = c.classes?.[0]?.level||1;
@@ -1164,140 +1223,46 @@ function diceAnim() {
 
 tick();
 
-// ===== AMBIENT MUSIC (Web Audio API) =====
-let audioCtx = null;
-let audioStarted = false;
-let masterGain = null;
+// ===== AMBIENT MUSIC (HTML5 Audio - pre-rendered MP3) =====
+let ambientAudio = null;
+let muted = false;
 
 function initAmbient() {
-  if (audioStarted) return;
-  audioStarted = true;
-  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  masterGain = audioCtx.createGain();
-  masterGain.gain.setValueAtTime(0, audioCtx.currentTime);
-  masterGain.connect(audioCtx.destination);
-
-  // Slow fade in
-  masterGain.gain.linearRampToValueAtTime(0.35, audioCtx.currentTime + 5);
-
-  // Deep drone (low C ~65Hz)
-  const drone1 = audioCtx.createOscillator();
-  drone1.type = 'sine';
-  drone1.frequency.value = 65.41;
-  const drone1Gain = audioCtx.createGain();
-  drone1Gain.gain.value = 0.3;
-  drone1.connect(drone1Gain).connect(masterGain);
-  drone1.start();
-
-  // Octave above (130.8Hz C3) -- audible, warm
-  const drone2 = audioCtx.createOscillator();
-  drone2.type = 'triangle';
-  drone2.frequency.value = 130.81;
-  const drone2Gain = audioCtx.createGain();
-  drone2Gain.gain.value = 0.2;
-  drone2.connect(drone2Gain).connect(masterGain);
-  drone2.start();
-
-  // Ominous fifth (98Hz G2) -- boosted
-  const fifth = audioCtx.createOscillator();
-  fifth.type = 'triangle';
-  fifth.frequency.value = 98;
-  const fifthGain = audioCtx.createGain();
-  fifthGain.gain.value = 0.25;
-  fifth.connect(fifthGain).connect(masterGain);
-  fifth.start();
-
-  // Dissonant minor second (69.3Hz C#) -- the unsettling edge
-  const dis = audioCtx.createOscillator();
-  dis.type = 'sine';
-  dis.frequency.value = 69.3;
-  const disGain = audioCtx.createGain();
-  disGain.gain.value = 0.15;
-  dis.connect(disGain).connect(masterGain);
-  dis.start();
-
-  // Higher ethereal tone (~392Hz G4) -- very quiet, ghostly
-  const ghost = audioCtx.createOscillator();
-  ghost.type = 'sine';
-  ghost.frequency.value = 392;
-  const ghostGain = audioCtx.createGain();
-  ghostGain.gain.value = 0.04;
-  ghost.connect(ghostGain).connect(masterGain);
-  ghost.start();
-
-  // Filtered noise texture
-  const bufferSize = audioCtx.sampleRate * 4;
-  const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-  const noiseData = noiseBuffer.getChannelData(0);
-  for (let i = 0; i < bufferSize; i++) noiseData[i] = (Math.random() * 2 - 1) * 0.5;
-  const noise = audioCtx.createBufferSource();
-  noise.buffer = noiseBuffer;
-  noise.loop = true;
-  const noiseFilter = audioCtx.createBiquadFilter();
-  noiseFilter.type = 'lowpass';
-  noiseFilter.frequency.value = 300;
-  noiseFilter.Q.value = 0.7;
-  const noiseGain = audioCtx.createGain();
-  noiseGain.gain.value = 0.08;
-  noise.connect(noiseFilter).connect(noiseGain).connect(masterGain);
-  noise.start();
-
-  // Slow LFO modulating the fifth volume (breathing effect)
-  const lfo = audioCtx.createOscillator();
-  lfo.type = 'sine';
-  lfo.frequency.value = 0.08; // 8 second cycle
-  const lfoGain = audioCtx.createGain();
-  lfoGain.gain.value = 0.08;
-  lfo.connect(lfoGain).connect(fifthGain.gain);
-  lfo.start();
-
-  // Slow pitch drift on the dissonant tone
-  const pitchLfo = audioCtx.createOscillator();
-  pitchLfo.type = 'sine';
-  pitchLfo.frequency.value = 0.03;
-  const pitchLfoGain = audioCtx.createGain();
-  pitchLfoGain.gain.value = 3;
-  pitchLfo.connect(pitchLfoGain).connect(dis.frequency);
-  pitchLfo.start();
-
-  // Ghost tone slow pitch wobble
-  const ghostLfo = audioCtx.createOscillator();
-  ghostLfo.type = 'sine';
-  ghostLfo.frequency.value = 0.05;
-  const ghostLfoGain = audioCtx.createGain();
-  ghostLfoGain.gain.value = 15;
-  ghostLfo.connect(ghostLfoGain).connect(ghost.frequency);
-  ghostLfo.start();
+  if (ambientAudio) return;
+  ambientAudio = new Audio('/static/ambient.mp3');
+  ambientAudio.loop = true;
+  ambientAudio.volume = 0.4;
+  ambientAudio.play().catch(() => {
+    console.log("Ambient music ready - will play on next interaction");
+  });
 }
 
 // Mute button
-let muted = false;
 const muteBtn = document.createElement('div');
-muteBtn.innerHTML = '&#9835;'; // music note
+muteBtn.innerHTML = '&#9835;';
 muteBtn.title = 'Toggle ambient music';
 Object.assign(muteBtn.style, {
   position: 'fixed', top: '20px', left: '20px', zIndex: '100',
-  fontFamily: "'Cinzel', serif", fontSize: '1.2rem',
-  color: muted ? '#3a3520' : 'var(--gold-dim)',
-  cursor: 'pointer', opacity: '0.6', transition: 'opacity 0.3s',
-  userSelect: 'none'
+  fontFamily: "'Cinzel', serif", fontSize: '1.4rem',
+  color: 'var(--gold-dim)',
+  cursor: 'pointer', opacity: '0.7', transition: 'all 0.3s',
+  userSelect: 'none', textShadow: '0 0 8px rgba(212, 175, 55, 0.4)'
 });
 muteBtn.onmouseenter = () => muteBtn.style.opacity = '1';
-muteBtn.onmouseleave = () => muteBtn.style.opacity = '0.6';
+muteBtn.onmouseleave = () => muteBtn.style.opacity = '0.7';
 muteBtn.onclick = () => {
-  if (!audioCtx) initAmbient();
+  if (!ambientAudio) initAmbient();
   muted = !muted;
+  if (ambientAudio) ambientAudio.volume = muted ? 0 : 0.4;
   muteBtn.style.color = muted ? '#3a3520' : 'var(--gold-dim)';
-  if (masterGain) {
-    masterGain.gain.linearRampToValueAtTime(muted ? 0 : 0.35, audioCtx.currentTime + 0.5);
-  }
+  muteBtn.style.textShadow = muted ? 'none' : '0 0 8px rgba(212, 175, 55, 0.4)';
 };
 document.body.appendChild(muteBtn);
 
 // Start audio on first user interaction
 ['click', 'keydown', 'touchstart'].forEach(evt => {
   document.addEventListener(evt, () => {
-    if (!audioCtx) initAmbient();
+    if (!ambientAudio) initAmbient();
   }, { once: true });
 });
 </script>
