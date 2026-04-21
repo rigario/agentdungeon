@@ -81,7 +81,10 @@ async def dm_turn(body: dict):
 @router.get("/health")
 async def dm_health():
     """DM runtime health check — includes rules server connectivity and narrator status."""
-    from app.services.narrator import NARRATOR_ENABLED, NARRATOR_API_KEY, NARRATOR_MODEL
+    from app.services.narrator import NARRATOR_ENABLED
+    from app.services.dm_profile import get_status as get_dm_profile_status
+
+    dm_profile = get_dm_profile_status()
 
     try:
         rules_health = await rules_client.health()
@@ -92,8 +95,10 @@ async def dm_health():
             "intent_router": "ok",
             "narrator": {
                 "enabled": NARRATOR_ENABLED,
-                "api_key_set": bool(NARRATOR_API_KEY),
-                "model": NARRATOR_MODEL,
+                "api_key_set": dm_profile["api_key_set"],
+                "model": dm_profile["model"],
+                "mode": dm_profile["mode"],
+                "hermes_profile": dm_profile["hermes_profile"],
             },
         }
     except Exception as e:
@@ -104,8 +109,10 @@ async def dm_health():
             "intent_router": "ok (rules server unreachable)",
             "narrator": {
                 "enabled": NARRATOR_ENABLED,
-                "api_key_set": bool(NARRATOR_API_KEY),
-                "model": NARRATOR_MODEL,
+                "api_key_set": dm_profile["api_key_set"],
+                "model": dm_profile["model"],
+                "mode": dm_profile["mode"],
+                "hermes_profile": dm_profile["hermes_profile"],
             },
         }
 

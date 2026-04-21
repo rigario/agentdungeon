@@ -51,6 +51,12 @@ services:
       - 'DM_HOST=0.0.0.0'
       - 'DM_RULES_SERVER_URL=http://d20-rules-server:8600'
       - 'DM_REDIS_URL=redis://d20-redis:6379/0'
+      - 'DM_NARRATOR_ENABLED=true'
+      - 'DM_NARRATOR_MODEL=kimi-k2.5'
+      - 'DM_HERMES_MODE=direct'
+      - 'KIMI_API_KEY=${KIMI_API_KEY:-}'
+      - 'KIMI_BASE_URL=${KIMI_BASE_URL:-https://api.kimi.com/coding/v1}'
+      - 'DM_FIRE_PASS_API_KEY=${FIRE_PASS_API_KEY:-}'
     networks:
       - d20-net
       - coolify

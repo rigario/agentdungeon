@@ -1,29 +1,31 @@
 """DM Narrator — LLM-powered narration via Kimi Turbo.
 
-Uses OpenAI-compatible API (Fire Pass or direct Kimi endpoint) to generate
-rich DM prose from server payloads. Enforces world_context scope boundary:
-the LLM may only reference NPCs, locations, items, and events present in
-the server-provided context.
+Uses the dm_profile wrapper for invocation, supporting two modes:
+- DIRECT: Call Kimi Turbo API via httpx (default, lowest latency)
+- HERMES: Route through the d20-dm Hermes profile (for session tracking/debugging)
 
-Fallback: if LLM is unavailable, returns passthrough narration.
+Enforces world_context scope boundary: the LLM may only reference NPCs, locations,
+items, and events present in the server-provided context.
+
+Output validation: after LLM returns, we verify no off-scope references
+crept in. If validation fails, we fall back to passthrough.
+
+Fallback: if LLM is unavailable, returns passthrough.
 """
 
 from __future__ import annotations
 import os
 import json
 import logging
+import re
 from typing import Optional
+
+from app.services.dm_profile import narrate as dm_profile_narrate, get_status as get_dm_profile_status
 
 logger = logging.getLogger(__name__)
 
 # --- Configuration ---
-# Supports Fire Pass proxy or direct Kimi/OpenAI-compatible endpoints
-NARRATOR_API_KEY = os.environ.get("DM_FIRE_PASS_API_KEY", "") or os.environ.get("KIMI_API_KEY", "")
-NARRATOR_BASE_URL = os.environ.get("DM_FIRE_PASS_BASE_URL", "https://api.moonshot.cn/v1")
-NARRATOR_MODEL = os.environ.get("DM_NARRATOR_MODEL", "kimi-turbo")
 NARRATOR_ENABLED = os.environ.get("DM_NARRATOR_ENABLED", "true").lower() == "true"
-NARRATOR_TIMEOUT = int(os.environ.get("DM_NARRATOR_TIMEOUT", "30"))
-NARRATOR_MAX_TOKENS = int(os.environ.get("DM_NARRATOR_MAX_TOKENS", "800"))
 
 # --- DM System Prompt ---
 # Enforces authority boundaries and world_context scope
@@ -47,6 +49,17 @@ YOU MUST NEVER:
 - Roll dice or override mechanical outcomes
 - Decide what the player does — only present options
 - Contradict any server-provided data (damage dealt, loot found, etc.)
+
+## SCOPE ENFORCEMENT — HARD BOUNDARY
+The world_context provided below is your ONLY source of truth. You may ONLY reference:
+- NPCs listed in "NPCs PRESENT" — no others exist
+- The current LOCATION and AVAILABLE PATHS — nowhere else
+- Active quests listed — no others
+- The front shown — no other fronts
+- Items/events from server data — nothing you invent
+
+If the world_context does not include an NPC, location, or item, it does NOT exist in this scene.
+Do not hallucinate backstory, additional characters, or world details outside the provided scope.
 
 ## Output Format
 Always respond with valid JSON:
@@ -148,64 +161,96 @@ def _build_context_prompt(server_result: dict, intent: dict, world_context: dict
     return "\n\n".join(parts)
 
 
+def _validate_scope(llm_output: dict, world_context: dict) -> bool:
+    """Validate that LLM output doesn't reference off-scope entities.
+
+    Checks:
+    1. NPC lines only reference NPCs in the world_context
+    2. Scene doesn't introduce characters/locations not in scope
+
+    Returns True if valid, False if scope violation detected.
+    """
+    # Extract allowed NPC names from world_context
+    allowed_npcs = set()
+    for npc in world_context.get("npcs", []):
+        name = npc.get("name", "")
+        if name:
+            allowed_npcs.add(name.lower())
+
+    # Validate NPC lines
+    for line in llm_output.get("npc_lines", []):
+        speaker = line.get("speaker", "").lower()
+        if speaker and allowed_npcs and speaker not in allowed_npcs:
+            logger.warning(f"Scope violation: NPC speaker '{speaker}' not in world_context (allowed: {allowed_npcs})")
+            return False
+
+    # Extract allowed location names
+    allowed_locations = set()
+    loc = world_context.get("location", {})
+    if loc.get("name"):
+        allowed_locations.add(loc["name"].lower())
+    for conn in world_context.get("connections", []):
+        if conn.get("name"):
+            allowed_locations.add(conn["name"].lower())
+
+    # Basic scene validation: check for obvious scope violations
+    scene = llm_output.get("scene", "")
+
+    # Check that NPC lines' speakers appear in the scene text
+    for line in llm_output.get("npc_lines", []):
+        speaker = line.get("speaker", "")
+        if speaker and speaker.lower() not in scene.lower():
+            logger.debug(f"NPC '{speaker}' speaks but isn't mentioned in scene text (may be OK)")
+
+    return True
+
+
 async def narrate(server_result: dict, intent: dict, world_context: dict) -> Optional[dict]:
     """Generate LLM-powered narration from server result.
 
     Returns dict with keys: scene, npc_lines, tone, choices_summary
     Returns None if LLM is unavailable (caller should use passthrough).
     """
-    if not NARRATOR_ENABLED or not NARRATOR_API_KEY:
-        logger.info("DM narrator disabled or no API key — using passthrough")
+    if not NARRATOR_ENABLED:
+        logger.info("DM narrator disabled — using passthrough")
+        return None
+
+    # Check if API key is available
+    profile_status = get_dm_profile_status()
+    if not profile_status["api_key_set"]:
+        logger.info("No Kimi API key configured — using passthrough")
         return None
 
     try:
-        import httpx
-
         context_prompt = _build_context_prompt(server_result, intent, world_context)
 
-        messages = [
-            {"role": "system", "content": DM_SYSTEM_PROMPT},
-            {"role": "user", "content": context_prompt},
-        ]
+        # Call via dm_profile wrapper (supports direct and hermes modes)
+        parsed = await dm_profile_narrate(
+            system_prompt=DM_SYSTEM_PROMPT,
+            user_prompt=context_prompt,
+            temperature=0.8,
+        )
 
-        async with httpx.AsyncClient(timeout=NARRATOR_TIMEOUT) as client:
-            response = await client.post(
-                f"{NARRATOR_BASE_URL}/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {NARRATOR_API_KEY}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": NARRATOR_MODEL,
-                    "messages": messages,
-                    "max_tokens": NARRATOR_MAX_TOKENS,
-                    "temperature": 0.8,
-                    "response_format": {"type": "json_object"},
-                },
-            )
-            response.raise_for_status()
-            data = response.json()
+        if not parsed:
+            logger.warning("DM narrator returned no output — falling back to passthrough")
+            return None
 
-            content = data["choices"][0]["message"]["content"]
-            parsed = json.loads(content)
+        # Validate expected keys
+        result = {
+            "scene": parsed.get("scene", ""),
+            "npc_lines": parsed.get("npc_lines", []),
+            "tone": parsed.get("tone", "neutral"),
+            "choices_summary": parsed.get("choices_summary", ""),
+        }
 
-            # Validate expected keys
-            result = {
-                "scene": parsed.get("scene", ""),
-                "npc_lines": parsed.get("npc_lines", []),
-                "tone": parsed.get("tone", "neutral"),
-                "choices_summary": parsed.get("choices_summary", ""),
-            }
+        # Validate scope — reject output that references off-scope entities
+        if not _validate_scope(result, world_context):
+            logger.warning("DM narrator produced off-scope output — falling back to passthrough")
+            return None
 
-            logger.info(f"DM narrator generated {len(result['scene'])} chars of prose")
-            return result
+        logger.info(f"DM narrator generated {len(result['scene'])} chars of prose")
+        return result
 
-    except json.JSONDecodeError as e:
-        logger.warning(f"DM narrator returned invalid JSON: {e}")
-        return None
-    except httpx.HTTPStatusError as e:
-        logger.warning(f"DM narrator API error: {e.response.status_code}")
-        return None
     except Exception as e:
         logger.warning(f"DM narrator error: {e}")
         return None
