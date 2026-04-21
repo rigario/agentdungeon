@@ -1,0 +1,262 @@
+"""D20 Agent RPG — Portal Service.
+
+Share token CRUD operations for the Player Portal.
+Tokens allow unauthenticated viewing of character state.
+"""
+
+import secrets
+import uuid
+from datetime import datetime, timedelta
+from typing import Optional
+
+from app.services.database import get_db
+
+
+def create_share_token(character_id: str, label: str = None, expires_hours: int = None) -> dict:
+    """Create a new share token for a character.
+    
+    Args:
+        character_id: The character to create a share token for.
+        label: Optional human label (e.g., "Playtest #1").
+        expires_hours: Optional expiry in hours. None = never expires.
+    
+    Returns:
+        Dict with token details.
+    """
+    db = get_db()
+    try:
+        # Verify character exists
+        char = db.execute("SELECT id, name FROM characters WHERE id = ?", (character_id,)).fetchone()
+        if not char:
+            return {"error": "character_not_found", "character_id": character_id}
+
+        token_id = str(uuid.uuid4())
+        token = secrets.token_urlsafe(32)
+        expires_at = None
+        if expires_hours:
+            expires_at = (datetime.utcnow() + timedelta(hours=expires_hours)).isoformat()
+
+        db.execute(
+            """INSERT INTO share_tokens (id, character_id, token, label, expires_at)
+               VALUES (?, ?, ?, ?, ?)""",
+            (token_id, character_id, token, label, expires_at)
+        )
+        db.commit()
+
+        return {
+            "id": token_id,
+            "character_id": character_id,
+            "character_name": char["name"],
+            "token": token,
+            "label": label,
+            "expires_at": expires_at,
+            "created_at": datetime.utcnow().isoformat(),
+        }
+    finally:
+        db.close()
+
+
+def validate_share_token(token: str) -> dict:
+    """Validate a share token and return basic info.
+    
+    Increments view_count on successful validation.
+    
+    Returns:
+        Dict with token info or error.
+    """
+    db = get_db()
+    try:
+        row = db.execute(
+            """SELECT st.id, st.character_id, st.token, st.label, st.expires_at, 
+                      st.revoked, st.view_count, c.name as character_name
+               FROM share_tokens st
+               JOIN characters c ON st.character_id = c.id
+               WHERE st.token = ?""",
+            (token,)
+        ).fetchone()
+
+        if not row:
+            return {"valid": False, "error": "token_not_found"}
+
+        if row["revoked"]:
+            return {"valid": False, "error": "token_revoked"}
+
+        if row["expires_at"]:
+            exp = datetime.fromisoformat(row["expires_at"])
+            if datetime.utcnow() > exp:
+                return {"valid": False, "error": "token_expired"}
+
+        # Increment view count
+        db.execute(
+            """UPDATE share_tokens 
+               SET view_count = view_count + 1, last_viewed_at = ?
+               WHERE token = ?""",
+            (datetime.utcnow().isoformat(), token)
+        )
+        db.commit()
+
+        return {
+            "valid": True,
+            "id": row["id"],
+            "character_id": row["character_id"],
+            "character_name": row["character_name"],
+            "label": row["label"],
+            "view_count": row["view_count"] + 1,
+        }
+    finally:
+        db.close()
+
+
+def revoke_share_token(token: str) -> dict:
+    """Revoke a share token.
+    
+    Returns:
+        Dict with result.
+    """
+    db = get_db()
+    try:
+        result = db.execute(
+            "UPDATE share_tokens SET revoked = 1 WHERE token = ? AND revoked = 0",
+            (token,)
+        )
+        db.commit()
+        if result.rowcount == 0:
+            return {"ok": False, "error": "token_not_found_or_already_revoked"}
+        return {"ok": True, "token": token}
+    finally:
+        db.close()
+
+
+def list_character_tokens(character_id: str) -> list:
+    """List all share tokens for a character.
+    
+    Returns:
+        List of token dicts.
+    """
+    db = get_db()
+    try:
+        rows = db.execute(
+            """SELECT id, token, label, created_at, expires_at, revoked, 
+                      view_count, last_viewed_at
+               FROM share_tokens 
+               WHERE character_id = ?
+               ORDER BY created_at DESC""",
+            (character_id,)
+        ).fetchall()
+
+        tokens = []
+        for r in rows:
+            is_expired = False
+            if r["expires_at"]:
+                is_expired = datetime.utcnow() > datetime.fromisoformat(r["expires_at"])
+
+            tokens.append({
+                "id": r["id"],
+                "token_prefix": r["token"][:8] + "...",
+                "label": r["label"],
+                "created_at": r["created_at"],
+                "expires_at": r["expires_at"],
+                "revoked": bool(r["revoked"]),
+                "expired": is_expired,
+                "active": not r["revoked"] and not is_expired,
+                "view_count": r["view_count"],
+                "last_viewed_at": r["last_viewed_at"],
+            })
+        return tokens
+    finally:
+        db.close()
+
+
+def get_portal_state(character_id: str) -> dict:
+    """Aggregate character state for portal view.
+    
+    Returns character sheet, current location, active quests,
+    recent events, doom clock status, and inventory.
+    
+    Returns:
+        Dict with full portal state or error.
+    """
+    db = get_db()
+    try:
+        # Character
+        char = db.execute("SELECT * FROM characters WHERE id = ?", (character_id,)).fetchone()
+        if not char:
+            return {"error": "character_not_found"}
+
+        import json
+        sheet = json.loads(char["sheet_json"]) if char["sheet_json"] else {}
+
+        # Current location
+        location = None
+        location_id = char["location_id"] if "location_id" in char.keys() else None
+        if location_id:
+            loc = db.execute(
+                "SELECT id, name, description, biome, hostility_level FROM locations WHERE id = ?",
+                (location_id,)
+            ).fetchone()
+            if loc:
+                location = dict(loc)
+
+        # Active quests
+        quests = db.execute(
+            """SELECT quest_id, quest_title, quest_description, giver_npc_name, 
+                      status, reward_xp, reward_gold, accepted_at
+               FROM character_quests 
+               WHERE character_id = ? AND status = 'accepted'
+               ORDER BY accepted_at DESC""",
+            (character_id,)
+        ).fetchall()
+
+        # Recent events (last 10)
+        events = db.execute(
+            """SELECT event_type, description, data_json, timestamp
+               FROM event_log 
+               WHERE character_id = ?
+               ORDER BY timestamp DESC
+               LIMIT 10""",
+            (character_id,)
+        ).fetchall()
+
+        # Doom clock
+        doom = db.execute(
+            "SELECT * FROM doom_clock WHERE character_id = ?",
+            (character_id,)
+        ).fetchone()
+
+        # Inventory
+        inventory = db.execute(
+            """SELECT ci.item_id, ci.quantity, ci.is_equipped, ci.acquired_at,
+                      i.name, i.item_type, i.rarity, i.description
+               FROM character_items ci
+               LEFT JOIN items i ON ci.item_id = i.id
+               WHERE ci.character_id = ?
+               ORDER BY ci.acquired_at DESC""",
+            (character_id,)
+        ).fetchall()
+
+        return {
+            "character": {
+                "id": char["id"],
+                "name": char["name"],
+                "level": char["level"],
+                "xp": char["xp"],
+                "hp_current": char["hp_current"],
+                "hp_max": char["hp_max"],
+                "sheet": sheet,
+            },
+            "location": location,
+            "quests": [dict(q) for q in quests],
+            "recent_events": [
+                {
+                    "type": e["event_type"],
+                    "description": e["description"],
+                    "data": json.loads(e["data_json"]) if e["data_json"] else {},
+                    "timestamp": e["timestamp"],
+                }
+                for e in events
+            ],
+            "doom_clock": dict(doom) if doom else None,
+            "inventory": [dict(i) for i in inventory],
+        }
+    finally:
+        db.close()

@@ -374,6 +374,27 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (character_id) REFERENCES characters(id)
         );
+
+        -- =========================================================
+        -- PLAYER PORTAL — Share tokens for public character views
+        -- =========================================================
+
+        -- Share tokens: allow unauthenticated viewing of character state
+        CREATE TABLE IF NOT EXISTS share_tokens (
+            id TEXT PRIMARY KEY,
+            character_id TEXT NOT NULL,
+            token TEXT NOT NULL UNIQUE,
+            label TEXT,  -- optional human label (e.g., "Playtest #1")
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            expires_at TIMESTAMP,  -- NULL = never expires
+            revoked INTEGER DEFAULT 0,
+            view_count INTEGER DEFAULT 0,
+            last_viewed_at TIMESTAMP,
+            FOREIGN KEY (character_id) REFERENCES characters(id)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_share_tokens_character ON share_tokens(character_id);
+        CREATE INDEX IF NOT EXISTS idx_share_tokens_token ON share_tokens(token);
     """)
     # Migrations: add image_url columns to existing tables (safe for new DBs too)
     for table in ["locations", "encounters"]:
@@ -381,6 +402,23 @@ def init_db():
             conn.execute(f"ALTER TABLE {table} ADD COLUMN image_url TEXT")
         except Exception:
             pass  # Column already exists
+    # Migration: create share_tokens table for existing DBs (safe no-op for new DBs)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS share_tokens (
+            id TEXT PRIMARY KEY,
+            character_id TEXT NOT NULL,
+            token TEXT NOT NULL UNIQUE,
+            label TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            expires_at TIMESTAMP,
+            revoked INTEGER DEFAULT 0,
+            view_count INTEGER DEFAULT 0,
+            last_viewed_at TIMESTAMP,
+            FOREIGN KEY (character_id) REFERENCES characters(id)
+        )
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_share_tokens_character ON share_tokens(character_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_share_tokens_token ON share_tokens(token)")
     conn.commit()
     conn.close()
 

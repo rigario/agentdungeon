@@ -13,6 +13,7 @@ from app.routers.combat import approval_router
 from app.routers import narrative_introspect
 from app.routers import time as time_router
 from app.routers import cadence as cadence_router
+from app.routers import portal as portal_router
 
 
 @asynccontextmanager
@@ -103,6 +104,7 @@ app.include_router(map_router.router)
 app.include_router(narrative_introspect.router, prefix="/narrative-introspect", tags=["narrative-introspect"])
 app.include_router(time_router.router)
 app.include_router(cadence_router.router)
+app.include_router(portal_router.router)
 
 
 if __name__ == "__main__":

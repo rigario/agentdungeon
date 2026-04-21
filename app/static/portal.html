@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Player Portal — The Dreaming Hunger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bitter:wght@400;700;900&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-void: #060610;
+    --bg-deep: #0a0a18;
+    --bg-card: #10101f;
+    --bg-card-hover: #161630;
+    --border: #1a1a3a;
+    --border-subtle: #141428;
+    --text-primary: #e0d8c8;
+    --text-secondary: #8a8498;
+    --text-muted: #5a5470;
+    --accent-gold: #c8a040;
+    --accent-amber: #d49030;
+    --accent-red: #a03030;
+    --accent-green: #3a7a3a;
+    --accent-blue: #4060a0;
+    --accent-purple: #7040a0;
+    --glow-gold: rgba(200,160,64,0.15);
+    --glow-red: rgba(160,48,48,0.12);
+    --font-display: 'Bitter', Georgia, serif;
+    --font-body: 'Source Sans 3', 'Segoe UI', sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg-void);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* Header */
+  .portal-header {
+    background: var(--bg-deep);
+    border-bottom: 1px solid var(--border);
+    padding: 1.5rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .portal-title {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    color: var(--accent-gold);
+  }
+  .portal-title span { color: var(--text-muted); font-size: 0.85rem; margin-left: 0.5rem; }
+  .char-summary {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    font-size: 0.9rem;
+  }
+  .char-name { font-family: var(--font-display); font-size: 1.1rem; color: var(--text-primary); }
+  .stat-badge {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 0.25rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+  }
+  .stat-badge.hp { color: var(--accent-green); border-color: rgba(58,122,58,0.3); }
+  .stat-badge.level { color: var(--accent-gold); border-color: rgba(200,160,64,0.3); }
+  .stat-badge.xp { color: var(--accent-blue); border-color: rgba(64,96,160,0.3); }
+
+  /* Layout */
+  .portal-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    padding: 1.5rem 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  @media (max-width: 768px) {
+    .portal-grid { grid-template-columns: 1fr; }
+  }
+
+  /* Cards */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: rgba(200,160,64,0.2); }
+  .card-title {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    color: var(--accent-gold);
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .card-title .icon { font-size: 1.1rem; }
+
+  /* Location */
+  .location-name { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem; }
+  .location-desc { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem; }
+  .danger-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .danger-fill { height: 100%; background: var(--accent-red); border-radius: 2px; transition: width 0.3s; }
+  .danger-label { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; }
+
+  /* Doom Clock */
+  .doom-container { text-align: center; }
+  .doom-ticks {
+    font-family: var(--font-display);
+    font-size: 2.5rem;
+    color: var(--accent-red);
+    font-weight: 900;
+  }
+  .doom-label { color: var(--text-muted); font-size: 0.8rem; margin-top: 0.25rem; }
+  .doom-bar {
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    margin-top: 0.75rem;
+    overflow: hidden;
+  }
+  .doom-fill { height: 100%; background: linear-gradient(90deg, var(--accent-amber), var(--accent-red)); border-radius: 3px; }
+
+  /* Quests */
+  .quest-item {
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .quest-item:last-child { border-bottom: none; }
+  .quest-title { font-weight: 600; font-size: 0.95rem; }
+  .quest-desc { color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.15rem; }
+  .quest-meta { color: var(--text-muted); font-size: 0.75rem; margin-top: 0.25rem; }
+  .quest-status {
+    display: inline-block;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: rgba(64,96,160,0.2);
+    color: var(--accent-blue);
+  }
+
+  /* Events */
+  .event-item {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+  }
+  .event-item:last-child { border-bottom: none; }
+  .event-type {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .event-type.combat { background: rgba(160,48,48,0.2); color: var(--accent-red); }
+  .event-type.explore { background: rgba(58,122,58,0.2); color: var(--accent-green); }
+  .event-type.travel { background: rgba(64,96,160,0.2); color: var(--accent-blue); }
+  .event-type.npc { background: rgba(112,64,160,0.2); color: var(--accent-purple); }
+  .event-type.default { background: rgba(138,132,152,0.2); color: var(--text-secondary); }
+  .event-detail { font-size: 0.85rem; color: var(--text-secondary); }
+  .event-time { font-size: 0.7rem; color: var(--text-muted); }
+
+  /* Inventory */
+  .inv-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .inv-item:last-child { border-bottom: none; }
+  .inv-name { font-size: 0.9rem; }
+  .inv-meta { font-size: 0.75rem; color: var(--text-muted); }
+  .inv-equipped { color: var(--accent-green); font-size: 0.7rem; }
+  .rarity-common { color: var(--text-secondary); }
+  .rarity-uncommon { color: var(--accent-green); }
+  .rarity-rare { color: var(--accent-blue); }
+  .rarity-legendary { color: var(--accent-gold); }
+
+  /* Ability Scores */
+  .ability-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+  }
+  .ability-box {
+    text-align: center;
+    background: var(--bg-deep);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    padding: 0.5rem;
+  }
+  .ability-name { font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em; }
+  .ability-score { font-family: var(--font-display); font-size: 1.3rem; color: var(--text-primary); font-weight: 700; }
+  .ability-mod { font-size: 0.75rem; color: var(--accent-gold); }
+
+  /* Loading/Error */
+  .loading {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--text-muted);
+  }
+  .loading-spinner {
+    width: 32px; height: 32px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent-gold);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 1rem;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .error-card {
+    background: rgba(160,48,48,0.1);
+    border: 1px solid rgba(160,48,48,0.3);
+    border-radius: 8px;
+    padding: 2rem;
+    text-align: center;
+    max-width: 500px;
+    margin: 4rem auto;
+  }
+  .error-title { font-family: var(--font-display); color: var(--accent-red); font-size: 1.2rem; margin-bottom: 0.5rem; }
+  .error-msg { color: var(--text-secondary); }
+
+  /* Full-width card */
+  .card-full { grid-column: 1 / -1; }
+
+  .empty-state { color: var(--text-muted); font-size: 0.9rem; font-style: italic; }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="loading">
+    <div class="loading-spinner"></div>
+    <p>Loading portal...</p>
+  </div>
+</div>
+
+<script>
+function getToken() {
+  // Extract token from URL: /portal/{token}/view
+  const path = window.location.pathname;
+  const match = path.match(/\/portal\/([^/]+)\/view/);
+  if (match) return match[1];
+  // Fallback: query param
+  return new URLSearchParams(window.location.search).get('token');
+}
+
+function fmtTime(ts) {
+  if (!ts) return '';
+  try {
+    const d = new Date(ts + (ts.includes('Z') ? '' : 'Z'));
+    return d.toLocaleString();
+  } catch { return ts; }
+}
+
+function eventTypeClass(type) {
+  const t = (type || '').toLowerCase();
+  if (t.includes('combat') || t.includes('death')) return 'combat';
+  if (t.includes('explore') || t.includes('discovery')) return 'explore';
+  if (t.includes('travel') || t.includes('move')) return 'travel';
+  if (t.includes('npc') || t.includes('interact')) return 'npc';
+  return 'default';
+}
+
+function rarityClass(rarity) {
+  if (!rarity) return 'rarity-common';
+  return 'rarity-' + rarity.toLowerCase();
+}
+
+function renderAbilityScores(sheet) {
+  if (!sheet.ability_scores) return '';
+  const scores = sheet.ability_scores;
+  const names = ['STR','DEX','CON','INT','WIS','CHA'];
+  return '<div class="ability-grid">' + names.map(n => {
+    const val = scores[n.toLowerCase()] || scores[n] || 10;
+    const mod = Math.floor((val - 10) / 2);
+    const modStr = mod >= 0 ? '+' + mod : '' + mod;
+    return `<div class="ability-box">
+      <div class="ability-name">${n}</div>
+      <div class="ability-score">${val}</div>
+      <div class="ability-mod">${modStr}</div>
+    </div>`;
+  }).join('') + '</div>';
+}
+
+function renderPortal(data) {
+  const c = data.character || {};
+  const loc = data.location;
+  const quests = data.quests || [];
+  const events = data.recent_events || [];
+  const doom = data.doom_clock;
+  const inv = data.inventory || [];
+  const sheet = c.sheet || {};
+
+  const hp = c.hp_max ? `${c.hp_current}/${c.hp_max}` : `${c.hp_current}`;
+  const hpPct = c.hp_max ? Math.round((c.hp_current / c.hp_max) * 100) : 100;
+
+  let html = `
+  <div class="portal-header">
+    <div class="portal-title">The Dreaming Hunger <span>Player Portal</span></div>
+    <div class="char-summary">
+      <span class="char-name">${c.name || 'Unknown'}</span>
+      <span class="stat-badge level">Lv ${c.level || 1}</span>
+      <span class="stat-badge hp">HP ${hp}</span>
+      <span class="stat-badge xp">XP ${c.xp || 0}</span>
+    </div>
+  </div>
+
+  <div class="portal-grid">
+    <!-- Ability Scores + Sheet -->
+    <div class="card">
+      <div class="card-title"><span class="icon">⚔️</span> Character</div>
+      ${renderAbilityScores(sheet)}
+      ${sheet.classes ? '<div style="margin-top:0.75rem;color:var(--text-secondary);font-size:0.85rem;">' + 
+        sheet.classes.map(cls => `${cls.name || cls} ${cls.level || ''}`).join(', ') + '</div>' : ''}
+      ${sheet.race ? '<div style="color:var(--text-muted);font-size:0.8rem;">' + (typeof sheet.race === 'string' ? sheet.race : sheet.race.name) + '</div>' : ''}
+    </div>
+
+    <!-- Location -->
+    <div class="card">
+      <div class="card-title"><span class="icon">📍</span> Location</div>
+        ${loc ? `
+        <div class="location-name">${loc.name}</div>
+        <div class="location-desc">${loc.description || ''}</div>
+        ${loc.biome ? `<div style="color:var(--text-muted);font-size:0.8rem;margin-top:0.25rem;">Biome: ${loc.biome}</div>` : ''}
+        ${loc.hostility_level != null ? `
+          <div class="danger-bar"><div class="danger-fill" style="width:${loc.hostility_level * 10}%"></div></div>
+          <div class="danger-label">Hostility: ${loc.hostility_level}/10</div>
+        ` : ''}
+      ` : '<div class="empty-state">Location unknown</div>'}
+    </div>
+
+    <!-- Doom Clock -->
+    <div class="card">
+      <div class="card-title"><span class="icon">⏰</span> Doom Clock</div>
+      ${doom ? `
+        <div class="doom-container">
+          <div class="doom-ticks">${doom.total_ticks || 0}</div>
+          <div class="doom-label">ticks elapsed · ${doom.portents_triggered || 0} portents triggered</div>
+          <div class="doom-bar"><div class="doom-fill" style="width:${Math.min(100, ((doom.total_ticks || 0) % 10) * 10)}%"></div></div>
+        </div>
+      ` : '<div class="empty-state">No active doom clock</div>'}
+    </div>
+
+    <!-- Active Quests -->
+    <div class="card">
+      <div class="card-title"><span class="icon">📜</span> Active Quests</div>
+      ${quests.length ? quests.map(q => `
+        <div class="quest-item">
+          <div class="quest-title">${q.quest_title}</div>
+          ${q.quest_description ? `<div class="quest-desc">${q.quest_description.substring(0, 120)}${q.quest_description.length > 120 ? '...' : ''}</div>` : ''}
+          <div class="quest-meta">
+            <span class="quest-status">${q.status}</span>
+            ${q.giver_npc_name ? ' · from ' + q.giver_npc_name : ''}
+            ${q.reward_xp ? ' · ' + q.reward_xp + ' XP' : ''}
+          </div>
+        </div>
+      `).join('') : '<div class="empty-state">No active quests</div>'}
+    </div>
+
+    <!-- Recent Events -->
+    <div class="card">
+      <div class="card-title"><span class="icon">📖</span> Recent Events</div>
+      ${events.length ? events.map(e => {
+        const data = e.data || {};
+        let detail = '';
+        if (data.description) detail = data.description;
+        else if (data.npc_name) detail = data.npc_name;
+        else if (data.from_location && data.to_location) detail = data.from_location + ' → ' + data.to_location;
+        else if (data.result) detail = data.result;
+        else detail = e.type;
+        return `<div class="event-item">
+          <span class="event-type ${eventTypeClass(e.type)}">${e.type}</span>
+          <div>
+            <div class="event-detail">${detail}</div>
+            <div class="event-time">${fmtTime(e.timestamp)}</div>
+          </div>
+        </div>`;
+      }).join('') : '<div class="empty-state">No events recorded</div>'}
+    </div>
+
+    <!-- Inventory -->
+    <div class="card">
+      <div class="card-title"><span class="icon">🎒</span> Inventory</div>
+      ${inv.length ? inv.map(i => `
+        <div class="inv-item">
+          <div>
+            <span class="inv-name ${rarityClass(i.rarity)}">${i.name || i.item_id}</span>
+            ${i.quantity > 1 ? `<span class="inv-meta"> ×${i.quantity}</span>` : ''}
+          </div>
+          <div>
+            ${i.equipped ? '<span class="inv-equipped">equipped</span>' : ''}
+            <span class="inv-meta">${i.item_type || ''}</span>
+          </div>
+        </div>
+      `).join('') : '<div class="empty-state">Backpack empty</div>'}
+    </div>
+  </div>`;
+
+  document.getElementById('app').innerHTML = html;
+  document.title = `${c.name || 'Portal'} — The Dreaming Hunger`;
+}
+
+function renderError(err) {
+  document.getElementById('app').innerHTML = `
+    <div class="error-card">
+      <div class="error-title">Portal Unavailable</div>
+      <div class="error-msg">${err}</div>
+    </div>
+  `;
+}
+
+async function init() {
+  const token = getToken();
+  if (!token) {
+    renderError('No share token found in URL. Use /portal/{token}/view');
+    return;
+  }
+  try {
+    const resp = await fetch(`/portal/${token}/state`);
+    if (!resp.ok) {
+      const body = await resp.json().catch(() => ({}));
+      renderError(body.detail?.error || `Token validation failed (${resp.status})`);
+      return;
+    }
+    const data = await resp.json();
+    renderPortal(data);
+  } catch (e) {
+    renderError('Failed to load portal state: ' + e.message);
+  }
+}
+
+init();
+</script>
+</body>
+</html>
