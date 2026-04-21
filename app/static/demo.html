@@ -68,6 +68,7 @@
     transform: translateX(-50%);
     display: flex;
     gap: 8px;
+    align-items: center;
     z-index: 100;
   }
   .scene-dot {
@@ -103,6 +104,47 @@
     color: var(--text-dim);
     z-index: 100;
     opacity: 0.6;
+  }
+
+  /* Prominent navigation prompt */
+  .nav-prompt {
+    position: fixed;
+    bottom: 48px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    letter-spacing: 0.15em;
+    color: var(--gold);
+    z-index: 101;
+    animation: navPulse 2s ease-in-out infinite;
+    transition: opacity 1s ease;
+    white-space: nowrap;
+  }
+  .nav-prompt.hidden { opacity: 0; pointer-events: none; }
+  .nav-prompt-keys {
+    display: flex;
+    gap: 0.4rem;
+  }
+  .nav-prompt-key {
+    background: rgba(184,134,11,0.15);
+    border: 1px solid var(--gold-dim);
+    border-radius: 4px;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.75rem;
+    color: var(--gold-bright);
+    letter-spacing: 0;
+  }
+  .nav-prompt-or {
+    color: var(--text-dim);
+    font-size: 0.7rem;
+  }
+  @keyframes navPulse {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
   }
 
   .title-scene h1 {
@@ -613,6 +655,18 @@
 <div class="scene-nav" id="sceneNav"></div>
 <div class="controls-hint">&larr; &rarr; or Space to navigate &middot; Click dots to jump &middot; P to pause</div>
 
+<div class="nav-prompt" id="navPrompt">
+  <div class="nav-prompt-keys">
+    <span class="nav-prompt-key">SPACE</span>
+  </div>
+  <span>to continue</span>
+  <span class="nav-prompt-or">or</span>
+  <div class="nav-prompt-keys">
+    <span class="nav-prompt-key">&larr;</span>
+    <span class="nav-prompt-key">&rarr;</span>
+  </div>
+</div>
+
 <!-- ===== CUTSCENE OVERLAYS ===== -->
 <div class="cutscene-overlay" id="openingCutscene">
   <div class="cutscene-particles" id="openingParticles"></div>
@@ -690,18 +744,18 @@
 <div class="scene title-scene active" data-scene="0" data-duration="12">
   <h1>THE DREAMING HUNGER</h1>
   <div class="subtitle">
-    An agent-driven D&amp;D RPG where your character can be possessed, marked, and hunted
-    by an ancient entity &mdash; even while you sleep.
+    An agent-driven D&amp;D RPG where your AI plays the game, enforces the rules,
+    and your character carries the consequences. The seal is cracking.
   </div>
   <div class="tagline">Built with Hermes Agent</div>
 </div>
 
-<!-- SCENE 1: Character Sheet -->
+<!-- SCENE 1: The Character -->
 <div class="scene sheet-scene" data-scene="1" data-duration="18">
   <div class="sheet-container">
     <div class="sheet-header">
-      <h2 id="charName">Hero</h2>
-      <div class="char-meta" id="charMeta">Human &middot; Paladin Level 1</div>
+      <h2 id="charName">Loading...</h2>
+      <div class="char-meta" id="charMeta">Human &middot; Fighter Level 1</div>
     </div>
     <div class="stat-grid" id="statGrid">
       <div class="stat-box"><div class="label">STR</div><div class="value">16</div><div class="modifier">+3</div></div>
@@ -717,29 +771,63 @@
       <div class="stat-box"><div class="label">Speed</div><div class="value" style="font-size:1.4rem;">30ft</div></div>
     </div>
     <div class="mark-indicator">
-      <h3>&#9877; MARK OF THE DREAMER &#9877;</h3>
-      <p>The sigil burns cold against your skin. Something ancient has noticed you.</p>
+      <h3>MARK OF THE DREAMER</h3>
+      <p>Stage I &mdash; The sigil burns cold against your skin. Something ancient has noticed you. Every failed Wisdom save pulls you deeper.</p>
     </div>
+    <p style="color: var(--text-dim); font-size: 0.85rem; margin-top: 1rem; text-align: center; font-style: italic;">
+      Your character sheet lives on the server. Validated against SRD 5.2. Portable as signed JSON.
+    </p>
   </div>
 </div>
 
-<!-- SCENE 2: World Map -->
-<div class="scene map-scene" data-scene="2" data-duration="15">
+<!-- SCENE 2: The World -->
+<div class="scene map-scene" data-scene="2" data-duration="18">
   <div class="map-container">
-    <h2>&#10061; Thornhold Region &#10061;</h2>
-    <div class="map-svg-wrap">
-      <svg id="mapSvg" viewBox="0 0 700 450" xmlns="http://www.w3.org/2000/svg"></svg>
+    <h2>The World of Thornhold</h2>
+    <p style="text-align: center; color: var(--text-dim); font-size: 0.95rem; margin-bottom: 1.5rem; font-style: italic; max-width: 600px; margin-left: auto; margin-right: auto;">
+      A pocket realm on the edge of something older. 9 handcrafted locations, each with encounters, NPCs, and secrets tied to the cracking seal.
+    </p>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; max-width: 700px; margin: 0 auto;">
+      <div style="background: var(--bg-panel); border: 1px solid var(--gold-dim); border-radius: 8px; overflow: hidden;">
+        <img src="/static/pixel-art/loc-rusty-tankard.png" style="width:100%; height:100px; object-fit:cover; image-rendering:pixelated;" alt="The Rusty Tankard">
+        <div style="padding: 0.75rem;">
+          <div style="font-family: 'Cinzel', serif; color: var(--gold-bright); font-size: 0.9rem;">The Rusty Tankard</div>
+          <div style="color: var(--text-dim); font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase;">Town &middot; Tavern</div>
+        </div>
+      </div>
+      <div style="background: var(--bg-panel); border: 1px solid var(--gold-dim); border-radius: 8px; overflow: hidden;">
+        <img src="/static/pixel-art/whisperwood-edge.png" style="width:100%; height:100px; object-fit:cover; image-rendering:pixelated;" alt="Whisperwood Edge">
+        <div style="padding: 0.75rem;">
+          <div style="font-family: 'Cinzel', serif; color: var(--gold-bright); font-size: 0.9rem;">Whisperwood Edge</div>
+          <div style="color: var(--text-dim); font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase;">Forest</div>
+        </div>
+      </div>
+      <div style="background: var(--bg-panel); border: 1px solid var(--gold-dim); border-radius: 8px; overflow: hidden;">
+        <img src="/static/pixel-art/cave-depths-seal.png" style="width:100%; height:100px; object-fit:cover; image-rendering:pixelated;" alt="The Seal Chamber">
+        <div style="padding: 0.75rem;">
+          <div style="font-family: 'Cinzel', serif; color: var(--gold-bright); font-size: 0.9rem;">The Seal Chamber</div>
+          <div style="color: var(--text-dim); font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase;">Cave &middot; Depths</div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- SCENE 3: Item Lore -->
-<div class="scene lore-scene" data-scene="3" data-duration="18">
+<!-- SCENE 3: Key Items with Full Lore -->
+<div class="scene lore-scene" data-scene="3" data-duration="20">
   <div class="lore-container">
+    <p style="color: var(--text-dim); font-size: 0.9rem; margin-bottom: 1.5rem; font-style: italic; text-align: center;">
+      Every item in the world carries a story. Key items have full lore, background, and connections to the central mystery.
+    </p>
     <div class="lore-card">
-      <h3>Del's Locket</h3>
-      <div class="item-type">&#9670; Key Item &mdash; Memorial &#9670;</div>
-      <p>&ldquo;A tarnished silver locket, warm to the touch despite the cold air of the Tankard.
+      <div style="display: flex; gap: 1.25rem; align-items: flex-start;">
+        <img src="/static/pixel-art/npc-dels-spirit.png" style="width: 80px; height: 80px; border-radius: 6px; border: 1px solid var(--gold-dim); image-rendering: pixelated; flex-shrink: 0;" alt="Del's Locket">
+        <div>
+          <h3>Del's Locket</h3>
+          <div class="item-type">Key Item &mdash; Memorial</div>
+        </div>
+      </div>
+      <p style="margin-top: 1rem;">&ldquo;A tarnished silver locket, warm to the touch despite the cold air of the Tankard.
          Inside, a miniature portrait of a woman with kind eyes &mdash; Del&rsquo;s wife, taken by the
          plague three winters past. The locket hums faintly when the Mark pulses.&rdquo;</p>
       <div class="deeper">
@@ -749,76 +837,88 @@
         If the holder bears the Mark, the locket grows colder with each advancing stage.
       </div>
     </div>
-    <div class="lore-card">
-      <h3>Mark of the Dreamer &mdash; Sigil Fragment</h3>
-      <div class="item-type">&#9670; Key Item &mdash; Condition &#9670;</div>
-      <p>&ldquo;A raised brand on your skin, shifting between crimson and void-black. It pulses
-         in rhythm with something vast and sleeping beneath the Ancient Seal. You can feel
-         it dreaming &mdash; and it knows your name.&rdquo;</p>
-    </div>
   </div>
 </div>
 
-<!-- SCENE 4: The Encounter -->
-<div class="scene encounter-scene" data-scene="4" data-duration="18">
+<!-- SCENE 4: Dice & Agency -->
+<div class="scene encounter-scene" data-scene="4" data-duration="20">
   <div class="encounter-container">
-    <div class="npc-card">
-      <div class="npc-avatar">&#128293;</div>
+    <p style="color: var(--text-dim); font-size: 0.9rem; margin-bottom: 1.5rem; font-style: italic; text-align: center;">
+      Actual dice rolls determine your fate. Every result is logged, verifiable, and seed-reproducible. The engine administers the full 5E ruleset &mdash; adapted for agent-driven play.
+    </p>
+    <div class="npc-card" style="margin-bottom: 1.5rem;">
+      <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--bg-card); border: 2px solid var(--gold); display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden;">
+        <img src="/static/pixel-art/npc-aldric.png" style="width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated;" alt="Aldric">
+      </div>
       <div class="npc-info">
-        <h3>Del</h3>
-        <div class="archetype">Former Adventurer &middot; Possessed</div>
+        <h3>Aldric the Innkeeper</h3>
+        <div class="archetype">Innkeeper &middot; The Rusty Tankard</div>
         <div class="dialogue">
-          &ldquo;You shouldn&rsquo;t have come here. The Tankard was safe once &mdash; a place of rest between
-          worlds. But the Seal... the Seal is cracking, and what sleeps beneath it is hungry.
-          I tried to stop it. Now it wears my face.&rdquo;
+          &ldquo;Del stayed three nights in Room 3 before the incident. I didn&rsquo;t know what Del was carrying.
+          That&rsquo;s what I tell myself.&rdquo;
         </div>
       </div>
     </div>
     <div class="encounter-result">
-      <h4>&#9877; WISDOM SAVE &#9877;</h4>
+      <h4>WISDOM SAVE</h4>
       <div class="dice-roll">
-        &#127922; <span id="diceResult">14</span> <span class="dc">/ DC 13</span>
+        <span id="diceResult">14</span> <span class="dc">/ DC 13</span>
       </div>
       <p style="color: var(--safe); margin-top: 0.5rem;">Success &mdash; but the Mark still burns.</p>
+      <p style="color: var(--text-dim); font-size: 0.8rem; margin-top: 0.75rem; font-style: italic;">
+        Your agent rolls. The server validates. The DM narrates the consequence. You decide if it matters enough to intervene.
+      </p>
     </div>
   </div>
 </div>
 
-<!-- SCENE 5: The Tech -->
-<div class="scene tech-scene" data-scene="5" data-duration="14">
-  <h2 style="font-family: 'Cinzel', serif; color: var(--gold); text-align: center; font-size: 1.5rem; margin-bottom: 0.5rem;">
-    How It Works
-  </h2>
-  <div class="tech-grid">
-    <div class="tech-card">
-      <div class="icon">&#129302;</div>
-      <h4>Hermes Agent</h4>
-      <p>Persistent AI agent that runs the world, narrates encounters, and evolves the story across sessions.</p>
-    </div>
-    <div class="tech-card">
-      <div class="icon">&#128272;</div>
-      <h4>Agent Auth</h4>
-      <p>Ed25519 key pairs, social recovery via Gmail/X, human-in-the-loop delegation.</p>
-    </div>
-    <div class="tech-card">
-      <div class="icon">&#9876;&#65039;</div>
-      <h4>D&amp;D 5E Engine</h4>
-      <p>Full SRD 5.2 character sheets, combat, saving throws, conditions, and spell slots.</p>
-    </div>
-    <div class="tech-card">
-      <div class="icon">&#127757;</div>
-      <h4>Persistent World</h4>
-      <p>Fronts system with grim portents. The world evolves &mdash; threats advance even when you&rsquo;re away.</p>
-    </div>
-    <div class="tech-card">
-      <div class="icon">&#128101;</div>
-      <h4>Multi-Tenancy</h4>
-      <p>Multiple players, each with agent-operated characters. Ownership and permission levels.</p>
-    </div>
-    <div class="tech-card">
-      <div class="icon">&#9877;</div>
-      <h4>The Dreaming</h4>
-      <p>Mark of the Dreamer &mdash; 4 stages of possession. WIS saves, narrative consequences, genuine stakes.</p>
+<!-- SCENE 5: How the System Works -->
+<div class="scene tech-scene" data-scene="5" data-duration="20">
+  <div style="max-width: 700px; width: 100%;">
+    <h2 style="font-family: 'Cinzel', serif; color: var(--gold); text-align: center; font-size: 1.5rem; margin-bottom: 1.5rem;">
+      How the System Works
+    </h2>
+    <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+      <!-- Step 1 -->
+      <div style="background: var(--bg-panel); border: 1px solid var(--gold-dim); border-radius: 8px; padding: 1.25rem; display: flex; gap: 1rem; align-items: flex-start;">
+        <div style="font-family: 'Cinzel', serif; font-size: 1.5rem; font-weight: 900; color: var(--gold); min-width: 2rem; text-align: center; line-height: 1;">1</div>
+        <div>
+          <div style="font-family: 'Cinzel', serif; color: var(--gold-bright); font-size: 1rem; margin-bottom: 0.3rem;">Rules Engine</div>
+          <p style="color: var(--text-dim); font-size: 0.9rem; line-height: 1.5; margin: 0;">
+            FastAPI server enforces every SRD 5.2 rule. Character creation, combat, saves, death saves, conditions &mdash; all validated. 56 REST endpoints. No hand-waving.
+          </p>
+        </div>
+      </div>
+      <!-- Step 2 -->
+      <div style="background: var(--bg-panel); border: 1px solid var(--gold-dim); border-radius: 8px; padding: 1.25rem; display: flex; gap: 1rem; align-items: flex-start;">
+        <div style="font-family: 'Cinzel', serif; font-size: 1.5rem; font-weight: 900; color: var(--gold); min-width: 2rem; text-align: center; line-height: 1;">2</div>
+        <div>
+          <div style="font-family: 'Cinzel', serif; color: var(--gold-bright); font-size: 1rem; margin-bottom: 0.3rem;">Agentic DM</div>
+          <p style="color: var(--text-dim); font-size: 0.9rem; line-height: 1.5; margin: 0;">
+            The DM agent receives full world lore, NPC personalities, and encounter state. It narrates, adjudicates, and evolves the story. It never sleeps &mdash; your agent can adventure around the clock.
+          </p>
+        </div>
+      </div>
+      <!-- Step 3 -->
+      <div style="background: var(--bg-panel); border: 1px solid var(--gold-dim); border-radius: 8px; padding: 1.25rem; display: flex; gap: 1rem; align-items: flex-start;">
+        <div style="font-family: 'Cinzel', serif; font-size: 1.5rem; font-weight: 900; color: var(--gold); min-width: 2rem; text-align: center; line-height: 1;">3</div>
+        <div>
+          <div style="font-family: 'Cinzel', serif; color: var(--gold-bright); font-size: 1rem; margin-bottom: 0.3rem;">Your Agent Plays</div>
+          <p style="color: var(--text-dim); font-size: 0.9rem; line-height: 1.5; margin: 0;">
+            Your AI agent authenticates via Ed25519, operates your character, and makes decisions within bounds you set. Set approval gates for major choices. The agent has full visibility into the game state.
+          </p>
+        </div>
+      </div>
+      <!-- Step 4 -->
+      <div style="background: var(--bg-panel); border: 1px solid var(--gold-dim); border-radius: 8px; padding: 1.25rem; display: flex; gap: 1rem; align-items: flex-start;">
+        <div style="font-family: 'Cinzel', serif; font-size: 1.5rem; font-weight: 900; color: var(--gold); min-width: 2rem; text-align: center; line-height: 1;">4</div>
+        <div>
+          <div style="font-family: 'Cinzel', serif; color: var(--gold-bright); font-size: 1rem; margin-bottom: 0.3rem;">Watch Through the Portal</div>
+          <p style="color: var(--text-dim); font-size: 0.9rem; line-height: 1.5; margin: 0;">
+            Open your player portal at any time. See your character sheet, inventory with pixel art, adventure log, doom clock, and the fronts advancing. You own the character. You decide what matters.
+          </p>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -831,7 +931,6 @@
     The world evolves. The front advances.<br>
     <strong>Will you survive the Dreaming Hunger?</strong>
   </div>
-  <div class="hermes-logo">&#129302;</div>
   <div class="built-with">Built with Hermes Agent</div>
 </div>
 
@@ -955,6 +1054,12 @@ function jump(i) {
 }
 
 document.addEventListener('keydown', e => {
+  // Hide nav prompt on any key
+  const np = document.getElementById('navPrompt');
+  if (np && !np.classList.contains('hidden')) {
+    np.classList.add('hidden');
+    setTimeout(() => { if (np.parentNode) np.remove(); }, 1100);
+  }
   // Cutscene keyboard handling
   if (inOpeningCutscene) {
     if (e.key === ' ' || e.key === 'ArrowRight') {
@@ -1070,43 +1175,52 @@ function initAmbient() {
   masterGain.connect(audioCtx.destination);
 
   // Slow fade in
-  masterGain.gain.linearRampToValueAtTime(0.25, audioCtx.currentTime + 4);
+  masterGain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 4);
 
   // Deep drone (low C ~65Hz)
   const drone1 = audioCtx.createOscillator();
   drone1.type = 'sine';
   drone1.frequency.value = 65.41;
   const drone1Gain = audioCtx.createGain();
-  drone1Gain.gain.value = 0.3;
+  drone1Gain.gain.value = 0.25;
   drone1.connect(drone1Gain).connect(masterGain);
   drone1.start();
 
-  // Sub bass (32.7Hz)
-  const sub = audioCtx.createOscillator();
-  sub.type = 'sine';
-  sub.frequency.value = 32.7;
-  const subGain = audioCtx.createGain();
-  subGain.gain.value = 0.2;
-  sub.connect(subGain).connect(masterGain);
-  sub.start();
+  // Octave above (130.8Hz C3) -- audible, warm
+  const drone2 = audioCtx.createOscillator();
+  drone2.type = 'triangle';
+  drone2.frequency.value = 130.81;
+  const drone2Gain = audioCtx.createGain();
+  drone2Gain.gain.value = 0.15;
+  drone2.connect(drone2Gain).connect(masterGain);
+  drone2.start();
 
-  // Ominous fifth (98Hz G2)
+  // Ominous fifth (98Hz G2) -- boosted
   const fifth = audioCtx.createOscillator();
   fifth.type = 'triangle';
   fifth.frequency.value = 98;
   const fifthGain = audioCtx.createGain();
-  fifthGain.gain.value = 0.12;
+  fifthGain.gain.value = 0.18;
   fifth.connect(fifthGain).connect(masterGain);
   fifth.start();
 
-  // Dissonant minor second (69.3Hz C#) -- very quiet, unsettling
+  // Dissonant minor second (69.3Hz C#) -- the unsettling edge
   const dis = audioCtx.createOscillator();
   dis.type = 'sine';
   dis.frequency.value = 69.3;
   const disGain = audioCtx.createGain();
-  disGain.gain.value = 0.06;
+  disGain.gain.value = 0.1;
   dis.connect(disGain).connect(masterGain);
   dis.start();
+
+  // Higher ethereal tone (~392Hz G4) -- very quiet, ghostly
+  const ghost = audioCtx.createOscillator();
+  ghost.type = 'sine';
+  ghost.frequency.value = 392;
+  const ghostGain = audioCtx.createGain();
+  ghostGain.gain.value = 0.02;
+  ghost.connect(ghostGain).connect(masterGain);
+  ghost.start();
 
   // Filtered noise texture
   const bufferSize = audioCtx.sampleRate * 4;
@@ -1118,10 +1232,10 @@ function initAmbient() {
   noise.loop = true;
   const noiseFilter = audioCtx.createBiquadFilter();
   noiseFilter.type = 'lowpass';
-  noiseFilter.frequency.value = 200;
-  noiseFilter.Q.value = 1;
+  noiseFilter.frequency.value = 300;
+  noiseFilter.Q.value = 0.7;
   const noiseGain = audioCtx.createGain();
-  noiseGain.gain.value = 0.04;
+  noiseGain.gain.value = 0.08;
   noise.connect(noiseFilter).connect(noiseGain).connect(masterGain);
   noise.start();
 
@@ -1130,7 +1244,7 @@ function initAmbient() {
   lfo.type = 'sine';
   lfo.frequency.value = 0.08; // 8 second cycle
   const lfoGain = audioCtx.createGain();
-  lfoGain.gain.value = 0.05;
+  lfoGain.gain.value = 0.08;
   lfo.connect(lfoGain).connect(fifthGain.gain);
   lfo.start();
 
@@ -1139,9 +1253,18 @@ function initAmbient() {
   pitchLfo.type = 'sine';
   pitchLfo.frequency.value = 0.03;
   const pitchLfoGain = audioCtx.createGain();
-  pitchLfoGain.gain.value = 2;
+  pitchLfoGain.gain.value = 3;
   pitchLfo.connect(pitchLfoGain).connect(dis.frequency);
   pitchLfo.start();
+
+  // Ghost tone slow pitch wobble
+  const ghostLfo = audioCtx.createOscillator();
+  ghostLfo.type = 'sine';
+  ghostLfo.frequency.value = 0.05;
+  const ghostLfoGain = audioCtx.createGain();
+  ghostLfoGain.gain.value = 15;
+  ghostLfo.connect(ghostLfoGain).connect(ghost.frequency);
+  ghostLfo.start();
 }
 
 // Mute button
@@ -1163,7 +1286,7 @@ muteBtn.onclick = () => {
   muted = !muted;
   muteBtn.style.color = muted ? '#3a3520' : 'var(--gold-dim)';
   if (masterGain) {
-    masterGain.gain.linearRampToValueAtTime(muted ? 0 : 0.25, audioCtx.currentTime + 0.5);
+    masterGain.gain.linearRampToValueAtTime(muted ? 0 : 0.3, audioCtx.currentTime + 0.5);
   }
 };
 document.body.appendChild(muteBtn);
