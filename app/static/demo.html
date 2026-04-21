@@ -752,30 +752,43 @@
 
 <!-- SCENE 1: The Character -->
 <div class="scene sheet-scene" data-scene="1" data-duration="18">
-  <div class="sheet-container">
-    <div class="sheet-header">
-      <h2 id="charName">Loading...</h2>
-      <div class="char-meta" id="charMeta">Human &middot; Fighter Level 1</div>
+  <div class="sheet-container" style="background: linear-gradient(135deg, #141419 0%, #1a1a22 50%, #141419 100%); border: 2px solid var(--gold); border-radius: 12px; position: relative;">
+    <!-- Ornamental corners -->
+    <div style="position:absolute;top:8px;left:8px;width:16px;height:16px;border-top:2px solid var(--gold);border-left:2px solid var(--gold);"></div>
+    <div style="position:absolute;top:8px;right:8px;width:16px;height:16px;border-top:2px solid var(--gold);border-right:2px solid var(--gold);"></div>
+    <div style="position:absolute;bottom:8px;left:8px;width:16px;height:16px;border-bottom:2px solid var(--gold);border-left:2px solid var(--gold);"></div>
+    <div style="position:absolute;bottom:8px;right:8px;width:16px;height:16px;border-bottom:2px solid var(--gold);border-right:2px solid var(--gold);"></div>
+    <!-- Header with portrait -->
+    <div class="sheet-header" style="border-bottom: 2px solid var(--gold-dim); display: flex; align-items: center; gap: 1.25rem; padding-bottom: 1.25rem; margin-bottom: 1.25rem;">
+      <div style="width: 72px; height: 72px; border-radius: 50%; border: 2px solid var(--gold); overflow: hidden; flex-shrink: 0; background: var(--bg-card);">
+        <img src="/static/pixel-art/npc-aldric.png" style="width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated;" alt="Character portrait">
+      </div>
+      <div>
+        <h2 id="charName" style="margin-bottom: 0.15rem;">Kael Ironfist</h2>
+        <div class="char-meta" id="charMeta">Human &middot; Fighter Level 1</div>
+      </div>
     </div>
-    <div class="stat-grid" id="statGrid">
-      <div class="stat-box"><div class="label">STR</div><div class="value">16</div><div class="modifier">+3</div></div>
-      <div class="stat-box"><div class="label">DEX</div><div class="value">12</div><div class="modifier">+1</div></div>
-      <div class="stat-box"><div class="label">CON</div><div class="value">14</div><div class="modifier">+2</div></div>
-      <div class="stat-box"><div class="label">INT</div><div class="value">10</div><div class="modifier">+0</div></div>
-      <div class="stat-box"><div class="label">WIS</div><div class="value">13</div><div class="modifier">+1</div></div>
-      <div class="stat-box"><div class="label">CHA</div><div class="value">15</div><div class="modifier">+2</div></div>
+    <!-- Ability scores in 3x2 grid, D&D style -->
+    <div class="stat-grid" id="statGrid" style="grid-template-columns: repeat(6, 1fr); gap: 0.75rem; margin-bottom: 1.25rem;">
+      <div class="stat-box" style="padding: 0.5rem;"><div class="label">STR</div><div class="value" style="font-size:1.4rem;">16</div><div class="modifier">+3</div></div>
+      <div class="stat-box" style="padding: 0.5rem;"><div class="label">DEX</div><div class="value" style="font-size:1.4rem;">12</div><div class="modifier">+1</div></div>
+      <div class="stat-box" style="padding: 0.5rem;"><div class="label">CON</div><div class="value" style="font-size:1.4rem;">14</div><div class="modifier">+2</div></div>
+      <div class="stat-box" style="padding: 0.5rem;"><div class="label">INT</div><div class="value" style="font-size:1.4rem;">10</div><div class="modifier">+0</div></div>
+      <div class="stat-box" style="padding: 0.5rem;"><div class="label">WIS</div><div class="value" style="font-size:1.4rem;">13</div><div class="modifier">+1</div></div>
+      <div class="stat-box" style="padding: 0.5rem;"><div class="label">CHA</div><div class="value" style="font-size:1.4rem;">15</div><div class="modifier">+2</div></div>
     </div>
-    <div style="display:grid; grid-template-columns: repeat(3,1fr); gap:1rem; margin-bottom:1rem;">
-      <div class="stat-box"><div class="label">HP</div><div class="value" style="font-size:1.4rem;">12/12</div></div>
-      <div class="stat-box"><div class="label">AC</div><div class="value" style="font-size:1.4rem;">18</div></div>
-      <div class="stat-box"><div class="label">Speed</div><div class="value" style="font-size:1.4rem;">30ft</div></div>
+    <!-- Combat stats row -->
+    <div style="display:grid; grid-template-columns: repeat(3,1fr); gap:0.75rem; margin-bottom:1rem;">
+      <div class="stat-box"><div class="label">HP</div><div class="value" style="font-size:1.2rem; color: #6B8E23;">12<span style="color: var(--text-dim); font-size:0.8rem;">/12</span></div></div>
+      <div class="stat-box"><div class="label">AC</div><div class="value" style="font-size:1.2rem;">18</div></div>
+      <div class="stat-box"><div class="label">Speed</div><div class="value" style="font-size:1.2rem;">30<span style="color: var(--text-dim); font-size:0.7rem;">ft</span></div></div>
     </div>
     <div class="mark-indicator">
       <h3>MARK OF THE DREAMER</h3>
       <p>Stage I &mdash; The sigil burns cold against your skin. Something ancient has noticed you. Every failed Wisdom save pulls you deeper.</p>
     </div>
-    <p style="color: var(--text-dim); font-size: 0.85rem; margin-top: 1rem; text-align: center; font-style: italic;">
-      Your character sheet lives on the server. Validated against SRD 5.2. Portable as signed JSON.
+    <p style="color: var(--text-dim); font-size: 0.8rem; margin-top: 0.75rem; text-align: center; font-style: italic;">
+      Validated against SRD 5.2. Portable as signed JSON. Your character, your data.
     </p>
   </div>
 </div>
@@ -821,7 +834,7 @@
     </p>
     <div class="lore-card">
       <div style="display: flex; gap: 1.25rem; align-items: flex-start;">
-        <img src="/static/pixel-art/npc-dels-spirit.png" style="width: 80px; height: 80px; border-radius: 6px; border: 1px solid var(--gold-dim); image-rendering: pixelated; flex-shrink: 0;" alt="Del's Locket">
+        <img src="/static/pixel-art/item-dels-signet-ring.png" style="width: 80px; height: 80px; border-radius: 6px; border: 1px solid var(--gold-dim); image-rendering: pixelated; flex-shrink: 0;" alt="Del's Signet Ring">
         <div>
           <h3>Del's Locket</h3>
           <div class="item-type">Key Item &mdash; Memorial</div>
@@ -842,31 +855,21 @@
 
 <!-- SCENE 4: Dice & Agency -->
 <div class="scene encounter-scene" data-scene="4" data-duration="20">
-  <div class="encounter-container">
-    <p style="color: var(--text-dim); font-size: 0.9rem; margin-bottom: 1.5rem; font-style: italic; text-align: center;">
-      Actual dice rolls determine your fate. Every result is logged, verifiable, and seed-reproducible. The engine administers the full 5E ruleset &mdash; adapted for agent-driven play.
+  <div class="encounter-container" style="max-width: 600px;">
+    <h2 style="font-family: 'Cinzel', serif; color: var(--gold); text-align: center; font-size: 1.5rem; margin-bottom: 1rem;">Every Roll Is Real</h2>
+    <p style="color: var(--text); font-style: italic; text-align: center; line-height: 1.7; margin-bottom: 1.5rem;">
+      Your agent rolls the dice. The server validates the result. The DM narrates what happens next.
+      Every roll is logged, verifiable, and seed-reproducible. No fudging, no hand-waving &mdash; the SRD 5.2 ruleset is the arbiter.
     </p>
-    <div class="npc-card" style="margin-bottom: 1.5rem;">
-      <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--bg-card); border: 2px solid var(--gold); display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden;">
-        <img src="/static/pixel-art/npc-aldric.png" style="width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated;" alt="Aldric">
-      </div>
-      <div class="npc-info">
-        <h3>Aldric the Innkeeper</h3>
-        <div class="archetype">Innkeeper &middot; The Rusty Tankard</div>
-        <div class="dialogue">
-          &ldquo;Del stayed three nights in Room 3 before the incident. I didn&rsquo;t know what Del was carrying.
-          That&rsquo;s what I tell myself.&rdquo;
-        </div>
-      </div>
-    </div>
-    <div class="encounter-result">
+    <div class="encounter-result" style="margin-top: 0;">
       <h4>WISDOM SAVE</h4>
       <div class="dice-roll">
         <span id="diceResult">14</span> <span class="dc">/ DC 13</span>
       </div>
       <p style="color: var(--safe); margin-top: 0.5rem;">Success &mdash; but the Mark still burns.</p>
-      <p style="color: var(--text-dim); font-size: 0.8rem; margin-top: 0.75rem; font-style: italic;">
-        Your agent rolls. The server validates. The DM narrates the consequence. You decide if it matters enough to intervene.
+      <p style="color: var(--text-dim); font-size: 0.85rem; margin-top: 1rem; line-height: 1.6;">
+        The engine handles initiative, attack rolls, saving throws, death saves, and condition tracking.
+        Your agent decides tactics. You decide what matters enough to intervene.
       </p>
     </div>
   </div>
@@ -903,9 +906,9 @@
       <div style="background: var(--bg-panel); border: 1px solid var(--gold-dim); border-radius: 8px; padding: 1.25rem; display: flex; gap: 1rem; align-items: flex-start;">
         <div style="font-family: 'Cinzel', serif; font-size: 1.5rem; font-weight: 900; color: var(--gold); min-width: 2rem; text-align: center; line-height: 1;">3</div>
         <div>
-          <div style="font-family: 'Cinzel', serif; color: var(--gold-bright); font-size: 1rem; margin-bottom: 0.3rem;">Your Agent Plays</div>
+          <div style="font-family: 'Cinzel', serif; color: var(--gold-bright); font-size: 1rem; margin-bottom: 0.3rem;">Play With Your Agent</div>
           <p style="color: var(--text-dim); font-size: 0.9rem; line-height: 1.5; margin: 0;">
-            Your AI agent authenticates via Ed25519, operates your character, and makes decisions within bounds you set. Set approval gates for major choices. The agent has full visibility into the game state.
+            You and your agent play together. You set the strategy, decide key actions, and define your playstyle. Your agent handles the moment-to-moment &mdash; exploring, negotiating, rolling dice &mdash; within approval gates you control.
           </p>
         </div>
       </div>
@@ -913,9 +916,9 @@
       <div style="background: var(--bg-panel); border: 1px solid var(--gold-dim); border-radius: 8px; padding: 1.25rem; display: flex; gap: 1rem; align-items: flex-start;">
         <div style="font-family: 'Cinzel', serif; font-size: 1.5rem; font-weight: 900; color: var(--gold); min-width: 2rem; text-align: center; line-height: 1;">4</div>
         <div>
-          <div style="font-family: 'Cinzel', serif; color: var(--gold-bright); font-size: 1rem; margin-bottom: 0.3rem;">Watch Through the Portal</div>
+          <div style="font-family: 'Cinzel', serif; color: var(--gold-bright); font-size: 1rem; margin-bottom: 0.3rem;">The Player Portal</div>
           <p style="color: var(--text-dim); font-size: 0.9rem; line-height: 1.5; margin: 0;">
-            Open your player portal at any time. See your character sheet, inventory with pixel art, adventure log, doom clock, and the fronts advancing. You own the character. You decide what matters.
+            Watch your character live. See stats, inventory with pixel art, the adventure log, doom clock, and advancing fronts. Jump in to approve key decisions or craft new strategies with your agent at any time.
           </p>
         </div>
       </div>
@@ -927,7 +930,7 @@
 <div class="scene cta-scene" data-scene="6" data-duration="14">
   <h2>The DM That Never Sleeps</h2>
   <div class="question">
-    Your agent plays while you sleep.<br>
+    Play with your agent. Craft strategies together.<br>
     The world evolves. The front advances.<br>
     <strong>Will you survive the Dreaming Hunger?</strong>
   </div>
@@ -1146,12 +1149,12 @@ function diceAnim() {
   } catch(e) { console.log('Map load error:', e); }
 })();
 
-// Load character
+// Load character (use Kael Ironfist from DB)
 (async () => {
   try {
     const res = await fetch('/characters');
     const chars = await res.json();
-    const c = chars.find(x => x.name === 'Hero') || chars[0];
+    const c = chars.find(x => x.name === 'Kael Ironfist') || chars[0];
     if (!c) return;
     document.getElementById('charName').textContent = c.name;
     const r = c.race?.name||'Human', cl = c.classes?.[0]?.name||'Fighter', lv = c.classes?.[0]?.level||1;
@@ -1171,18 +1174,18 @@ function initAmbient() {
   audioStarted = true;
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   masterGain = audioCtx.createGain();
-  masterGain.gain.value = 0;
+  masterGain.gain.setValueAtTime(0, audioCtx.currentTime);
   masterGain.connect(audioCtx.destination);
 
   // Slow fade in
-  masterGain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 4);
+  masterGain.gain.linearRampToValueAtTime(0.35, audioCtx.currentTime + 5);
 
   // Deep drone (low C ~65Hz)
   const drone1 = audioCtx.createOscillator();
   drone1.type = 'sine';
   drone1.frequency.value = 65.41;
   const drone1Gain = audioCtx.createGain();
-  drone1Gain.gain.value = 0.25;
+  drone1Gain.gain.value = 0.3;
   drone1.connect(drone1Gain).connect(masterGain);
   drone1.start();
 
@@ -1191,7 +1194,7 @@ function initAmbient() {
   drone2.type = 'triangle';
   drone2.frequency.value = 130.81;
   const drone2Gain = audioCtx.createGain();
-  drone2Gain.gain.value = 0.15;
+  drone2Gain.gain.value = 0.2;
   drone2.connect(drone2Gain).connect(masterGain);
   drone2.start();
 
@@ -1200,7 +1203,7 @@ function initAmbient() {
   fifth.type = 'triangle';
   fifth.frequency.value = 98;
   const fifthGain = audioCtx.createGain();
-  fifthGain.gain.value = 0.18;
+  fifthGain.gain.value = 0.25;
   fifth.connect(fifthGain).connect(masterGain);
   fifth.start();
 
@@ -1209,7 +1212,7 @@ function initAmbient() {
   dis.type = 'sine';
   dis.frequency.value = 69.3;
   const disGain = audioCtx.createGain();
-  disGain.gain.value = 0.1;
+  disGain.gain.value = 0.15;
   dis.connect(disGain).connect(masterGain);
   dis.start();
 
@@ -1218,7 +1221,7 @@ function initAmbient() {
   ghost.type = 'sine';
   ghost.frequency.value = 392;
   const ghostGain = audioCtx.createGain();
-  ghostGain.gain.value = 0.02;
+  ghostGain.gain.value = 0.04;
   ghost.connect(ghostGain).connect(masterGain);
   ghost.start();
 
@@ -1286,7 +1289,7 @@ muteBtn.onclick = () => {
   muted = !muted;
   muteBtn.style.color = muted ? '#3a3520' : 'var(--gold-dim)';
   if (masterGain) {
-    masterGain.gain.linearRampToValueAtTime(muted ? 0 : 0.3, audioCtx.currentTime + 0.5);
+    masterGain.gain.linearRampToValueAtTime(muted ? 0 : 0.35, audioCtx.currentTime + 0.5);
   }
 };
 document.body.appendChild(muteBtn);
