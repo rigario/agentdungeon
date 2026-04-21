@@ -2,6 +2,7 @@
 
 Accepts player messages, routes to rules server, returns narrated output.
 Uses IntentRouter for classification + dispatch, contract schemas for type safety.
+LLM-powered narration via synthesis → narrator pipeline.
 """
 
 from fastapi import APIRouter, HTTPException
@@ -31,7 +32,7 @@ async def dm_turn(body: dict):
     1. Classify intent from player message (IntentRouter)
     2. Check for active combat → override routing
     3. Route to appropriate rules server endpoint
-    4. Synthesize server output into narrated payload (within authority boundary)
+    4. Synthesize server output into narrated payload (LLM or passthrough)
     5. Return contract-compliant DMResponse
     """
     character_id = body.get("character_id")
@@ -49,7 +50,7 @@ async def dm_turn(body: dict):
         status = result.error_status or 502
         raise HTTPException(status_code=status, detail=result.error)
 
-    # Step 5: Synthesize narration from server result
+    # Step 5: Synthesize narration from server result (async — may use LLM)
     intent = classify_intent(message)
     intent_dict = {
         "type": intent.type.value,
@@ -58,7 +59,7 @@ async def dm_turn(body: dict):
         "server_endpoint": intent.server_endpoint.value,
     }
     world_context = result.world_context or {}
-    narrated = synthesize_narration(result.to_dict(), intent_dict, world_context)
+    narrated = await synthesize_narration(result.to_dict(), intent_dict, world_context)
 
     # Step 6: Build contract-compliant response
     return DMResponse(
@@ -79,7 +80,9 @@ async def dm_turn(body: dict):
 
 @router.get("/health")
 async def dm_health():
-    """DM runtime health check — includes rules server connectivity."""
+    """DM runtime health check — includes rules server connectivity and narrator status."""
+    from app.services.narrator import NARRATOR_ENABLED, NARRATOR_API_KEY, NARRATOR_MODEL
+
     try:
         rules_health = await rules_client.health()
         return {
@@ -87,6 +90,11 @@ async def dm_health():
             "dm_runtime": "ok",
             "rules_server": rules_health,
             "intent_router": "ok",
+            "narrator": {
+                "enabled": NARRATOR_ENABLED,
+                "api_key_set": bool(NARRATOR_API_KEY),
+                "model": NARRATOR_MODEL,
+            },
         }
     except Exception as e:
         return {
@@ -94,6 +102,11 @@ async def dm_health():
             "dm_runtime": "ok",
             "rules_server": f"error: {str(e)}",
             "intent_router": "ok (rules server unreachable)",
+            "narrator": {
+                "enabled": NARRATOR_ENABLED,
+                "api_key_set": bool(NARRATOR_API_KEY),
+                "model": NARRATOR_MODEL,
+            },
         }
 
 
