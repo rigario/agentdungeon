@@ -1339,7 +1339,7 @@ NPCS = [
         "notes": "Torren is the mountain-connection NPC. He provides intel about Brother Kol and the mine tunnels.",
                 "current_location_id": "mountain-pass",
                 "default_location_id": "mountain-pass",
-                "movement_rules_json": '{"can_visit": ["mountain-pass", "crossroads"], "schedule": "static", "triggers": [{"flag": "kol_backstory_known", "target": "cave-entrance", "description": "Torren descends from the pass, now knowing Kol's true nature"}]}',
+                "movement_rules_json": json.dumps({"can_visit": ["mountain-pass", "crossroads"], "schedule": "static", "triggers": [{"flag": "kol_backstory_known", "target": "cave-entrance", "description": "Torren descends from the pass, now knowing Kol's true nature"}]}),
     },
 
     # ---- Hollow Eye Cultists ----
