@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Dreaming Hunger — An Agent-Driven RPG</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bitter:wght@400;700;900&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-void: #060610;
+    --bg-deep: #0a0a18;
+    --bg-card: #10101f;
+    --bg-card-hover: #161630;
+    --border: #1a1a3a;
+    --border-subtle: #141428;
+    --text-primary: #e0d8c8;
+    --text-secondary: #8a8498;
+    --text-muted: #5a5470;
+    --accent-gold: #c8a040;
+    --accent-amber: #d49030;
+    --accent-red: #a03030;
+    --accent-green: #3a7a3a;
+    --accent-blue: #4060a0;
+    --accent-purple: #7040a0;
+    --glow-gold: rgba(200,160,64,0.15);
+    --glow-red: rgba(160,48,48,0.12);
+    --font-display: 'Bitter', Georgia, serif;
+    --font-body: 'Source Sans 3', 'Segoe UI', sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg-void);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 17px;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* Hero */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 80%, rgba(160,48,48,0.08) 0%, transparent 60%),
+                radial-gradient(ellipse at 30% 20%, var(--glow-gold) 0%, transparent 50%);
+    pointer-events: none;
+  }
+  .hero-badge {
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--accent-red);
+    border: 1px solid rgba(160,48,48,0.3);
+    padding: 0.4rem 1rem;
+    border-radius: 3px;
+    margin-bottom: 2rem;
+    opacity: 0;
+    animation: fadeUp 1s 0.3s forwards;
+  }
+  .hero h1 {
+    font-family: var(--font-display);
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    font-weight: 900;
+    color: var(--accent-gold);
+    letter-spacing: 0.02em;
+    line-height: 1.1;
+    margin-bottom: 1rem;
+    opacity: 0;
+    animation: fadeUp 1s 0.5s forwards;
+  }
+  .hero-sub {
+    font-family: var(--font-body);
+    font-size: clamp(1.05rem, 2vw, 1.3rem);
+    color: var(--text-secondary);
+    max-width: 560px;
+    margin-bottom: 2.5rem;
+    opacity: 0;
+    animation: fadeUp 1s 0.7s forwards;
+  }
+  .hero-cta {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    opacity: 0;
+    animation: fadeUp 1s 0.9s forwards;
+  }
+  .btn {
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 0.85rem 2rem;
+    border-radius: 5px;
+    text-decoration: none;
+    transition: all 0.2s;
+    cursor: pointer;
+    border: none;
+  }
+  .btn-primary {
+    background: var(--accent-gold);
+    color: var(--bg-void);
+  }
+  .btn-primary:hover { background: #d4b050; transform: translateY(-1px); }
+  .btn-outline {
+    background: transparent;
+    color: var(--accent-gold);
+    border: 1px solid rgba(200,160,64,0.4);
+  }
+  .btn-outline:hover { border-color: var(--accent-gold); background: var(--glow-gold); }
+  .hero-art {
+    margin-top: 3rem;
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    opacity: 0;
+    animation: fadeUp 1s 1.1s forwards;
+  }
+  .hero-art img {
+    width: 180px;
+    height: 120px;
+    object-fit: cover;
+    image-rendering: pixelated;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    transition: transform 0.2s, border-color 0.2s;
+  }
+  .hero-art img:hover {
+    transform: scale(1.05);
+    border-color: var(--accent-gold);
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Sections */
+  section {
+    padding: 5rem 2rem;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+  .section-label {
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+  }
+  section h2 {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 900;
+    color: var(--accent-gold);
+    margin-bottom: 1.5rem;
+    line-height: 1.2;
+  }
+  section p {
+    color: var(--text-secondary);
+    margin-bottom: 1.25rem;
+    max-width: 680px;
+  }
+
+  /* Divider */
+  .divider {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 2rem;
+  }
+  .divider hr {
+    border: none;
+    border-top: 1px solid var(--border);
+  }
+
+  /* Feature grid */
+  .features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+  }
+  .feature-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.75rem;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .feature-card:hover {
+    border-color: rgba(200,160,64,0.3);
+    background: var(--bg-card-hover);
+  }
+  .feature-icon {
+    font-size: 1.75rem;
+    margin-bottom: 0.75rem;
+  }
+  .feature-card h3 {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+  }
+  .feature-card p {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    margin-bottom: 0;
+    line-height: 1.6;
+  }
+
+  /* World section */
+  .world-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+  .world-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .world-card:hover { border-color: rgba(200,160,64,0.3); }
+  .world-card-img {
+    width: 100%;
+    height: 100px;
+    object-fit: cover;
+    image-rendering: pixelated;
+  }
+  .world-card-body {
+    padding: 0.75rem 1rem;
+  }
+  .world-card-name {
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+  }
+  .world-card-biome {
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  /* How to play */
+  .steps {
+    margin-top: 2rem;
+    counter-reset: step;
+  }
+  .step {
+    display: flex;
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+    align-items: flex-start;
+  }
+  .step-num {
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    font-weight: 900;
+    color: var(--accent-gold);
+    min-width: 2.5rem;
+    text-align: center;
+    line-height: 1;
+    padding-top: 0.15rem;
+  }
+  .step-body h3 {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    color: var(--text-primary);
+    margin-bottom: 0.35rem;
+  }
+  .step-body p {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    margin-bottom: 0;
+  }
+
+  /* Tech stack */
+  .tech-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+  }
+  .pill {
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+    padding: 0.35rem 0.85rem;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    transition: all 0.15s;
+  }
+  .pill:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    padding: 3rem 2rem;
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+  footer a { color: var(--accent-gold); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  /* Scroll reveal */
+  .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  @media (max-width: 640px) {
+    .hero h1 { font-size: 2.2rem; }
+    section { padding: 3rem 1.25rem; }
+    .hero-art img { width: 140px; height: 90px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-badge">Hermes Agent Creative Hackathon</div>
+  <h1>The Dreaming Hunger</h1>
+  <p class="hero-sub">An agent-driven D&D RPG where your AI plays the game, carries the narrative, and your character carries the consequences. The seal is cracking. The Hunger stirs.</p>
+  <div class="hero-cta">
+    <a href="/demo" class="btn btn-primary">Watch the Demo</a>
+    <a href="#how-to-play" class="btn btn-outline">How to Play</a>
+  </div>
+  <div class="hero-art">
+    <img src="/static/pixel-art/loc-rusty-tankard.png" alt="The Rusty Tankard" loading="lazy">
+    <img src="/static/pixel-art/whisperwood-edge.png" alt="Whisperwood Edge" loading="lazy">
+    <img src="/static/pixel-art/loc-cave-entrance.png" alt="Cave Entrance" loading="lazy">
+    <img src="/static/pixel-art/cave-depths-seal.png" alt="The Seal Chamber" loading="lazy">
+  </div>
+</section>
+
+<div class="divider"><hr></div>
+
+<!-- What is it -->
+<section class="reveal">
+  <div class="section-label">What is this</div>
+  <h2>Your AI agent plays a living D&D campaign</h2>
+  <p>The Dreaming Hunger is a persistent RPG built on D&D 5E rules. You create a character. Your AI agent takes over: exploring, fighting, negotiating, and making choices that advance a narrative with real stakes. The world changes whether you're watching or not.</p>
+  <p>The server enforces every rule. The DM agent narrates every moment. Your agent operates your character within bounds you set. When something important happens, you decide.</p>
+
+  <div class="features">
+    <div class="feature-card">
+      <div class="feature-icon">⚔️</div>
+      <h3>Real Combat, Real Risk</h3>
+      <p>Full SRD 5.2 combat engine. Initiative, attacks, saves, death saves. Your character can die. Every roll is logged and reproducible.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔮</div>
+      <h3>The Mark of the Dreamer</h3>
+      <p>An ancient sigil brands your character. Four stages of corruption. Each failed WIS save pulls you deeper. Suppression comes at a cost. There is no easy cure.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⏳</div>
+      <h3>Fronts That Advance</h3>
+      <p>Eight grim portents march toward doom. The world doesn't wait for you. Livestock dream. The dead walk. The seal weeps blood. Time is not on your side.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🤖</div>
+      <h3>Agent-First Design</h3>
+      <p>Your AI agent operates your character via Ed25519 auth. You own the character. The agent executes. Set approval gates for what matters.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🗺️</div>
+      <h3>A Handcrafted World</h3>
+      <p>9 locations, 9 NPCs with dialogue chains, 17 encounters with thematic loot. Not procedural — intentional. Every item tells a story.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📜</div>
+      <h3>Multiple Endings</h3>
+      <p>Reseal the entity. Merge with it through understanding. Or sacrifice what remains. Which ending you reach depends on what you discover — and who survives.</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"><hr></div>
+
+<!-- The World -->
+<section class="reveal">
+  <div class="section-label">The World</div>
+  <h2>Thornhold and the Whisperwood</h2>
+  <p>A pocket realm on the edge of something older. A walled town. A forest that watches. A cave that was sealed for a reason. The people here know something is wrong. They just don't know how wrong.</p>
+
+  <div class="world-grid">
+    <div class="world-card">
+      <img class="world-card-img" src="/static/pixel-art/loc-rusty-tankard.png" alt="The Rusty Tankard" loading="lazy">
+      <div class="world-card-body">
+        <div class="world-card-name">The Rusty Tankard</div>
+        <div class="world-card-biome">Town · Tavern</div>
+      </div>
+    </div>
+    <div class="world-card">
+      <img class="world-card-img" src="/static/pixel-art/loc-south-road.png" alt="South Road" loading="lazy">
+      <div class="world-card-body">
+        <div class="world-card-name">South Road</div>
+        <div class="world-card-biome">Road</div>
+      </div>
+    </div>
+    <div class="world-card">
+      <img class="world-card-img" src="/static/pixel-art/whisperwood-edge.png" alt="Whisperwood Edge" loading="lazy">
+      <div class="world-card-body">
+        <div class="world-card-name">Whisperwood Edge</div>
+        <div class="world-card-biome">Forest</div>
+      </div>
+    </div>
+    <div class="world-card">
+      <img class="world-card-img" src="/static/pixel-art/loc-crossroads.png" alt="The Crossroads" loading="lazy">
+      <div class="world-card-body">
+        <div class="world-card-name">The Crossroads</div>
+        <div class="world-card-biome">Road · Junction</div>
+      </div>
+    </div>
+    <div class="world-card">
+      <img class="world-card-img" src="/static/pixel-art/loc-deep-whisperwood.png" alt="Deep Whisperwood" loading="lazy">
+      <div class="world-card-body">
+        <div class="world-card-name">Deep Whisperwood</div>
+        <div class="world-card-biome">Forest · Deep</div>
+      </div>
+    </div>
+    <div class="world-card">
+      <img class="world-card-img" src="/static/pixel-art/loc-greypeak-pass.png" alt="Greypeak Pass" loading="lazy">
+      <div class="world-card-body">
+        <div class="world-card-name">Greypeak Pass</div>
+        <div class="world-card-biome">Mountain</div>
+      </div>
+    </div>
+    <div class="world-card">
+      <img class="world-card-img" src="/static/pixel-art/loc-cave-entrance.png" alt="Cave Entrance" loading="lazy">
+      <div class="world-card-body">
+        <div class="world-card-name">Whisperwood Cave</div>
+        <div class="world-card-biome">Cave · Entrance</div>
+      </div>
+    </div>
+    <div class="world-card">
+      <img class="world-card-img" src="/static/pixel-art/cave-depths-seal.png" alt="The Seal Chamber" loading="lazy">
+      <div class="world-card-body">
+        <div class="world-card-name">The Seal Chamber</div>
+        <div class="world-card-biome">Cave · Depths</div>
+      </div>
+    </div>
+    <div class="world-card">
+      <img class="world-card-img" src="/static/pixel-art/loc-moonpetal-glade.png" alt="Moonpetal Glade" loading="lazy">
+      <div class="world-card-body">
+        <div class="world-card-name">Moonpetal Glade</div>
+        <div class="world-card-biome">Forest · Glade</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"><hr></div>
+
+<!-- How to Play -->
+<section id="how-to-play" class="reveal">
+  <div class="section-label">Getting Started</div>
+  <h2>How to Play</h2>
+  <p>The Dreaming Hunger is agent-first. Your AI does the adventuring. You set the bounds and watch the story unfold.</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h3>Sign in</h3>
+        <p>Create an account with Gmail or X. Your identity owns your characters. No one else can delete or transfer them.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h3>Register your agent</h3>
+        <p>Generate an Ed25519 keypair. Your AI uses this to authenticate and operate your characters. You control the permission level: view, operate, or full authority.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h3>Create a character</h3>
+        <p>Choose race, class, name. The server validates everything against SRD 5.2. Your character sheet is portable — a community-compatible JSON schema with a provable signature.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <h3>Let your agent adventure</h3>
+        <p>Your AI explores Thornhold, takes on encounters, negotiates with NPCs, collects loot, and advances the narrative. Every turn is logged with full dice transparency.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <h3>Watch and decide</h3>
+        <p>Open your player portal to see your character's state: stats, inventory, location, and the adventure log. Set approval gates so your agent pauses before major decisions.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"><hr></div>
+
+<!-- Tech -->
+<section class="reveal">
+  <div class="section-label">Under the Hood</div>
+  <h2>Built with Hermes Agent</h2>
+  <p>The entire game — server, DM agent, player portal, pixel art pipeline — was built by AI agents running on Hermes. Every character validated against the SRD. Every encounter designed with narrative intent. Every asset generated and converted through an automated pixel art pipeline.</p>
+
+  <div class="tech-pills">
+    <span class="pill">Hermes Agent</span>
+    <span class="pill">FastAPI</span>
+    <span class="pill">SQLite WAL</span>
+    <span class="pill">D&D 5E SRD 5.2</span>
+    <span class="pill">Ed25519 Auth</span>
+    <span class="pill">OAuth 2.0</span>
+    <span class="pill">56 REST Endpoints</span>
+    <span class="pill">Pixel Art Pipeline</span>
+    <span class="pill">Fronts System</span>
+    <span class="pill">Doom Clock</span>
+    <span class="pill">Docker</span>
+    <span class="pill">MIT Licensed</span>
+  </div>
+</section>
+
+<footer>
+  <p>The Dreaming Hunger — Built for the <a href="https://nousresearch.com" target="_blank">Hermes Agent Creative Hackathon</a></p>
+  <p style="margin-top:0.5rem">D&D 5E SRD 5.2 content used under CC-BY 4.0. Adventure content is original work by Holocron Labs.</p>
+  <p style="margin-top:1rem"><a href="/docs">API Docs</a> · <a href="/map">World Map</a> · <a href="/npcs-page">NPCs</a> · <a href="/demo">Demo</a></p>
+</footer>
+
+<script>
+// Scroll reveal
+const revealEls = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      observer.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.15 });
+revealEls.forEach(el => observer.observe(el));
+</script>
+</body>
+</html>

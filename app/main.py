@@ -40,6 +40,12 @@ app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 
 # Character sheet routes
+@app.get("/")
+def serve_index():
+    """Serve the landing page."""
+    return FileResponse(os.path.join(static_dir, "index.html"))
+
+
 @app.get("/demo")
 def serve_demo():
     """Serve the demo walkthrough page."""
@@ -68,6 +74,18 @@ def serve_character_sheet():
 def serve_cutscenes():
     """Serve the standalone cutscenes page (opening + ending)."""
     return FileResponse(os.path.join(static_dir, "cutscenes.html"))
+
+
+@app.get("/npcs-page")
+def serve_npcs_page():
+    """Serve the NPC gallery page — fetches from /npcs API."""
+    return FileResponse(os.path.join(static_dir, "npcs.html"))
+
+
+@app.get("/items-page")
+def serve_items_page():
+    """Serve the items catalogue page — fetches from /items API."""
+    return FileResponse(os.path.join(static_dir, "items.html"))
 
 # Register routers
 app.include_router(health.router)
