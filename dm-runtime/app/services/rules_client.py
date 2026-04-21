@@ -66,11 +66,20 @@ async def get_latest_turn(character_id: str) -> dict:
     return r.json()
 
 
-async def start_combat(character_id: str, encounter_name: str, enemies_json: str) -> dict:
-    """Start combat encounter."""
+async def start_combat(character_id: str, encounter_name: str, enemies_json: str,
+                       initiative_roll: int = None) -> dict:
+    """Start combat encounter.
+
+    Args:
+        enemies_json: JSON string of enemy groups, e.g. '[{"type":"Cultist","hp":9,"ac":12,...}]'
+        initiative_roll: Player's d20 initiative roll (1-20). Required by rules server.
+    """
+    params = {"encounter_name": encounter_name, "enemies_json": enemies_json}
+    if initiative_roll is not None:
+        params["initiative_roll"] = initiative_roll
     r = await _client.post(
         f"/characters/{character_id}/combat/start",
-        params={"encounter_name": encounter_name, "enemies_json": enemies_json},
+        params=params,
     )
     r.raise_for_status()
     return r.json()

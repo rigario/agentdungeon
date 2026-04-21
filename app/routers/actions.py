@@ -763,7 +763,7 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
                        {"action": "move", "target": body.target})
 
         # Advance game clock (1 hour for travel)
-        time_info = advance_time(character_id, get_action_time_cost("move"))
+        time_info = advance_time(character_id, get_action_time_cost("move"), conn)
 
         conn.commit()
         conn.close()
@@ -894,7 +894,7 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
                        {"action": "attack", "encounter": encounter.get("name")})
 
         # Advance game clock (30 min for combat)
-        time_info = advance_time(character_id, get_action_time_cost("attack"))
+        time_info = advance_time(character_id, get_action_time_cost("attack"), conn)
 
         conn.commit()
         conn.close()
@@ -1188,7 +1188,7 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
                 )
 
         # Advance game clock (10 min for casting)
-        time_info = advance_time(character_id, 10)
+        time_info = advance_time(character_id, 10, conn)
 
         conn.commit()
         conn.close()
@@ -1275,7 +1275,7 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
 
         # Advance game clock (1h short rest / 8h long rest)
         rest_minutes = get_action_time_cost("rest_long") if rest_type == "long" else get_action_time_cost("rest_short")
-        time_info = advance_time(character_id, rest_minutes)
+        time_info = advance_time(character_id, rest_minutes, conn)
 
         conn.commit()
         conn.close()
@@ -1327,7 +1327,7 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
         _log_event(conn, character_id, "explore", location_id, narration, {"roll": roll})
 
         # Advance game clock (30 min for exploration)
-        time_info = advance_time(character_id, get_action_time_cost("explore"))
+        time_info = advance_time(character_id, get_action_time_cost("explore"), conn)
 
         conn.commit()
         conn.close()
@@ -1416,7 +1416,7 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
                    {"npc_id": npc["id"], "npc_name": npc["name"]})
 
         # Advance game clock (15 min for NPC interaction)
-        time_info = advance_time(character_id, get_action_time_cost("interact"))
+        time_info = advance_time(character_id, get_action_time_cost("interact"), conn)
 
         conn.commit()
         conn.close()

@@ -18,6 +18,32 @@ from app.contract import IntentType, ServerEndpoint, RoutingPolicy
 
 
 # =============================================================================
+# Monster Stat Reference — used to resolve encounters when world_context
+# only provides {type, count} without full stat blocks.
+# Sourced from encounters in the D20 database.
+# =============================================================================
+MONSTER_STATS: dict[str, dict] = {
+    "cultist":      {"type": "Cultist",        "hp": 9,  "ac": 12, "attack_bonus": 3, "damage": "1d6+1", "initiative_mod": 1},
+    "bandit":       {"type": "Bandit",         "hp": 11, "ac": 12, "attack_bonus": 3, "damage": "1d6+1", "initiative_mod": 1},
+    "wolf":         {"type": "Wolf",           "hp": 11, "ac": 13, "attack_bonus": 4, "damage": "2d4+2", "initiative_mod": 2},
+    "goblin":       {"type": "Goblin",         "hp": 7,  "ac": 15, "attack_bonus": 4, "damage": "1d6+2", "initiative_mod": 2},
+    "skeleton":     {"type": "Skeleton",       "hp": 13, "ac": 13, "attack_bonus": 4, "damage": "1d6+2", "initiative_mod": 2},
+    "bugbear":      {"type": "Bugbear",        "hp": 27, "ac": 16, "attack_bonus": 4, "damage": "2d8+2", "initiative_mod": 2},
+    "orc":          {"type": "Orc",            "hp": 15, "ac": 13, "attack_bonus": 5, "damage": "1d12+3", "initiative_mod": 1},
+    "zombie":       {"type": "Zombie",         "hp": 45, "ac": 13, "attack_bonus": 5, "damage": "1d6+3", "initiative_mod": -1},
+    "giant spider": {"type": "Giant Spider",   "hp": 52, "ac": 16, "attack_bonus": 7, "damage": "2d8+4", "initiative_mod": 3},
+    "cult fanatic": {"type": "Cult Fanatic",   "hp": 60, "ac": 15, "attack_bonus": 7, "damage": "2d8+4", "initiative_mod": 1},
+    "bandit captain": {"type": "Bandit Captain", "hp": 65, "ac": 15, "attack_bonus": 6, "damage": "2d6+3", "initiative_mod": 2},
+    "dryad":        {"type": "Dryad",          "hp": 55, "ac": 13, "attack_bonus": 5, "damage": "2d6+3", "initiative_mod": 2},
+    "specter":      {"type": "Specter",        "hp": 45, "ac": 12, "attack_bonus": 5, "damage": "3d6",   "initiative_mod": 3},
+    "treant":       {"type": "Treant",         "hp": 95, "ac": 16, "attack_bonus": 8, "damage": "3d6+4", "initiative_mod": -1},
+    "hill giant":   {"type": "Hill Giant",     "hp": 105,"ac": 13, "attack_bonus": 8, "damage": "3d8+5", "initiative_mod": -1},
+    "gibbering mouther": {"type": "Gibbering Mouther", "hp": 67, "ac": 9, "attack_bonus": 4, "damage": "5d6", "initiative_mod": -1},
+    "wood woad":    {"type": "Wood Woad",      "hp": 45, "ac": 18, "attack_bonus": 6, "damage": "2d6+4", "initiative_mod": 0},
+}
+
+
+# =============================================================================
 # Normalized Result Models
 # =============================================================================
 
@@ -231,10 +257,14 @@ class IntentRouter:
         self._client = rules_client
 
     async def check_active_combat(self, character_id: str) -> Optional[dict]:
-        """Check if a character has active combat. Returns combat state or None."""
+        """Check if a character has active combat. Returns combat state or None.
+
+        The rules server returns 200 with combat data when active, 404 when not.
+        There is no 'status' field — presence of the response means combat exists.
+        """
         try:
             combat = await self._client.get_combat(character_id)
-            if combat and combat.get("status") == "active":
+            if combat and combat.get("combat_id"):
                 return combat
         except Exception:
             pass
@@ -313,16 +343,48 @@ class IntentRouter:
             )
 
     async def _route_turn(self, character_id: str, player_message: str) -> RouterResult:
-        """Route to POST /characters/{id}/turn/start."""
+        """Route to POST /characters/{id}/turn/start.
+
+        The rules server requires TurnIntent with a `goal` field. Freeform DM
+        messages are normalized here into a conservative turn goal.
+        """
         try:
-            result = await self._client.start_turn(character_id, {"intent": player_message})
+            msg = player_message.lower().strip()
+            if any(word in msg for word in ["rest", "sleep", "camp"]):
+                goal = "rest"
+            elif any(word in msg for word in ["travel", "go ", "move ", "head ", "return "]):
+                goal = "travel"
+            else:
+                goal = "explore"
+
+            payload = {
+                "goal": goal,
+                "target": None,
+                "max_steps": 3,
+                "max_encounters": 1,
+            }
+
+            result = await self._client.start_turn(character_id, payload)
+
+            # turn/start returns hp_start/hp_end/hp_max at top level (not character_state)
+            # Populate character_state so synthesis can extract HP
+            character_state = result.get("character_state", {})
+            if not character_state and result.get("hp_max"):
+                character_state = {
+                    "hp": {
+                        "current": result.get("hp_end", 0),
+                        "max": result.get("hp_max", 0),
+                    },
+                    "location_id": result.get("current_location"),
+                }
+
             return RouterResult(
                 success=True,
                 endpoint_called="turn/start",
                 narration=result.get("narration", result.get("narrative", "")),
                 events=result.get("events", []),
                 dice_log=result.get("dice_log", []),
-                character_state=result.get("character_state", {}),
+                character_state=character_state,
                 world_context=result.get("world_context"),
                 turn_id=result.get("turn_id"),
                 asks=result.get("asks", []),
@@ -342,10 +404,117 @@ class IntentRouter:
             )
 
     async def _route_combat_start(self, character_id: str, intent: Intent) -> RouterResult:
-        """Route to POST /characters/{id}/combat/start."""
+        """Route to POST /characters/{id}/combat/start.
+
+        Resolves encounter data from the character's world context, builds
+        full enemy stat blocks, rolls initiative, and starts combat.
+        """
+        import json
+        import random
+
         try:
-            target = intent.target or "Unknown"
-            result = await self._client.start_combat(character_id, target, "[]")
+            # Step 1: Get world context to find available encounters
+            world_context = {}
+            try:
+                latest = await self._client.get_latest_turn(character_id)
+                world_context = latest.get("world_context", {})
+            except Exception:
+                pass
+
+            encounters = world_context.get("encounters", [])
+
+            # Step 1b: If no world context, start a short exploration turn to populate it
+            if not encounters:
+                try:
+                    turn_result = await self._client.start_turn(character_id, {
+                        "goal": "explore",
+                        "max_steps": 1,
+                        "max_encounters": 0,  # don't auto-resolve encounters
+                    })
+                    world_context = turn_result.get("world_context", {})
+                    encounters = world_context.get("encounters", [])
+                except Exception:
+                    pass
+
+            # Step 2: Pick an encounter matching the intent target, or random
+            chosen_encounter = None
+            target_lower = (intent.target or "").lower()
+
+            if encounters:
+                # Try to match target to encounter name or enemy type
+                for enc in encounters:
+                    enc_name = enc.get("name", "").lower()
+                    enemy_types = [e.get("type", "").lower() for e in enc.get("enemies", [])]
+                    if target_lower and (target_lower in enc_name or
+                                         any(target_lower in et for et in enemy_types)):
+                        chosen_encounter = enc
+                        break
+                # Fallback: random encounter
+                if not chosen_encounter:
+                    chosen_encounter = random.choice(encounters)
+
+            if not chosen_encounter:
+                return RouterResult(
+                    success=False,
+                    endpoint_called="combat/start",
+                    error="No encounters available at current location",
+                    error_status=404,
+                    raw_response={"error": "no encounters"},
+                )
+
+            # Step 3: Build enemies with full stat blocks from encounter data
+            # The encounter's enemies list has full stats from the DB
+            encounter_enemies = chosen_encounter.get("enemies", [])
+            enemies_list = []
+            for eg in encounter_enemies:
+                # If we have full stats (hp, ac), use them directly
+                if "hp" in eg and "ac" in eg:
+                    count = eg.get("count", 1)
+                    for i in range(count):
+                        suffix = f" {i+1}" if count > 1 else ""
+                        name_override = eg.get("name_override")
+                        enemies_list.append({
+                            "type": eg["type"],
+                            "hp": eg["hp"],
+                            "ac": eg["ac"],
+                            "attack_bonus": eg.get("attack_bonus", 3),
+                            "damage": eg.get("damage", "1d6"),
+                            "initiative_mod": eg.get("initiative_mod", 0),
+                        })
+                else:
+                    # Minimal data — resolve from MONSTER_STATS
+                    monster = MONSTER_STATS.get(eg.get("type", "").lower())
+                    if monster:
+                        count = eg.get("count", 1)
+                        for i in range(count):
+                            enemies_list.append({
+                                "type": monster["type"],
+                                "hp": monster["hp"],
+                                "ac": monster["ac"],
+                                "attack_bonus": monster["attack_bonus"],
+                                "damage": monster["damage"],
+                                "initiative_mod": monster["initiative_mod"],
+                            })
+
+            if not enemies_list:
+                return RouterResult(
+                    success=False,
+                    endpoint_called="combat/start",
+                    error=f"Could not resolve enemy stats for encounter: {chosen_encounter.get('name', 'unknown')}",
+                    error_status=502,
+                    raw_response={"error": "unresolved enemies"},
+                )
+
+            # Step 4: Roll initiative for the player (d20, 1-20)
+            initiative_roll = random.randint(1, 20)
+
+            # Step 5: Call combat/start with proper data
+            encounter_name = chosen_encounter.get("name", "Wild Encounter")
+            enemies_json = json.dumps(enemies_list)
+            result = await self._client.start_combat(
+                character_id, encounter_name, enemies_json, initiative_roll
+            )
+
             return RouterResult(
                 success=True,
                 endpoint_called="combat/start",
@@ -372,6 +541,8 @@ class IntentRouter:
 
     async def _route_combat_act(self, character_id: str, intent: Intent, combat_state: dict) -> RouterResult:
         """Route to POST /characters/{id}/combat/act — active combat detected."""
+        import random
+
         # Map intent to combat action
         action = "attack"  # default
         if intent.type == IntentType.REST:
@@ -380,9 +551,20 @@ class IntentRouter:
             action = "flee"
 
         try:
-            payload = {"action": action}
+            # Roll d20 for the action (required by rules server for attack/flee)
+            d20_roll = random.randint(1, 20)
+
+            payload = {"action": action, "d20_roll": d20_roll}
+            target_index = 0  # default to first enemy
             if intent.target:
-                payload["target_index"] = 0  # default first target
+                # Try to match target to enemy index
+                target_lower = intent.target.lower()
+                enemies = combat_state.get("enemies", [])
+                for i, e in enumerate(enemies):
+                    if target_lower in e.get("name", "").lower():
+                        target_index = i
+                        break
+            payload["target_index"] = target_index
 
             result = await self._client.combat_act(character_id, payload)
             return RouterResult(

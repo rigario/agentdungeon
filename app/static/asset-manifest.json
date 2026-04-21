@@ -1,0 +1,63 @@
+{
+  "version": "1.0",
+  "project": "rigario-d20-agent-rpg",
+  "description": "Asset manifest — maps game assets to API endpoints and web surfaces. Source of truth for playtest asset resolution.",
+  "generated_at": "2026-04-21T13:00:00Z",
+  "asset_types": {
+    "npcs": {
+      "api_endpoint": "/npcs",
+      "response_key": "npcs",
+      "count": 9,
+      "id_field": "id",
+      "name_field": "name",
+      "fields": ["id", "name", "archetype", "biome", "personality", "image_url", "is_quest_giver", "is_spirit", "is_enemy", "notes", "current_location_id", "default_location_id"],
+      "web_surfaces": ["/npcs-page"],
+      "fallback": "Show 'Unknown inhabitant' with biome icon"
+    },
+    "locations": {
+      "api_endpoint": "/api/map/data",
+      "response_key": "locations",
+      "count": 11,
+      "id_field": "id",
+      "name_field": "name",
+      "fields": ["id", "name", "biome", "description", "hostility_level", "recommended_level", "encounter_threshold", "connected_to"],
+      "web_surfaces": ["/map"],
+      "fallback": "Show location ID with generic pin icon"
+    },
+    "items": {
+      "api_endpoint": "/items",
+      "response_key": "items",
+      "count": 8,
+      "id_field": "id",
+      "name_field": "name",
+      "fields": ["id", "name", "item_type", "rarity", "description", "lore", "attuneable", "weight", "value_gp"],
+      "web_surfaces": ["/items-page"],
+      "fallback": "Show 'Unknown item' with rarity-default styling"
+    },
+    "characters": {
+      "api_endpoint": "/characters",
+      "response_key": "characters",
+      "id_field": "id",
+      "name_field": "sheet.name",
+      "web_surfaces": ["/sheet", "/demo"],
+      "fallback": "Show character ID"
+    },
+    "encounters": {
+      "api_endpoint": "/encounters (via seed data)",
+      "count": 17,
+      "note": "Encounters are resolved server-side during actions/combat. Not directly exposed as standalone API."
+    }
+  },
+  "web_surfaces": {
+    "/map": { "source": "map.html", "data_fetched": ["/api/map/data"], "status": "wired" },
+    "/npcs-page": { "source": "npcs.html", "data_fetched": ["/npcs"], "status": "wired" },
+    "/items-page": { "source": "items.html", "data_fetched": ["/items"], "status": "wired" },
+    "/sheet": { "source": "character-sheet.html", "data_fetched": ["/characters/{id}"], "status": "wired" },
+    "/cutscenes": { "source": "cutscenes.html", "data_fetched": [], "status": "static" },
+    "/demo": { "source": "demo.html", "data_fetched": ["/api/map/data", "/characters"], "status": "wired" }
+  },
+  "navigation": {
+    "all_surfaces": ["/map", "/npcs-page", "/items-page", "/cutscenes", "/demo", "/sheet"],
+    "description": "All surfaces include a nav bar linking to Map, NPCs, Items, Cutscenes, and Demo"
+  }
+}

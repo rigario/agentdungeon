@@ -223,34 +223,45 @@ def get_time_atmosphere(game_hour: int, biome: str) -> str | None:
 # Game Clock Management
 # ---------------------------------------------------------------------------
 
-def advance_time(character_id: str, minutes: int) -> dict:
+def advance_time(character_id: str, minutes: int, conn=None) -> dict:
     """Advance a character's in-game clock by the given minutes.
-    
+
     Returns dict with old_hour, new_hour, period_changed, new_period.
+
+    Args:
+        character_id: The character whose clock to advance.
+        minutes: Number of in-game minutes to advance.
+        conn: Optional existing DB connection. If provided, caller is
+              responsible for commit/close. If None, a new connection
+              is created and managed internally.
     """
-    conn = get_db()
+    owns_conn = conn is None
+    if owns_conn:
+        conn = get_db()
     row = conn.execute(
         "SELECT game_hour FROM characters WHERE id = ?", (character_id,)
     ).fetchone()
-    
+
     if not row:
-        conn.close()
+        if owns_conn:
+            conn.close()
         raise ValueError(f"Character not found: {character_id}")
-    
+
     old_hour = row["game_hour"] if row["game_hour"] is not None else 8  # default morning
     total_minutes = old_hour * 60 + minutes
     new_hour = (total_minutes // 60) % 24
-    
+
     old_period = get_time_period(old_hour)
     new_period = get_time_period(new_hour)
-    
+
     conn.execute(
         "UPDATE characters SET game_hour = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
         (new_hour, character_id)
     )
-    conn.commit()
-    conn.close()
-    
+    if owns_conn:
+        conn.commit()
+        conn.close()
+
     return {
         "old_hour": old_hour,
         "new_hour": new_hour,
