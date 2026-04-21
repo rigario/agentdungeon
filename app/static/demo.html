@@ -1213,11 +1213,11 @@ function diceAnim() {
   try {
     const res = await fetch('/characters');
     const chars = await res.json();
-    const c = chars.find(x => x.name === 'Aegis Ward') || chars[0];
+    const c = (chars.find(x => x.id === 'testplay-aegisward-b7b920') || chars[0]);
     if (!c) return;
-    document.getElementById('charName').textContent = c.name;
-    const r = c.race?.name||'Human', cl = c.classes?.[0]?.name||'Fighter', lv = c.classes?.[0]?.level||1;
-    document.getElementById('charMeta').textContent = r+' \u00b7 '+cl+' Level '+lv;
+    // Always display as Aegis Ward regardless of DB name
+    document.getElementById('charName').textContent = 'Aegis Ward';
+    document.getElementById('charMeta').textContent = 'Human Fighter • Level 1 • Soldier';
   } catch(e) {}
 })();
 
