@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NPCs — The Dreaming Hunger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep: #0a0a12;
+    --bg-primary: #111122;
+    --bg-card: #161628;
+    --bg-card-hover: #1c1c35;
+    --border: #2a2a4a;
+    --border-glow: #4a3a8a;
+    --text-primary: #e8e0d0;
+    --text-secondary: #9a90a8;
+    --text-muted: #6a6080;
+    --accent-gold: #d4a850;
+    --accent-amber: #e8a030;
+    --accent-red: #c04040;
+    --accent-purple: #8a5aaa;
+    --accent-blue: #5080c0;
+    --accent-green: #4a8a50;
+    --font-display: 'Cinzel', 'Georgia', serif;
+    --font-body: 'Crimson Text', 'Georgia', serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 16px;
+    min-height: 100vh;
+  }
+  .container { max-width: 1000px; margin: 0 auto; padding: 1.5rem; }
+  .header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .header h1 {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    color: var(--accent-gold);
+    letter-spacing: 0.05em;
+  }
+  .header .subtitle {
+    color: var(--text-secondary);
+    font-style: italic;
+    margin-top: 0.25rem;
+  }
+  .nav-bar {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .nav-bar a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    padding: 0.4rem 0.8rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    transition: all 0.2s;
+  }
+  .nav-bar a:hover, .nav-bar a.active {
+    color: var(--accent-gold);
+    border-color: var(--accent-gold);
+  }
+  .loading {
+    display: flex; justify-content: center; align-items: center;
+    min-height: 40vh; font-family: var(--font-display);
+    color: var(--text-muted); font-size: 1.2rem;
+  }
+  .error-msg {
+    text-align: center; color: var(--accent-red);
+    font-family: var(--font-display); padding: 2rem;
+  }
+  .npc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.25rem;
+  }
+  .npc-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .npc-card:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--border-glow);
+  }
+  .npc-card.expanded {
+    grid-column: 1 / -1;
+    border-color: var(--accent-gold);
+  }
+  .npc-name {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    color: var(--accent-gold);
+    margin-bottom: 0.25rem;
+  }
+  .npc-archetype {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+  }
+  .npc-location {
+    color: var(--accent-blue);
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+  }
+  .npc-personality {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+  .npc-tags {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .tag {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 3px;
+    font-family: var(--font-display);
+    letter-spacing: 0.05em;
+  }
+  .tag-quest { background: rgba(138,90,170,0.2); color: var(--accent-purple); border: 1px solid rgba(138,90,170,0.3); }
+  .tag-spirit { background: rgba(80,128,192,0.2); color: var(--accent-blue); border: 1px solid rgba(80,128,192,0.3); }
+  .tag-enemy { background: rgba(192,64,64,0.2); color: var(--accent-red); border: 1px solid rgba(192,64,64,0.3); }
+  .tag-biome { background: rgba(74,138,80,0.2); color: var(--accent-green); border: 1px solid rgba(74,138,80,0.3); }
+  .npc-detail {
+    display: none;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+  }
+  .npc-card.expanded .npc-detail { display: block; }
+  .npc-notes {
+    color: var(--text-secondary);
+    font-style: italic;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-top: 0.5rem;
+  }
+  .npc-image-wrap {
+    width: 100%; height: 140px;
+    background: linear-gradient(135deg, var(--bg-primary), var(--bg-card));
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 0.75rem;
+    overflow: hidden;
+    position: relative;
+  }
+  .npc-image-wrap img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    image-rendering: pixelated;
+    border-radius: 5px;
+  }
+  .npc-image-wrap .emoji-fallback {
+    color: var(--text-muted);
+    font-size: 2rem;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>The Inhabitants of Thornhold</h1>
+    <div class="subtitle">Those who remain — and those who never left</div>
+  </div>
+  <div class="nav-bar">
+    <a href="/map">Map</a>
+    <a href="/npcs-page" class="active">NPCs</a>
+    <a href="/items-page">Items</a>
+    <a href="/cutscenes">Cutscenes</a>
+    <a href="/demo">Demo</a>
+  </div>
+  <div id="content"><div class="loading">Loading inhabitants...</div></div>
+</div>
+<script>
+const BIOME_ICONS = {
+  town: '🏘️', road: '🛤️', forest: '🌲', mountain: '⛰️', cave: '🕳️',
+  dungeon: '💀', plains: '🌾', swamp: '🐊', ruin: '🏚️', meadow: '🌿'
+};
+function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+async function init() {
+  const el = document.getElementById('content');
+  try {
+    const res = await fetch('/npcs');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const npcs = data.npcs || data;
+    if (!npcs || npcs.length === 0) {
+      el.innerHTML = '<div class="error-msg">No inhabitants found in the records.</div>';
+      return;
+    }
+    // Sort by biome then name
+    const biomeOrder = ['town','road','forest','mountain','cave'];
+    npcs.sort((a,b) => {
+      const ai = biomeOrder.indexOf(a.biome), bi = biomeOrder.indexOf(b.biome);
+      if (ai !== bi) return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+      return (a.name||'').localeCompare(b.name||'');
+    });
+    let html = '<div class="npc-grid">';
+    npcs.forEach(npc => {
+      const icon = BIOME_ICONS[npc.biome] || '👤';
+      const tags = [];
+      if (npc.is_quest_giver) tags.push('<span class="tag tag-quest">Quest Giver</span>');
+      if (npc.is_spirit) tags.push('<span class="tag tag-spirit">Spirit</span>');
+      if (npc.is_enemy) tags.push('<span class="tag tag-enemy">Enemy</span>');
+      tags.push(`<span class="tag tag-biome">${esc(npc.biome)}</span>`);
+      const imageHtml = npc.image_url
+        ? `<img src="${esc(npc.image_url)}" alt="${esc(npc.name)}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=emoji-fallback>${icon}</span>'">`
+        : `<span class="emoji-fallback">${icon}</span>`;
+      html += `
+        <div class="npc-card" data-id="${esc(npc.id)}">
+          <div class="npc-image-wrap">${imageHtml}</div>
+          <div class="npc-name">${esc(npc.name)}</div>
+          <div class="npc-archetype">${esc(npc.archetype)}</div>
+          <div class="npc-location">📍 ${esc(npc.current_location_id || npc.default_location_id || 'Unknown')}</div>
+          <div class="npc-personality">${esc((npc.personality||'').substring(0,120))}${(npc.personality||'').length > 120 ? '...' : ''}</div>
+          <div class="npc-tags">${tags.join('')}</div>
+          <div class="npc-detail">
+            <div class="npc-personality">${esc(npc.personality)}</div>
+            ${npc.notes ? `<div class="npc-notes">"${esc(npc.notes)}"</div>` : ''}
+          </div>
+        </div>`;
+    });
+    html += '</div>';
+    el.innerHTML = html;
+    // Toggle expand
+    el.querySelectorAll('.npc-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const wasExpanded = card.classList.contains('expanded');
+        el.querySelectorAll('.npc-card.expanded').forEach(c => c.classList.remove('expanded'));
+        if (!wasExpanded) card.classList.add('expanded');
+      });
+    });
+  } catch (err) {
+    el.innerHTML = `<div class="error-msg">Failed to load inhabitants: ${esc(err.message)}</div>`;
+  }
+}
+init();
+</script>
+</body>
+</html>

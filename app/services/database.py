@@ -69,6 +69,7 @@ def init_db():
             name TEXT NOT NULL,
             biome TEXT NOT NULL,
             description TEXT,
+            image_url TEXT,
             hostility_level INTEGER DEFAULT 3,
             encounter_threshold INTEGER DEFAULT 10,
             recommended_level INTEGER DEFAULT 1,
@@ -85,6 +86,7 @@ def init_db():
             max_level INTEGER DEFAULT 20,
             loot_json TEXT DEFAULT '[]',
             description TEXT,
+            image_url TEXT,
             is_opening_encounter INTEGER DEFAULT 0,
             mark_mechanic TEXT,
             wis_save_dc INTEGER,
@@ -373,6 +375,12 @@ def init_db():
             FOREIGN KEY (character_id) REFERENCES characters(id)
         );
     """)
+    # Migrations: add image_url columns to existing tables (safe for new DBs too)
+    for table in ["locations", "encounters"]:
+        try:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN image_url TEXT")
+        except Exception:
+            pass  # Column already exists
     conn.commit()
     conn.close()
 

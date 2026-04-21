@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Items — The Dreaming Hunger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep: #0a0a12;
+    --bg-primary: #111122;
+    --bg-card: #161628;
+    --bg-card-hover: #1c1c35;
+    --border: #2a2a4a;
+    --border-glow: #4a3a8a;
+    --text-primary: #e8e0d0;
+    --text-secondary: #9a90a8;
+    --text-muted: #6a6080;
+    --accent-gold: #d4a850;
+    --accent-amber: #e8a030;
+    --accent-red: #c04040;
+    --accent-purple: #8a5aaa;
+    --accent-blue: #5080c0;
+    --accent-green: #4a8a50;
+    --font-display: 'Cinzel', 'Georgia', serif;
+    --font-body: 'Crimson Text', 'Georgia', serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 16px;
+    min-height: 100vh;
+  }
+  .container { max-width: 1000px; margin: 0 auto; padding: 1.5rem; }
+  .header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .header h1 {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    color: var(--accent-gold);
+    letter-spacing: 0.05em;
+  }
+  .header .subtitle {
+    color: var(--text-secondary);
+    font-style: italic;
+    margin-top: 0.25rem;
+  }
+  .nav-bar {
+    display: flex; justify-content: center; gap: 1.5rem; margin-bottom: 1.5rem;
+  }
+  .nav-bar a {
+    color: var(--text-secondary); text-decoration: none;
+    font-family: var(--font-display); font-size: 0.85rem;
+    letter-spacing: 0.05em; padding: 0.4rem 0.8rem;
+    border: 1px solid var(--border); border-radius: 4px; transition: all 0.2s;
+  }
+  .nav-bar a:hover, .nav-bar a.active { color: var(--accent-gold); border-color: var(--accent-gold); }
+  .loading { display: flex; justify-content: center; align-items: center; min-height: 40vh; font-family: var(--font-display); color: var(--text-muted); font-size: 1.2rem; }
+  .error-msg { text-align: center; color: var(--accent-red); font-family: var(--font-display); padding: 2rem; }
+  .item-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; }
+  .item-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .item-card:hover { background: var(--bg-card-hover); border-color: var(--border-glow); }
+  .item-card.expanded { grid-column: 1 / -1; border-color: var(--accent-gold); }
+  .item-rarity-bar {
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  }
+  .rarity-common { background: #8a8070; }
+  .rarity-uncommon { background: #4a8a50; }
+  .rarity-rare { background: #5080c0; }
+  .rarity-legendary { background: linear-gradient(90deg, #d4a850, #e8a030, #d4a850); }
+  .rarity-epic { background: linear-gradient(90deg, #8a5aaa, #c040c0, #8a5aaa); }
+  .item-image-wrap {
+    width: 100%; height: 100px;
+    background: linear-gradient(135deg, var(--bg-primary), var(--bg-card));
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+    position: relative;
+  }
+  .item-image-wrap img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    image-rendering: pixelated;
+    border-radius: 5px;
+  }
+  .item-image-wrap .emoji-fallback {
+    font-size: 2rem;
+  }
+  .item-icon { font-size: 2rem; margin-bottom: 0.5rem; margin-top: 0.25rem; }
+  .item-name {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    margin-bottom: 0.25rem;
+  }
+  .name-common { color: var(--text-primary); }
+  .name-uncommon { color: var(--accent-green); }
+  .name-rare { color: var(--accent-blue); }
+  .name-legendary { color: var(--accent-gold); }
+  .name-epic { color: var(--accent-purple); }
+  .item-type {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+  }
+  .item-rarity-label {
+    font-size: 0.75rem; padding: 0.15rem 0.4rem;
+    border-radius: 3px; font-family: var(--font-display);
+    letter-spacing: 0.05em; display: inline-block; margin-bottom: 0.5rem;
+  }
+  .rar-common { background: rgba(138,128,112,0.2); color: #8a8070; border: 1px solid rgba(138,128,112,0.3); }
+  .rar-uncommon { background: rgba(74,138,80,0.2); color: var(--accent-green); border: 1px solid rgba(74,138,80,0.3); }
+  .rar-rare { background: rgba(80,128,192,0.2); color: var(--accent-blue); border: 1px solid rgba(80,128,192,0.3); }
+  .rar-legendary { background: rgba(212,168,80,0.2); color: var(--accent-gold); border: 1px solid rgba(212,168,80,0.3); }
+  .rar-epic { background: rgba(138,90,170,0.2); color: var(--accent-purple); border: 1px solid rgba(138,90,170,0.3); }
+  .item-desc {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+  .item-detail {
+    display: none;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+  }
+  .item-card.expanded .item-detail { display: block; }
+  .item-lore {
+    color: var(--text-secondary);
+    font-style: italic;
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+  .item-props {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+  }
+  .item-prop {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+  .item-prop span { color: var(--text-primary); }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>Relics &amp; Artefacts</h1>
+    <div class="subtitle">What the Dreaming has claimed — and what it has yet to release</div>
+  </div>
+  <div class="nav-bar">
+    <a href="/map">Map</a>
+    <a href="/npcs-page">NPCs</a>
+    <a href="/items-page" class="active">Items</a>
+    <a href="/cutscenes">Cutscenes</a>
+    <a href="/demo">Demo</a>
+  </div>
+  <div id="content"><div class="loading">Cataloguing artefacts...</div></div>
+</div>
+<script>
+const RARITY_ICONS = { common: '⚪', uncommon: '🟢', rare: '🔵', legendary: '🟡', epic: '🟣' };
+const TYPE_ICONS = { key_item: '🔑', weapon: '⚔️', armor: '🛡️', potion: '🧪', scroll: '📜', trinket: '💍', consumable: '🍖', tool: '🔧' };
+function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+async function init() {
+  const el = document.getElementById('content');
+  try {
+    const res = await fetch('/items');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const items = data.items || data;
+    if (!items || items.length === 0) {
+      el.innerHTML = '<div class="error-msg">No items found in the catalogue.</div>';
+      return;
+    }
+    // Sort by rarity weight then name
+    const rarOrd = { legendary: 0, epic: 1, rare: 2, uncommon: 3, common: 4 };
+    items.sort((a,b) => {
+      const ra = rarOrd[a.rarity] ?? 5, rb = rarOrd[b.rarity] ?? 5;
+      if (ra !== rb) return ra - rb;
+      return (a.name||'').localeCompare(b.name||'');
+    });
+    let html = '<div class="item-grid">';
+    items.forEach(item => {
+      const rar = item.rarity || 'common';
+      const icon = TYPE_ICONS[item.item_type] || RARITY_ICONS[rar] || '📦';
+      const imageHtml = item.image_url
+        ? `<div class="item-image-wrap"><img src="${esc(item.image_url)}" alt="${esc(item.name)}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=emoji-fallback>${icon}</span>'"></div>`
+        : `<div class="item-icon">${icon}</div>`;
+      html += `
+        <div class="item-card" data-id="${esc(item.id)}">
+          <div class="item-rarity-bar rarity-${esc(rar)}"></div>
+          ${imageHtml}
+          <div class="item-name name-${esc(rar)}">${esc(item.name)}</div>
+          <div class="item-type">${esc(item.item_type || 'item')}</div>
+          <span class="item-rarity-label rar-${esc(rar)}">${esc(rar)}</span>
+          <div class="item-desc">${esc((item.description||'').substring(0,100))}${(item.description||'').length > 100 ? '...' : ''}</div>
+          <div class="item-detail">
+            <div class="item-desc">${esc(item.description)}</div>
+            ${item.lore ? `<div class="item-lore">"${esc(item.lore)}"</div>` : ''}
+            <div class="item-props">
+              ${item.attuneable ? `<div class="item-prop">Attuneable: <span>Yes</span></div>` : ''}
+              ${item.weight ? `<div class="item-prop">Weight: <span>${esc(String(item.weight))} lb</span></div>` : ''}
+              ${item.value_gp ? `<div class="item-prop">Value: <span>${esc(String(item.value_gp))} gp</span></div>` : ''}
+              ${item.rarity ? `<div class="item-prop">Rarity: <span>${esc(item.rarity)}</span></div>` : ''}
+            </div>
+          </div>
+        </div>`;
+    });
+    html += '</div>';
+    el.innerHTML = html;
+    el.querySelectorAll('.item-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const wasExpanded = card.classList.contains('expanded');
+        el.querySelectorAll('.item-card.expanded').forEach(c => c.classList.remove('expanded'));
+        if (!wasExpanded) card.classList.add('expanded');
+      });
+    });
+  } catch (err) {
+    el.innerHTML = `<div class="error-msg">Failed to load items: ${esc(err.message)}</div>`;
+  }
+}
+init();
+</script>
+</body>
+</html>

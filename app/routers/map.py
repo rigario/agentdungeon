@@ -18,7 +18,7 @@ def get_map_data():
     try:
         rows = conn.execute(
             "SELECT id, name, biome, description, hostility_level, "
-            "encounter_threshold, recommended_level, connected_to "
+            "encounter_threshold, recommended_level, connected_to, image_url "
             "FROM locations ORDER BY hostility_level, name"
         ).fetchall()
 
@@ -51,6 +51,7 @@ def get_map_data():
                 "encounter_threshold": r["encounter_threshold"],
                 "recommended_level": r["recommended_level"],
                 "connected_to": conns,
+                "image_url": r["image_url"],
                 "npcs": npcs_by_location.get(r["id"], []),
             })
 

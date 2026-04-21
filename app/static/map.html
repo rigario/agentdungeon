@@ -183,7 +183,21 @@
       margin-bottom: 0.5rem;
     }
 
-    .panel-biome {
+    .panel-loc-image {
+    width: 100%; height: 120px;
+    background: linear-gradient(135deg, var(--bg-primary), var(--bg-card));
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 0.75rem;
+  }
+  .panel-loc-image img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    image-rendering: pixelated;
+    border-radius: 5px;
+  }
+  .panel-biome {
       color: var(--text-muted);
       font-size: 0.85rem;
       text-transform: uppercase;
@@ -348,6 +362,19 @@ const BIOME_ICONS = {
   'mountain': '⛰️',
 };
 
+// Location pixel art mapping (frontend asset map)
+const LOC_IMAGES = {
+  'rusty-tankard': '/static/pixel-art/loc-rusty-tankard.png',
+  'south-road': '/static/pixel-art/loc-south-road.png',
+  'forest-edge': '/static/pixel-art/whisperwood-edge.png',
+  'crossroads': '/static/pixel-art/loc-crossroads.png',
+  'deep-forest': '/static/pixel-art/loc-deep-whisperwood.png',
+  'mountain-pass': '/static/pixel-art/loc-greypeak-pass.png',
+  'cave-entrance': '/static/pixel-art/loc-cave-entrance.png',
+  'cave-depths': '/static/pixel-art/cave-depths-seal.png',
+  'moonpetal-glade': '/static/pixel-art/loc-moonpetal-glade.png',
+};
+
 let locations = {};
 let currentLocationId = null;
 
@@ -397,7 +424,10 @@ function render() {
         <div class="legend-item"><div class="legend-dot" style="background:#c04040"></div> Extreme</div>
       </div>
       <div class="nav-links">
-        <a href="/sheet">Character Sheet</a>
+        <a href="/npcs-page">NPCs</a>
+        <a href="/items-page">Items</a>
+        <a href="/cutscenes">Cutscenes</a>
+        <a href="/demo">Demo</a>
         <a href="/docs">API Docs</a>
       </div>
     </div>
@@ -514,8 +544,13 @@ function buildPanel(locId) {
   const dangerColors = ['#4a8a50', '#6aaa6a', '#aaaa4a', '#e8a030', '#cc6633', '#c04040'];
   const conns = parseConns(loc.connected_to);
   const biomeIcon = BIOME_ICONS[loc.biome] || '📍';
+  const locImg = loc.image_url || LOC_IMAGES[locId];
 
-  let html = `
+  let html = '';
+  if (locImg) {
+    html += `<div class="panel-loc-image"><img src="${esc(locImg)}" alt="${esc(loc.name)}" loading="lazy"></div>`;
+  }
+  html += `
     <h2>${biomeIcon} ${esc(loc.name)}</h2>
     <div class="panel-biome">${esc(loc.biome)}</div>
     <div class="panel-desc">${esc(loc.description)}</div>
