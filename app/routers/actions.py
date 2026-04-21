@@ -9,6 +9,7 @@ The agent submits actions. The server is the single source of truth:
 import json
 import hashlib
 import random
+import sqlite3
 from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends
 from app.models.schemas import ActionRequest, ActionResponse
@@ -404,14 +405,21 @@ def _resolve_combat(char: dict, encounter: dict, rng: random.Random) -> dict:
     return result
 
 
-def _get_character_flags(character_id: str) -> dict:
-    """Load all narrative flags for a character."""
-    conn = get_db()
+def _get_character_flags(character_id: str, conn: sqlite3.Connection = None) -> dict:
+    """Load all narrative flags for a character.
+    
+    If conn is provided, reuses it (avoids DB lock from concurrent connections).
+    Otherwise creates a new connection.
+    """
+    should_close = conn is None
+    if conn is None:
+        conn = get_db()
     rows = conn.execute(
         "SELECT flag_key, flag_value FROM narrative_flags WHERE character_id = ?",
         (character_id,)
     ).fetchall()
-    conn.close()
+    if should_close:
+        conn.close()
     return {r["flag_key"]: r["flag_value"] for r in rows}
 
 
@@ -638,7 +646,7 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
         # ---------------------------------------------------------------
         # Aldric betrayal — if 3+ hollow_eye flags, double next road encounter
         # ---------------------------------------------------------------
-        flags = _get_character_flags(character_id)
+        flags = _get_character_flags(character_id, conn)
         betrayal = _apply_alric_betrayal(char, flags)
 
         result = _resolve_move(char, body.target, rng)
@@ -1309,7 +1317,7 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
 
 
         # Load flags for location-specific logic
-        pf = _get_character_flags(character_id)
+        pf = _get_character_flags(character_id, conn)
 
         # Location-specific exploration: Thornhold statue observation
         if location_id == "thornhold" and not pf.get("thornhold_statue_observed"):
@@ -1449,7 +1457,7 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
         puzzle_target = body.details.get("target") if body.details else None
 
         # Load flags
-        pf = _get_character_flags(character_id)
+        pf = _get_character_flags(character_id, conn)
 
         if location_id == "cave-entrance":
             # Antechamber puzzle: rotate 3 seal-finger stones
