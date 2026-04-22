@@ -223,9 +223,24 @@ class TestIntentClassification:
         "continue",
         "keep going",
     ])
+
     def test_broad_intents_default_to_general(self, msg):
         intent = self._classify(msg)
         assert intent.type == IntentType.GENERAL
+
+    @pytest.mark.parametrize("msg,expected_type", [
+        ("accept quest", IntentType.QUEST),
+        ("take quest", IntentType.QUEST),
+        ("complete quest", IntentType.QUEST),
+        ("finish quest", IntentType.QUEST),
+        ("turn in the quest", IntentType.QUEST),
+        ("quest log", IntentType.QUEST),
+        ("view quest", IntentType.QUEST),
+        ("check quest", IntentType.QUEST),
+    ])
+    def test_quest_intents(self, msg, expected_type):
+        intent = self._classify(msg)
+        assert intent.type == expected_type, f"'{msg}' -> got {intent.type.value}, expected {expected_type.value}"
 
     def test_target_extraction(self):
         intent = self._classify("go to the crossroads")

@@ -34,6 +34,7 @@ class IntentType(str, Enum):
     INTERACT = "interact"
     PUZZLE = "puzzle"
     CAST = "cast"
+    QUEST = "quest"
     GENERAL = "general"
 
 
@@ -70,7 +71,7 @@ class DMActionRequest(BaseModel):
 
     @model_validator(mode="after")
     def action_type_valid(self) -> "DMActionRequest":
-        valid = {"move", "attack", "rest", "explore", "interact", "puzzle", "cast"}
+        valid = {"move", "attack", "rest", "explore", "interact", "puzzle", "cast", "quest"}
         if self.action_type not in valid:
             raise ValueError(f"action_type must be one of {valid}, got '{self.action_type}'")
         return self
@@ -317,6 +318,7 @@ class RoutingPolicy:
         IntentType.REST: ServerEndpoint.ACTIONS,
         IntentType.PUZZLE: ServerEndpoint.ACTIONS,
         IntentType.CAST: ServerEndpoint.ACTIONS,
+        IntentType.QUEST: ServerEndpoint.ACTIONS,
         IntentType.COMBAT: ServerEndpoint.COMBAT,
         IntentType.GENERAL: ServerEndpoint.TURN,
     }

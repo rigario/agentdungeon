@@ -143,6 +143,7 @@ _INTENT_PATTERNS: list[tuple[IntentType, str, list[str]]] = [
     (IntentType.MOVE, "move", ["go to", "travel to", "walk to", "head to", "move to", "visit", "enter ", "return to", "go back"]),
     (IntentType.TALK, "interact", ["talk to", "speak to", "speak with", "ask ", "tell ", "say to", "chat with", "conversation with", "greet"]),
     (IntentType.PUZZLE, "puzzle", ["solve", "puzzle", "place the", "put the", "use item", "use the"]),
+    (IntentType.QUEST, "quest", ["accept quest", "take quest", "complete quest", "finish quest", "turn in quest", "turn in the quest", "quest log", "view quest", "check quest"]),
     (IntentType.EXPLORE, "explore", ["explore", "look around", "search", "investigate", "scout", "check around"]),
     (IntentType.INTERACT, "interact", ["interact with", "examine", "inspect", "look at", "pick up", "grab", "take ", "open "]),
 ]
@@ -187,7 +188,7 @@ def classify_intent(player_message: str) -> Intent:
             return Intent(
                 type=IntentType.GENERAL,
                 action_type=None,
-                details={"intent": player_message},
+                details={"intent": player_message, "_original_msg": player_message},
                 confidence=0.6,
             )
 
@@ -204,6 +205,7 @@ def classify_intent(player_message: str) -> Intent:
                     details["details"] = {"rest_type": "long" if "long" in msg else "short"}
                 elif action_type == "move" and target:
                     details["target"] = target
+                details["_original_msg"] = player_message
                 return Intent(
                     type=intent_type,
                     target=target,
@@ -216,7 +218,7 @@ def classify_intent(player_message: str) -> Intent:
     return Intent(
         type=IntentType.GENERAL,
         action_type=None,
-        details={"intent": player_message},
+        details={"intent": player_message, "_original_msg": player_message},
         confidence=0.3,
     )
 
@@ -320,7 +322,31 @@ class IntentRouter:
     async def _route_action(self, character_id: str, intent: Intent) -> RouterResult:
         """Route to POST /characters/{id}/actions."""
         try:
-            result = await self._client.submit_action(character_id, intent.details)
+            # Build the payload — intent.details has action_type and possibly target
+            payload = dict(intent.details)
+            if intent.target and "target" not in payload:
+                payload["target"] = intent.target
+
+            # Quest actions need special payload shaping: details.action = accept|complete|list
+            if intent.action_type == "quest":
+                # Determine quest sub-action from the original message keywords
+                details = payload.get("details", {})
+                if isinstance(details, dict):
+                    action_val = details.get("action", "")
+                else:
+                    action_val = ""
+                if not action_val:
+                    # Infer from keyword presence in the stored original message
+                    orig = payload.get("_original_msg", "").lower()
+                    if "complete" in orig or "finish" in orig or "turn in" in orig:
+                        action_val = "complete"
+                    elif "list" in orig or "log" in orig or "view" in orig or "check" in orig:
+                        action_val = "list"
+                    else:
+                        action_val = "accept"
+                payload["details"] = {"action": action_val}
+
+            result = await self._client.submit_action(character_id, payload)
             return RouterResult(
                 success=True,
                 endpoint_called="actions",
