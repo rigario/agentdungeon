@@ -23,6 +23,8 @@ import logging
 import asyncio
 from typing import Optional
 
+import httpx
+
 logger = logging.getLogger(__name__)
 
 # Configuration
@@ -31,8 +33,17 @@ DM_HERMES_PROFILE = os.environ.get("DM_HERMES_PROFILE", "d20-dm")
 KIMI_API_KEY = os.environ.get("KIMI_API_KEY", "") or os.environ.get("DM_FIRE_PASS_API_KEY", "")
 KIMI_BASE_URL = os.environ.get("KIMI_BASE_URL", "https://api.kimi.com/coding/v1")
 DM_NARRATOR_MODEL = os.environ.get("DM_NARRATOR_MODEL", "kimi-k2.5")
-DM_NARRATOR_TIMEOUT = int(os.environ.get("DM_NARRATOR_TIMEOUT", "30"))
-DM_NARRATOR_MAX_TOKENS = int(os.environ.get("DM_NARRATOR_MAX_TOKENS", "800"))
+DM_NARRATOR_TIMEOUT = int(os.environ.get("DM_NARRATOR_TIMEOUT", "60"))
+DM_NARRATOR_MAX_TOKENS = int(os.environ.get("DM_NARRATOR_MAX_TOKENS", "1200"))
+
+# Shared HTTP client for connection pooling (set by main.py lifespan)
+_shared_client: Optional[httpx.AsyncClient] = None
+
+
+def set_http_client(client: httpx.AsyncClient) -> None:
+    """Set the shared HTTP client for Kimi API calls (connection pooling)."""
+    global _shared_client
+    _shared_client = client
 
 
 async def narrate_via_direct(
@@ -40,37 +51,68 @@ async def narrate_via_direct(
     user_prompt: str,
     temperature: float = 0.8,
 ) -> Optional[dict]:
-    """Call Kimi Turbo directly via HTTP (in-process, lowest latency)."""
+    """Call Kimi Turbo directly via HTTP (in-process, lowest latency).
+
+    Uses a shared AsyncClient with connection pooling when available
+    (set by main.py lifespan), with per-request timeout.
+    """
     if not KIMI_API_KEY:
         logger.warning("No KIMI_API_KEY set — cannot call Kimi Turbo directly")
         return None
 
     try:
-        import httpx
+        # Use shared client for connection pooling, or create temporary client
+        if _shared_client is not None:
+            client = _shared_client
+            # Use client directly (caller manages lifecycle) with per-request timeout
+            # to prevent hanging when Kimi API is slow (fast-fail → passthrough fallback)
+            try:
+                response = await client.post(
+                    f"{KIMI_BASE_URL}/chat/completions",
+                    json={
+                        "model": DM_NARRATOR_MODEL,
+                        "messages": [
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt},
+                        ],
+                        "max_tokens": DM_NARRATOR_MAX_TOKENS,
+                        "temperature": temperature,
+                        "response_format": {"type": "json_object"},
+                    },
+                    timeout=8.0,   # Fail fast → structured passthrough fallback (8s SLA)
+                )
+            except httpx.TimeoutException as e:
+                logger.warning(f"Kimi API timeout after 8s: {e}")
+                return None
+        else:
+            # Fallback: create temporary client (no pooling) with fast timeout
+            async with httpx.AsyncClient(timeout=8.0) as client:
+                response = await client.post(
+                    f"{KIMI_BASE_URL}/chat/completions",
+                    json={
+                        "model": DM_NARRATOR_MODEL,
+                        "messages": [
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt},
+                        ],
+                        "max_tokens": DM_NARRATOR_MAX_TOKENS,
+                        "temperature": temperature,
+                        "response_format": {"type": "json_object"},
+                    },
+                    timeout=15.0,
+                )
 
-        async with httpx.AsyncClient(timeout=DM_NARRATOR_TIMEOUT) as client:
-            response = await client.post(
-                f"{KIMI_BASE_URL}/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {KIMI_API_KEY}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": DM_NARRATOR_MODEL,
-                    "messages": [
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt},
-                    ],
-                    "max_tokens": DM_NARRATOR_MAX_TOKENS,
-                    "temperature": temperature,
-                    "response_format": {"type": "json_object"},
-                },
-            )
-            response.raise_for_status()
-            data = response.json()
+        response.raise_for_status()
+        data = response.json()
 
-            content = data["choices"][0]["message"]["content"]
-            return json.loads(content)
+        content = data["choices"][0]["message"].get("content", "")
+        # Kimi coding API may put output in reasoning_content when thinking
+        if not content or not content.strip():
+            content = data["choices"][0]["message"].get("reasoning_content", "")
+        if not content or not content.strip():
+            logger.warning("Kimi returned empty content and reasoning_content")
+            return None
+        return json.loads(content)
 
     except json.JSONDecodeError as e:
         logger.warning(f"Kimi returned invalid JSON: {e}")

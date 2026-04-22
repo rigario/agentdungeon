@@ -16,6 +16,52 @@ from app.services.narrator import narrate as llm_narrate
 
 logger = logging.getLogger(__name__)
 
+def _is_combat_response(server_result: dict) -> bool:
+    """Detect if server_result represents an active/ongoing combat state."""
+    # Combat endpoints return: enemies, combat_id, round, combat_over, etc.
+    # /actions attack handler wraps combat under 'combat' key
+    if "enemies" in server_result or "combat_id" in server_result:
+        return True
+    if isinstance(server_result.get("combat"), dict):
+        return True
+    return False
+
+
+def _get_combat_events(server_result: dict) -> list:
+    """Construct a detailed combat log from server_result.
+    
+    Builds chronological combat narrative from available combat data:
+    - combat/start: includes pre-combat enemy attacks + current round summary
+    - combat/act: includes round events from this round
+    - attack action: includes combat round events nested under combat.events
+    """
+    events = []
+    
+    # Pre-combat events (enemies that went before player)
+    top_events = server_result.get("events", [])
+    if top_events:
+        events.extend(top_events)
+    
+    # If combat/start or combat/act, also include event-like data from combat sub-object
+    combat = server_result.get("combat", {})
+    if isinstance(combat, dict):
+        # Full combat result from attack action: includes 'events' with round details
+        combat_events = combat.get("events", [])
+        if combat_events:
+            events.extend(combat_events)
+        # Also include 'narration' as summary event if no explicit events
+        elif combat.get("narration"):
+            events.append(combat["narration"])
+    
+    # For turn/start where combat_log might be already provided as structured data
+    # (contract says ServerTurnResult has combat_log), prefer that if present
+    explicit_log = server_result.get("combat_log", [])
+    if explicit_log and not events:
+        events = explicit_log
+    
+    return events
+
+
 
 async def synthesize_narration(server_result: dict, intent: dict, world_context: dict) -> dict:
     """Convert a server response into the final player-facing payload.
@@ -169,13 +215,27 @@ def _extract_mechanics(server_result: dict, world_context: dict) -> dict:
 def _extract_choices(server_result: dict, world_context: dict) -> list:
     """Extract player choices from server data."""
     choices = []
+    
+    # COMBAT: Return only combat action choices — no movement or exploration
+    if _is_combat_response(server_result):
+        combat_choices = [
+            {"id": "attack", "label": "Attack", "description": "Attack an enemy"},
+            {"id": "flee", "label": "Flee", "description": "Attempt to escape combat"},
+            {"id": "cast", "label": "Cast Spell", "description": "Cast a spell"},
+            {"id": "use_item", "label": "Use Item", "description": "Use a consumable"},
+            {"id": "defend", "label": "Defend", "description": "Take defensive stance (disadvantage on attacks against you)"},
+        ]
+        choices.extend(combat_choices)
+        return choices
+    
+    # Non-combat: exploration + dialogue choices
     for conn in world_context.get("connections", []):
         choices.append({
             "id": conn.get("id", ""),
             "label": f"Go to {conn.get('name', conn.get('id', ''))}",
             "description": conn.get("description"),
         })
-
+    
     for ask in server_result.get("asks", []):
         if ask.get("options"):
             for option in ask.get("options", []):
@@ -196,8 +256,20 @@ def _extract_choices(server_result: dict, world_context: dict) -> list:
 
 def _extract_trace(server_result: dict) -> dict:
     """Extract server trace for debugging."""
-    return {
+    trace = {
         "turn_id": server_result.get("turn_id"),
         "decision_point": server_result.get("decision_point"),
         "available_actions": server_result.get("available_actions", []),
+        "intent_used": None,  # Filled by caller
+        "server_endpoint_called": "",  # Filled by caller
+        "raw_server_response_keys": list(server_result.keys()),
     }
+    
+    # Include combat_log if present
+    combat_events = _get_combat_events(server_result)
+    if combat_events:
+        trace["combat_log"] = combat_events
+    else:
+        trace["combat_log"] = []
+    
+    return trace

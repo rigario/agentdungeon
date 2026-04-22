@@ -347,6 +347,8 @@ class IntentRouter:
                 payload["details"] = {"action": action_val}
 
             result = await self._client.submit_action(character_id, payload)
+            # Attack actions wrap combat data under 'combat' key — extract to top-level
+            combat_data = result.get("combat", {})
             return RouterResult(
                 success=True,
                 endpoint_called="actions",
@@ -357,6 +359,12 @@ class IntentRouter:
                 world_context=result.get("world_context"),
                 approval_triggered=result.get("approval_triggered", False),
                 approval_reason=result.get("approval_reason"),
+                # Combat fields extracted from nested combat_data
+                enemies=combat_data.get("enemies", []),
+                round=combat_data.get("rounds", 0),
+                combat_over=combat_data.get("victory") is not None or combat_data.get("hp_remaining", 0) <= 0,
+                combat_result="victory" if combat_data.get("victory") else "defeat" if combat_data.get("victory") is not None else None,
+                combat_log=result.get("events", []),  # Combat events from top-level events
                 raw_response=result,
             )
         except Exception as e:
@@ -551,6 +559,7 @@ class IntentRouter:
                 world_context=result.get("world_context"),
                 combat_over=result.get("combat_over", False),
                 combat_result=result.get("result"),
+                combat_log=result.get("events", []),  # Combat log = round events
                 enemies=result.get("enemies", []),
                 round=result.get("round", 0),
                 is_your_turn=result.get("is_your_turn", False),
@@ -605,6 +614,7 @@ class IntentRouter:
                 combat_result=result.get("result"),
                 enemies=result.get("enemies", []),
                 round=result.get("round", 0),
+                combat_log=result.get("events", []),
                 is_your_turn=result.get("is_your_turn", False),
                 raw_response=result,
             )

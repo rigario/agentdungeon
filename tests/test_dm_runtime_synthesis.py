@@ -7,7 +7,68 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "dm-runtime"))
 
-from app.services.synthesis import _extract_mechanics, _extract_choices
+from app.services.synthesis import _extract_mechanics, _extract_choices, _is_combat_response
+
+
+def test_is_combat_response_detects_nested_combat_key():
+    """Attack actions wrap combat under 'combat' key — must be detected."""
+    server_result = {
+        "success": True,
+        "narration": "You hit the goblin!",
+        "events": [{"type": "attack", "description": "You hit the goblin for 5 damage."}],
+        "character_state": {"hp": {"current": 10, "max": 12}},
+        "combat": {
+            "hp_remaining": 10,
+            "victory": False,
+            "rounds": 1,
+            "events": [{"type": "combat_start", "description": "Combat begins!"}],
+        },
+    }
+    assert _is_combat_response(server_result) is True
+
+
+def test_is_combat_response_detects_top_level_enemies():
+    """Combat/start and combat/act return enemies at top level."""
+    server_result = {
+        "enemies": [{"name": "Goblin", "hp": 7}],
+        "round": 1,
+        "combat_over": False,
+    }
+    assert _is_combat_response(server_result) is True
+
+
+def test_extract_choices_returns_combat_actions_when_combat_detected():
+    """Combat responses must include attack/flee/cast/use_item/defend choices."""
+    server_result = {
+        "combat": {"enemies": [{"name": "Goblin"}]},
+        "events": [],
+    }
+    world_context = {}  # empty during combat
+    choices = _extract_choices(server_result, world_context)
+    labels = [c["label"] for c in choices]
+    assert "Attack" in labels
+    assert "Flee" in labels
+    assert "Cast Spell" in labels
+    assert "Use Item" in labels
+    assert "Defend" in labels
+
+
+def test_extract_choices_ignores_connections_during_combat():
+    """Movement connections should not leak into combat choices."""
+    server_result = {
+        "combat": {"enemies": [{"name": "Goblin"}]},
+        "events": [],
+    }
+    world_context = {
+        "connections": [
+            {"id": "forest", "name": "Forest", "description": "Go to Forest"},
+        ]
+    }
+    choices = _extract_choices(server_result, world_context)
+    labels = [c["label"] for c in choices]
+    # Only combat actions — no movement
+    assert "Go to Forest" not in labels
+    assert len([l for l in labels if "Go to" in l]) == 0
 
 
 def test_extract_mechanics_stringifies_dice_log_entries():

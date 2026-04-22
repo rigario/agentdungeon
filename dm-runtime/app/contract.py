@@ -203,6 +203,7 @@ class ServerTrace(BaseModel):
     turn_id: Optional[str] = None
     decision_point: Optional[dict] = None
     available_actions: list = Field(default_factory=list)
+    combat_log: list = Field(default_factory=list)
     intent_used: Optional[dict] = None
     server_endpoint_called: str = ""
     raw_server_response_keys: list = Field(default_factory=list)
