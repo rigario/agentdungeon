@@ -149,17 +149,17 @@ For each scenario:
 - [ ] Dead ends (actions that produce no useful response)
 - [ ] Confusing UX moments
 
-#### Known Dead Ends to Document
+#### Known Issues to Test
 
-These narrative paths are broken and should be noted but not tested as "passing":
+As of 2026-04-22, most previously-broken narrative paths have been fixed:
 
-1. **Communion ending** — Brother Kol is combat-only, can't be talked to
-2. **Drenna's quest** — No quest acceptance mechanic
-3. **Thornhold exile** — `collateral_near_town` flag exists in code but condition is highly specific
-4. **Antechamber puzzle** — Not implemented
-5. **Key items** — `kols_journal`, `drens_daughter_insignia` never awarded
+1. **~~Communion ending~~** — **FIXED.** Brother Kol is talkable (biome=dungeon, NPC dialogue). `kol_backstory_known` reachable: talk to Drenna (confession → kol_backstory clue_reward chain).
+2. **~~Drenna's quest~~** — **FIXED.** Quest acceptance implemented (`action_type="quest"`, `quest_action="accept/complete/list"`). Full lifecycle with character_quests tracking.
+3. **Thornhold exile** — `collateral_near_town` flag exists; condition is highly specific but path is reachable. Low priority for playtest.
+4. **~~Antechamber puzzle~~** — **FIXED.** `thornhold_statue_observed` write path wired (explore sets flag, checked for cave access, puzzle handler at actions.py ~1488+).
+5. **~~Key items~~** — **FIXED** (commit 2da3147). Key items awarded from combat loot AND quest completion.
 
-These should be tested anyway to document the failure mode.
+Remaining narrow paths: Thornhold exile (specific flag condition). Not blocking playtest.
 
 ---
 
