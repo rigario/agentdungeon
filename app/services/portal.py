@@ -171,7 +171,7 @@ def get_portal_state(character_id: str) -> dict:
     """Aggregate character state for portal view.
     
     Returns character sheet, current location, active quests,
-    recent events, doom clock status, and inventory.
+    recent events, doom clock status, inventory, and map state.
     
     Returns:
         Dict with full portal state or error.
@@ -192,7 +192,7 @@ def get_portal_state(character_id: str) -> dict:
         if location_id:
             loc = db.execute(
                 "SELECT id, name, description, biome, hostility_level FROM locations WHERE id = ?",
-                (location_id,)
+                (location_id,),
             ).fetchone()
             if loc:
                 location = dict(loc)
@@ -204,7 +204,7 @@ def get_portal_state(character_id: str) -> dict:
                FROM character_quests 
                WHERE character_id = ? AND status = 'accepted'
                ORDER BY accepted_at DESC""",
-            (character_id,)
+            (character_id,),
         ).fetchall()
 
         # Recent events (last 10)
@@ -214,13 +214,13 @@ def get_portal_state(character_id: str) -> dict:
                WHERE character_id = ?
                ORDER BY timestamp DESC
                LIMIT 10""",
-            (character_id,)
+            (character_id,),
         ).fetchall()
 
         # Doom clock
         doom = db.execute(
             "SELECT * FROM doom_clock WHERE character_id = ?",
-            (character_id,)
+            (character_id,),
         ).fetchone()
 
         # Inventory
@@ -231,8 +231,52 @@ def get_portal_state(character_id: str) -> dict:
                LEFT JOIN items i ON ci.item_id = i.id
                WHERE ci.character_id = ?
                ORDER BY ci.acquired_at DESC""",
-            (character_id,)
+            (character_id,),
         ).fetchall()
+
+        # === MAP STATE: derive fog-of-war from event_log ===
+        # 1. Get all world locations for the base map
+        all_locations_rows = db.execute(
+            "SELECT id, name, biome, hostility_level, connected_to FROM locations ORDER BY hostility_level, name"
+        ).fetchall()
+        all_locations = [dict(r) for r in all_locations_rows]
+        for loc in all_locations:
+            try:
+                loc["connected_to"] = json.loads(loc["connected_to"]) if loc["connected_to"] else []
+            except (json.JSONDecodeError, TypeError):
+                loc["connected_to"] = []
+
+        # 2. Get character's visited_locations from move/explore/arrive events
+        visit_rows = db.execute(
+            """SELECT location_id, event_type, timestamp
+               FROM event_log 
+               WHERE character_id = ? 
+                 AND event_type IN ('move', 'explore', 'arrive')
+                 AND location_id IS NOT NULL
+               ORDER BY timestamp ASC""",
+            (character_id,),
+        ).fetchall()
+        visited_locations = list({r["location_id"] for r in visit_rows if r["location_id"]})
+
+        # 3. Get traveled_edges from consecutive move events (from → to pairs)
+        move_rows = db.execute(
+            """SELECT location_id, timestamp, data_json
+               FROM event_log 
+               WHERE character_id = ? AND event_type = 'move'
+               ORDER BY timestamp ASC""",
+            (character_id,),
+        ).fetchall()
+        traveled_edges = []
+        prev_loc = None
+        for row in move_rows:
+            curr_loc = row["location_id"]
+            if prev_loc is not None and prev_loc != curr_loc:
+                traveled_edges.append([prev_loc, curr_loc])
+            prev_loc = curr_loc
+
+        # 4. Character's map-relevant state
+        mark_stage = char["mark_of_dreamer_stage"] if "mark_of_dreamer_stage" in char.keys() else 0
+        portents_triggered = doom["portents_triggered"] if doom else 0
 
         return {
             "character": {
@@ -257,6 +301,15 @@ def get_portal_state(character_id: str) -> dict:
             ],
             "doom_clock": dict(doom) if doom else None,
             "inventory": [dict(i) for i in inventory],
+            # === NEW: map state derived from event_log ===
+            "map": {
+                "locations": all_locations,
+                "visited_locations": visited_locations,
+                "traveled_edges": traveled_edges,
+                "current_location_id": location_id,
+                "mark_of_dreamer_stage": mark_stage,
+                "doom_portents_triggered": portents_triggered,
+            },
         }
     finally:
         db.close()
