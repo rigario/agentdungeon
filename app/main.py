@@ -14,6 +14,7 @@ from app.routers import narrative_introspect
 from app.routers import time as time_router
 from app.routers import cadence as cadence_router
 from app.routers import portal as portal_router
+from app.routers import dm_sessions
 
 
 @asynccontextmanager
@@ -105,6 +106,7 @@ app.include_router(narrative_introspect.router, prefix="/narrative-introspect", 
 app.include_router(time_router.router)
 app.include_router(cadence_router.router)
 app.include_router(portal_router.router)
+app.include_router(dm_sessions.router)
 
 
 if __name__ == "__main__":

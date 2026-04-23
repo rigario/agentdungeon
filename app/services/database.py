@@ -419,6 +419,20 @@ def init_db():
     """)
     conn.execute("CREATE INDEX IF NOT EXISTS idx_share_tokens_character ON share_tokens(character_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_share_tokens_token ON share_tokens(token)")
+
+    # =========================================================
+    # DM RUNTIME — Session persistence for async recap/resume
+    # =========================================================
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS dm_sessions (
+            character_id TEXT PRIMARY KEY,
+            session_id TEXT NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (character_id) REFERENCES characters(id)
+        )
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_dm_sessions_updated ON dm_sessions(updated_at)")
+
     conn.commit()
     conn.close()
 
