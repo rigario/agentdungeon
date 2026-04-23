@@ -334,3 +334,38 @@ class TestCadence:
         assert r.status_code == 200
         data = r.json()
         assert "config" in data or "global_stats" in data
+
+
+# ---------------------------------------------------------------------------
+# 8. Portal sharing
+# ---------------------------------------------------------------------------
+
+class TestPortal:
+    """Portal share token creation and view rendering."""
+
+    def test_create_portal_token(self, rules, character):
+        """POST /portal/token creates a share token for a character."""
+        r = rules.post("/portal/token", json={"character_id": character})
+        assert r.status_code == 201, f"Expected 201, got {r.status_code}: {r.text}"
+        data = r.json()
+        # Verify response fields exist
+        assert "id" in data, "Missing 'id' in response"
+        assert "token" in data, "Missing 'token' in response"
+        assert data["character_id"] == character, "Character ID mismatch"
+        assert "character_name" in data, "Missing 'character_name' in response"
+
+    def test_portal_token_view(self, rules, character):
+        """GET /portal/{token}/view returns HTML portal page."""
+        # Create a token first
+        create_r = rules.post("/portal/token", json={"character_id": character})
+        assert create_r.status_code == 201, f"Token creation failed: {create_r.text}"
+        token = create_r.json()["token"]
+
+        # GET the portal view
+        r = rules.get(f"/portal/{token}/view")
+        assert r.status_code == 200, f"Expected 200, got {r.status_code}: {r.text}"
+        # Should be HTML
+        ct = r.headers.get("content-type", "")
+        assert "text/html" in ct, f"Expected HTML content-type, got {ct}"
+        # Basic content check: page should not be empty
+        assert len(r.text) > 100, "Portal view response appears empty or minimal"
