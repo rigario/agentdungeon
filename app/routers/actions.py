@@ -478,14 +478,47 @@ def _apply_alric_betrayal(char: dict, flags: dict) -> bool:
 
 
 def _resolve_move(char: dict, target_location_id: str, rng: random.Random) -> dict:
-    """Resolve movement to a new location. May trigger encounter."""
+    """Resolve movement to a new location. May trigger encounter.
+    
+    Supports both location ID (exact) and location name (fuzzy match).
+    If target_location_id is not a valid location ID, attempts to find
+    a location whose name matches (case-insensitive, substring) the given identifier.
+    """
     current_location_id = char["location_id"]
     current = _get_location(current_location_id)
-    target = _get_location(target_location_id)
 
-    # Check connectivity
+    # Resolve target: try ID first, then fuzzy name match
+    target = None
+    try:
+        target = _get_location(target_location_id)
+    except HTTPException as e:
+        if e.status_code == 404:
+            # Fallback: fuzzy match by location name
+            conn_name = get_db()
+            rows = conn_name.execute(
+                "SELECT * FROM locations WHERE LOWER(name) LIKE ?",
+                (f"%{target_location_id.lower()}%",)
+            ).fetchall()
+            conn_name.close()
+            if len(rows) == 1:
+                target = dict(rows[0])
+            elif len(rows) > 1:
+                return {
+                    "success": False,
+                    "narration": f"Multiple locations match '{target_location_id}'. Use a more specific name.",
+                    "events": [],
+                    "encounter": None,
+                }
+            # else: re-raise original 404
+        else:
+            raise
+
+    if target is None:
+        raise HTTPException(404, f"Location not found: {target_location_id}")
+
+    # Check connectivity using actual target ID
     connected = json.loads(current.get("connected_to", "[]"))
-    if target_location_id not in connected:
+    if target["id"] not in connected:
         return {
             "success": False,
             "narration": f"You can't reach {target['name']} from {current['name']}. Available paths: {', '.join(connected)}",
@@ -498,7 +531,7 @@ def _resolve_move(char: dict, target_location_id: str, rng: random.Random) -> di
 
     events = [{
         "type": "travel",
-        "location_id": target_location_id,
+        "location_id": target["id"],
         "description": f"You travel from {current['name']} to {target['name']}.",
     }]
 
@@ -512,7 +545,7 @@ def _resolve_move(char: dict, target_location_id: str, rng: random.Random) -> di
             "events": events,
             "encounter": encounter["name"],
             "combat": combat_result,
-            "new_location": target_location_id,
+            "new_location": target["id"],
         }
 
     return {
@@ -520,7 +553,7 @@ def _resolve_move(char: dict, target_location_id: str, rng: random.Random) -> di
         "narration": f"You travel from {current['name']} to {target['name']}. The path is clear. {target['description']}",
         "events": events,
         "encounter": None,
-        "new_location": target_location_id,
+        "new_location": target["id"],
     }
 
 
@@ -713,13 +746,13 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
                                     result["narration"] += f" Found {ki_def['display_name']}."
 
             conn.execute("UPDATE characters SET location_id = ?, hp_current = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-                         (body.target, new_hp, character_id))
+                         (result["new_location"], new_hp, character_id))
 
             # ---------------------------------------------------------------
             # Portent auto-advance — fires on first combat victory in trigger locations
             # ---------------------------------------------------------------
             if result.get("combat") and result["combat"].get("victory"):
-                target_id = body.target
+                target_id = result["new_location"]
                 if target_id in LOCATION_PORTENT_TRIGGERS:
                     portent_idx = LOCATION_PORTENT_TRIGGERS[target_id]
                     flag_key = f"portent_{portent_idx}_triggered"
@@ -1378,7 +1411,10 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
     elif body.action_type == "interact":
         # Look for NPCs at current location
         conn2 = get_db()
-        npcs = conn2.execute("SELECT * FROM npcs WHERE biome = ?", (location["biome"],)).fetchall()
+        npcs = conn2.execute(
+            "SELECT * FROM npcs WHERE biome = ? AND current_location_id = ?",
+            (location["biome"], location_id)
+        ).fetchall()
 
         if not npcs:
             conn2.close()

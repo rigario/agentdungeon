@@ -75,6 +75,10 @@ async def synthesize_narration(server_result: dict, intent: dict, world_context:
 
     Tries LLM narration first. Falls back to passthrough if LLM unavailable.
     """
+    # Handle absurd / impossible actions flagged by intent router
+    if intent.get("details", {}).get("_absurd"):
+        return _build_absurd_refusal(intent, world_context)
+
     # Try LLM narration
     llm_output = await llm_narrate(server_result, intent, world_context)
 
@@ -82,6 +86,33 @@ async def synthesize_narration(server_result: dict, intent: dict, world_context:
         return _build_from_llm(llm_output, server_result, world_context)
     else:
         return _build_passthrough(server_result, intent, world_context)
+
+
+def _build_absurd_refusal(intent: dict, world_context: dict) -> dict:
+    """Build a refusal response for physically impossible player actions."""
+    player_msg = intent.get("details", {}).get("_original_msg") or intent.get("intent", "")
+    return {
+        "narration": {
+            "scene": f"You consider trying to '{player_msg}', but even you realize that's not possible.",
+            "npc_lines": [],
+            "tone": "neutral",
+        },
+        "mechanics": {
+            "what_happened": ["Action refused: physically impossible."],
+            "hp": _extract_hp(world_context),
+            "location": world_context.get("location", {}).get("id", "unknown"),
+        },
+        "choices": _extract_choices({}, world_context),
+        "server_trace": {"intent_used": intent, "refusal_reason": "absurd_action"},
+    }
+
+
+def _extract_hp(world_context: dict) -> dict:
+    """Extract current HP from world context."""
+    char = world_context.get("character", {})
+    if isinstance(char.get("hp"), dict):
+        return {"current": char["hp"].get("current", 0), "max": char["hp"].get("max", 0)}
+    return {"current": char.get("hp_current", 0), "max": char.get("hp_max", 0)}
 
 
 def _build_from_llm(llm_output: dict, server_result: dict, world_context: dict) -> dict:

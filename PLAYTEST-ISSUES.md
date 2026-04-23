@@ -1,8 +1,8 @@
 # D20 Playtest Issues Log
 
-**Last Reviewed:** 2026-04-23 (heartbeat init — file was missing, created from scratch)
+**Last Reviewed:** 2026-04-23 01:41 UTC (heartbeat — Scenario B, added ISSUE-005, ISSUE-003 correlation)
 
-**Open Issues:** 4 | **Fixed Issues:** 0
+**Open Issues:** 5 | **Fixed Issues:** 0
 
 ---
 
@@ -98,12 +98,25 @@ And fix the name comparison (ensure both sides normalized identically).
 **Reported:** 2026-04-23 — Hermes Heartbeat Agent
 **Status:** OPEN
 
+    **Heartbeat Evidence (reconfirmed 2026-04-23 01:39 UTC):**
+    - Char `issue3check-0425436e-3a165a` — `current_location_id` = `None` after move
+    - Interact target="Sister Drenna" returned: "You approach Kira the Wagon Master..." (wrong NPC)
+    - Diagnosis: biome query depends on `current_location_id`; `None` → fallback biome → wrong NPC table
+    - Resolution: EXPECT AUTO-RESOLVE after ISSUE-004 fix; will re-test next heartbeat
+    
 ---
 
 ### ISSUE-004: Character current_location_id not updated after move action
 
 **Severity:** P1-High (breaks location-gated content, quests, and narrative state)
 
+
+    **Heartbeat Evidence (reconfirmed 2026-04-23 01:39 UTC):**
+    - Char `issue3check-0425436e-3a165a` — after `move` to south-road (narration confirms), `GET /characters` → `current_location_id: None`
+    - After `explore`: location also `None` — persistence layer never updates character row
+    - Side-effect: ISSUE-003 manifests because biome lookup fails without location
+    - Fix: `UPDATE characters SET current_location_id = ? WHERE id = ?` in move/explore handlers
+    
 **Repro Steps:**
 1. Create character
 2. Call `POST /characters/{id}/actions` with `{"action_type": "explore"}` (sets location to Thornhold?)
@@ -130,6 +143,31 @@ And fix the name comparison (ensure both sides normalized identically).
 ```python
 conn.execute("UPDATE characters SET current_location_id = ? WHERE id = ?", (target_location_id, character_id))
 ```
+
+**Reported:** 2026-04-23 — Hermes Heartbeat Agent
+**Status:** OPEN
+
+
+### ISSUE-005: Absurd/impossible actions trigger travel instead of refusal (intent-routing failure)
+
+**Severity:** P2-Medium (narrative coherence broken; workaround: ignore)
+
+**Repro Steps:**
+1. Create character
+2. `POST /dm/turn` with absurd message: "I swallow the statue whole." or "I fly to the moon"
+3. Observe: character auto-travels to random location, narration is generic travel, NOT a refusal
+
+**Expected:** DM recognizes impossible intent and responds refusal/clarification  
+**Actual:** DM misroutes as exploration — `mechanics.location` changes, `narration.scene` = "Traveled to X" — no refusal
+
+**Evidence (Scenario B, char `stressb3-c6320756-0666c4`, 2026-04-23):**
+- `dm_swallow_statue` → HTTP 200, location: `forest-edge`, scene: "Traveled to Whisperwood Edge. First visit!"
+- `dm_fly_moon` → HTTP 200, location: `Thornhold`, generic NPC dialogue triggered (not refusal)
+- `dm_punch_cloud` → HTTP 200, treated as rest action at Deep Whisperwood
+
+**Impact:** Absurd inputs produce confusing state changes; intent classifier fails to detect non-actionable messages
+
+**Suggested Fix:** Add pre-LLM guardrail to detect physically impossible action patterns and route to refusal branch
 
 **Reported:** 2026-04-23 — Hermes Heartbeat Agent
 **Status:** OPEN
@@ -185,6 +223,28 @@ conn.execute("UPDATE characters SET current_location_id = ? WHERE id = ?", (targ
 - Quest acceptance (`quest` action type) works correctly when the quest ID matches the NPC's defined `quests_json`.
 - Recommend immediate fix on ISSUE-003 (targeting) as highest-priority — it blocks Phase 1 narrative completion.
 - Smoke test failure (ISSUE-001) is P2; should align test expectations with actual production endpoint behavior.
+
+### 2026-04-23 01:41 UTC — Heartbeat Agent — Scenarios B (stress), P1 re-check
+
+**Smoke Test:** 16/17 PASS
+- **FAILURE:** `test_dm_runtime_root` (ISSUE-001)
+
+**Scenario B (Absurd/AI Stress):**
+- Char: `stressb3-c6320756-0666c4` (Wizard)
+- Absurd messages NOT refused — DM treats them as exploration: auto-travels, generic "Traveled to X" narration
+- **ISSUE-005** created (intent-routing failure)
+
+**P1 Re-verification (fresh chars):**
+- ISSUE-004 (location persist): REPRODUCED — `current_location_id` stays `None` after move (char `issue3check-0425436e-3a165a`)
+- ISSUE-003 (NPC targeting): REPRODUCED, but only when ISSUE-004 present — interact "Sister Drenna" returned Kira
+  → Diagnosis: biome lookup uses `current_location_id`; when `None` fallback returns wrong NPC table
+  → Status: **SYMPTOM of ISSUE-004** — location fix should auto-resolve targeting
+
+**New Issue:** ISSUE-005
+
+**Priority:**
+1. ISSUE-004 (P1) — unlocks geography, likely auto-fixes ISSUE-003
+2. ISSUE-005 (P2) — narrative integrity under absurd input
 
 ---
 

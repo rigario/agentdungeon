@@ -154,6 +154,14 @@ _BROAD_PATTERNS = [
     r"^\s*(find .*|go .*|do .*)until\s+",
 ]
 
+# Absurd / physically impossible action patterns → refusal
+_ABSURD_PATTERNS = [
+    r'\b(swallow|eat|devour|consume)\b.*\b(statue|moon|sun|cloud|tree|building|mountain)\b',
+    r'\b(fly|teleport|time.?travel|breathe underwater|walk through walls)\b',
+    r'\b(punch|kick|attack|fight)\b.*\b(sun|moon|cloud|sky|ground|earth|gravity)\b',
+    r'\b(lift|carry|throw)\b.*\b(mountain|castle|building|ocean)\b',
+]
+
 
 def _keyword_in_message(msg: str, keyword: str) -> bool:
     """Check if keyword appears as a word/phrase boundary match, not substring.
@@ -213,6 +221,16 @@ def classify_intent(player_message: str) -> Intent:
                     details=details,
                     confidence=0.8,
                 )
+
+    # Check absurd / physically impossible actions
+    for pattern in _ABSURD_PATTERNS:
+        if re.search(pattern, msg):
+            return Intent(
+                type=IntentType.GENERAL,
+                action_type=None,
+                details={"intent": player_message, "_original_msg": player_message, "_absurd": True},
+                confidence=0.3,
+            )
 
     # Default: broad intent → turn/start
     return Intent(

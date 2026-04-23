@@ -131,11 +131,13 @@ class TestHealth:
         assert rs.get("status") == "ok" or rs.get("db_connected") is True
 
     @skip_no_dm
-    def test_dm_runtime_root(self, dm):
-        r = dm.get("/")
+    def test_dm_runtime_health(self, dm):
+        """DM runtime health check — uses /dm/health (not / which may be routed to rules server)."""
+        r = dm.get("/dm/health")
         assert r.status_code == 200
         data = r.json()
-        assert data["service"] == "d20-dm-runtime"
+        assert data["dm_runtime"] == "ok"
+        assert data["status"] == "healthy"
 
 
 # ---------------------------------------------------------------------------
