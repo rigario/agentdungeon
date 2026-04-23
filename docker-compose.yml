@@ -46,6 +46,8 @@ services:
     container_name: d20-dm-runtime
     ports:
       - '127.0.0.1:8610:8610'
+    volumes:
+      - d20-hermes-home:/root/.hermes
     environment:
       - 'DM_PORT=8610'
       - 'DM_HOST=0.0.0.0'
@@ -53,7 +55,9 @@ services:
       - 'DM_REDIS_URL=redis://d20-redis:6379/0'
       - 'DM_NARRATOR_ENABLED=true'
       - 'DM_NARRATOR_MODEL=kimi-k2.5'
-      - 'DM_HERMES_MODE=direct'
+      - 'DM_HERMES_MODE=hermes'
+      - 'DM_HERMES_PROFILE=d20-dm'
+      - 'HERMES_HOME=/root/.hermes'
       - 'KIMI_API_KEY=${KIMI_API_KEY:-}'
       - 'KIMI_BASE_URL=${KIMI_BASE_URL:-https://api.kimi.com/coding/v1}'
       - 'DM_FIRE_PASS_API_KEY=${FIRE_PASS_API_KEY:-}'
@@ -83,4 +87,6 @@ volumes:
   d20-data:
     driver: local
   d20-redis-data:
+    driver: local
+  d20-hermes-home:
     driver: local

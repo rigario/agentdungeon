@@ -1,0 +1,32 @@
+model:
+  default: kimi-k2.5
+  provider: kimi-coding
+  base_url: https://api.kimi.com/coding
+toolsets:
+- file
+agent:
+  max_turns: 5
+  verbose: false
+  reasoning_effort: low
+terminal:
+  backend: local
+  cwd: .
+  timeout: 60
+  env_passthrough: []
+browser:
+  enabled: false
+checkpoints:
+  enabled: false
+compression:
+  enabled: false
+display:
+  compact: true
+  personality: helpful
+  streaming: false
+memory:
+  memory_enabled: false
+approvals:
+  mode: 'off'
+context:
+  engine: lcm
+_config_version: 10

@@ -1,0 +1,15 @@
+model:
+  provider: kimi-coding
+  default: kimi-k2.5
+  base_url: https://api.kimi.com/coding
+context:
+  engine: lcm
+approvals:
+  mode: 'off'
+memory:
+  memory_enabled: false
+compression:
+  enabled: false
+browser:
+  enabled: false
+_config_version: 10

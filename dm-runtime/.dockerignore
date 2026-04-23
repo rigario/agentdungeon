@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.venv/
+venv/
+node_modules/
+vendor/hermes-agent/.git/
+vendor/hermes-agent/.pytest_cache/
+vendor/hermes-agent/__pycache__/
+vendor/hermes-agent/ui-tui/node_modules/

@@ -70,7 +70,7 @@ def _get_combat_events(server_result: dict) -> list:
 
 
 
-async def synthesize_narration(server_result: dict, intent: dict, world_context: dict) -> dict:
+async def synthesize_narration(server_result: dict, intent: dict, world_context: dict, session_id: str | None = None) -> dict:
     """Convert a server response into the final player-facing payload.
 
     Tries LLM narration first. Falls back to passthrough if LLM unavailable.
@@ -83,10 +83,13 @@ async def synthesize_narration(server_result: dict, intent: dict, world_context:
         return _build_absurd_refusal(intent, world_context)
 
     # Try LLM narration
-    llm_output = await llm_narrate(server_result, intent, world_context)
+    llm_output = await llm_narrate(server_result, intent, world_context, session_id=session_id)
 
     if llm_output and llm_output.get("scene"):
-        return _build_from_llm(llm_output, server_result, world_context)
+        result = _build_from_llm(llm_output, server_result, world_context)
+        if llm_output.get("_hermes_session_id"):
+            result["session_id"] = llm_output["_hermes_session_id"]
+        return result
     else:
         return _build_passthrough(server_result, intent, world_context)
 

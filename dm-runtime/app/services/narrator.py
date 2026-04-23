@@ -205,7 +205,7 @@ def _validate_scope(llm_output: dict, world_context: dict) -> bool:
     return True
 
 
-async def narrate(server_result: dict, intent: dict, world_context: dict) -> Optional[dict]:
+async def narrate(server_result: dict, intent: dict, world_context: dict, session_id: str | None = None) -> Optional[dict]:
     """Generate LLM-powered narration from server result.
 
     Returns dict with keys: scene, npc_lines, tone, choices_summary
@@ -229,6 +229,7 @@ async def narrate(server_result: dict, intent: dict, world_context: dict) -> Opt
             system_prompt=DM_SYSTEM_PROMPT,
             user_prompt=context_prompt,
             temperature=0.8,
+            session_id=session_id,
         )
 
         if not parsed:
@@ -242,6 +243,8 @@ async def narrate(server_result: dict, intent: dict, world_context: dict) -> Opt
             "tone": parsed.get("tone", "neutral"),
             "choices_summary": parsed.get("choices_summary", ""),
         }
+        if parsed.get("_hermes_session_id"):
+            result["_hermes_session_id"] = parsed["_hermes_session_id"]
 
         # Validate scope — reject output that references off-scope entities
         if not _validate_scope(result, world_context):

@@ -7,36 +7,19 @@ LLM-powered narration via synthesis → narrator pipeline.
 
 from fastapi import APIRouter, HTTPException
 
-from app.contract import (
-    DMResponse,
-    NarrationPayload,
-    MechanicsPayload,
-    ChoiceOption,
-    ServerTrace,
-)
+from app.contract import DMResponse, NarrationPayload, MechanicsPayload, ChoiceOption, ServerTrace
 from app.services import rules_client
 from app.services.intent_router import IntentRouter, classify_intent
 from app.services.character_lock import acquire_character_lock, release_character_lock
-from app.services.synthesis import synthesize_narration
 from app.services.character_validation import validate_character_for_turn
+from app.services.synthesis import synthesize_narration
 
 router = APIRouter(prefix="/dm", tags=["dm"])
-
-# Singleton router instance
 _intent_router = IntentRouter(rules_client)
 
 
 @router.post("/turn", response_model=DMResponse)
 async def dm_turn(body: dict):
-    """Process a player message through the DM runtime.
-
-    Flow:
-    1. Classify intent from player message (IntentRouter)
-    2. Check for active combat → override routing
-    3. Route to appropriate rules server endpoint
-    4. Synthesize server output into narrated payload (LLM or passthrough)
-    5. Return contract-compliant DMResponse
-    """
     character_id = body.get("character_id")
     message = body.get("message", "")
     session_id = body.get("session_id")
@@ -44,13 +27,11 @@ async def dm_turn(body: dict):
     if not character_id:
         raise HTTPException(status_code=400, detail="character_id is required")
 
-    # Acquire per-character lock to prevent concurrent turn corruption
     lock_token = await acquire_character_lock(character_id, timeout=25)
     if not lock_token:
         raise HTTPException(status_code=429, detail=f"Character {character_id} is busy")
-    try:
 
-        # Pre-turn character state validation gate
+    try:
         try:
             validation = await validate_character_for_turn(character_id)
             if not validation.get("valid"):
@@ -63,19 +44,16 @@ async def dm_turn(body: dict):
                         "checks_run": validation.get("checks_run", []),
                     },
                 )
+        except HTTPException:
+            raise
         except Exception as e:
-            # Validation failed (network error or rules-server error)
             raise HTTPException(status_code=502, detail=f"Validation error: {str(e)}")
 
-        # Step 1-3: Route through IntentRouter (classifies, checks combat, dispatches)
         result = await _intent_router.route(character_id, message)
-
-        # Step 4: Handle errors
         if not result.success:
             status = result.error_status or 502
             raise HTTPException(status_code=status, detail=result.error)
 
-        # Step 5: Synthesize narration from server result (async — may use LLM)
         intent = classify_intent(message)
         intent_dict = {
             "type": intent.type.value,
@@ -84,9 +62,9 @@ async def dm_turn(body: dict):
             "server_endpoint": intent.server_endpoint.value,
         }
         world_context = result.world_context or {}
-        narrated = await synthesize_narration(result.to_dict(), intent_dict, world_context)
+        narrated = await synthesize_narration(result.to_dict(), intent_dict, world_context, session_id=session_id)
+        resolved_session_id = narrated.get("session_id") or session_id
 
-        # Step 6: Build contract-compliant response
         return DMResponse(
             narration=NarrationPayload(**narrated["narration"]),
             mechanics=MechanicsPayload(**narrated["mechanics"]),
@@ -99,15 +77,14 @@ async def dm_turn(body: dict):
                 server_endpoint_called=result.endpoint_called,
                 raw_server_response_keys=list(result.raw_response.keys()),
             ),
-            session_id=session_id,
+            session_id=resolved_session_id,
         )
-
-
     finally:
         await release_character_lock(character_id, lock_token)
+
+
 @router.get("/health")
 async def dm_health():
-    """DM runtime health check — includes rules server connectivity and narrator status."""
     from app.services.narrator import NARRATOR_ENABLED
     from app.services.dm_profile import get_status as get_dm_profile_status
 
@@ -115,8 +92,9 @@ async def dm_health():
 
     try:
         rules_health = await rules_client.health()
+        status = "healthy" if dm_profile.get("runtime_ready") else "degraded"
         return {
-            "status": "healthy",
+            "status": status,
             "dm_runtime": "ok",
             "rules_server": rules_health,
             "intent_router": "ok",
@@ -126,6 +104,12 @@ async def dm_health():
                 "model": dm_profile["model"],
                 "mode": dm_profile["mode"],
                 "hermes_profile": dm_profile["hermes_profile"],
+                "hermes_home": dm_profile["hermes_home"],
+                "hermes_binary": dm_profile["hermes_binary"],
+                "binary_ok": dm_profile["binary_ok"],
+                "binary_help_ok": dm_profile["binary_help_ok"],
+                "profile_exists": dm_profile["profile_exists"],
+                "runtime_ready": dm_profile["runtime_ready"],
             },
         }
     except Exception as e:
@@ -140,13 +124,18 @@ async def dm_health():
                 "model": dm_profile["model"],
                 "mode": dm_profile["mode"],
                 "hermes_profile": dm_profile["hermes_profile"],
+                "hermes_home": dm_profile["hermes_home"],
+                "hermes_binary": dm_profile["hermes_binary"],
+                "binary_ok": dm_profile["binary_ok"],
+                "binary_help_ok": dm_profile["binary_help_ok"],
+                "profile_exists": dm_profile["profile_exists"],
+                "runtime_ready": dm_profile["runtime_ready"],
             },
         }
 
 
 @router.get("/character/{character_id}")
 async def get_character(character_id: str):
-    """Get character via DM runtime (proxied to rules server)."""
     try:
         return await rules_client.get_character(character_id)
     except Exception as e:
@@ -155,7 +144,6 @@ async def get_character(character_id: str):
 
 @router.post("/character")
 async def create_character(payload: dict):
-    """Create character via DM runtime (proxied to rules server)."""
     try:
         return await rules_client.create_character(payload)
     except Exception as e:
@@ -164,10 +152,6 @@ async def create_character(payload: dict):
 
 @router.post("/intent/analyze")
 async def analyze_intent(body: dict):
-    """Debug endpoint — classify intent without executing.
-
-    Useful for testing intent classification in isolation.
-    """
     message = body.get("message", "")
     if not message:
         raise HTTPException(status_code=400, detail="message is required")

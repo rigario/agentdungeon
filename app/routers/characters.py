@@ -214,7 +214,7 @@ def create_character(
     }
 
     # Default starting location
-    starting_location = "thornhold"
+    starting_location = "rusty-tankard"
 
     # Resolve ownership (auth middleware > explicit param > dev default)
     conn = get_db()
@@ -270,7 +270,7 @@ def create_character(
         """INSERT INTO event_log (character_id, event_type, location_id, description, data_json)
            VALUES (?, 'character_created', ?, ?, ?)""",
         (char_id, starting_location,
-         f"{body.name}, a level 1 {body.race} {body.class_name}, awakens in Thornhold.",
+         f"{body.name}, a level 1 {body.race} {body.class_name}, awakens in The Rusty Tankard.",
          json.dumps({"race": body.race, "class": body.class_name, "background": bg_name}))
     )
 
@@ -603,7 +603,7 @@ def level_up_character(character_id: str, choices: dict, request: Request):
            VALUES (?, 'level_up', ?, ?, ?)""",
         (
             character_id,
-            existing.get("location_id", "thornhold"),
+            existing.get("location_id", "rusty-tankard"),
             f"{existing['name']} leveled up to {new_level}.",
             json.dumps({
                 "old_level": current_level,

@@ -92,6 +92,10 @@ def character(rules):
     assert r.status_code == 201, f"Character creation failed [{r.status_code}]: {r.text}"
     char = r.json()
     char_id = char["id"]
+    # Validate spawn location exists in world state (P1 bug fix: should be valid, not 'thornhold' missing)
+    spawn_loc = char.get("location_id")
+    assert spawn_loc == "rusty-tankard", \
+        f"Fresh character must spawn at 'rusty-tankard' (valid location), got: {spawn_loc}"
     yield char_id
     # Cleanup — best effort
     try:

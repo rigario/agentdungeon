@@ -1,0 +1,175 @@
+{
+  "playthrough_id": "95eba194-bdc4-40ef-b45b-3a1b54d1ed57",
+  "character_name": "heartbeat-scenarioD-ea4ff2",
+  "character_id": "heartbeat-scenariod-ea4ff2-a370da",
+  "timestamp": "2026-04-23T10:40:11.157654Z",
+  "rules_url": "https://d20.holocronlabs.ai",
+  "dm_url": "https://d20.holocronlabs.ai",
+  "transcript": [
+    {
+      "timestamp": "2026-04-23T10:40:09.429667Z",
+      "kind": "info",
+      "message": "Creating character: heartbeat-scenarioD-ea4ff2",
+      "data": null
+    },
+    {
+      "timestamp": "2026-04-23T10:40:09.579620Z",
+      "kind": "create",
+      "message": "POST /characters -> 201",
+      "data": {
+        "response": "{\"id\":\"heartbeat-scenariod-ea4ff2-a370da\",\"name\":\"heartbeat-scenarioD-ea4ff2\",\"version\":\"5.2\",\"player\":{\"name\":\"default\",\"id\":null},\"alignment\":\"Humans tend toward no particular alignment. The best and the worst are found among them.\",\"race\":{\"name\":\"Human\",\"size\":\"Medium\",\"traits\":[]},\"classes\":[{\"name\":\"Fighter\",\"level\":1,\"hit_die\":10,\"spellcasting\":\"\",\"subtype\":\"\",\"features\":[{\"name\":\"Fighting Style\",\"description\":\"You adopt a particular style of fighting.\"},{\"name\":\"Second Wind\",\"description"
+      }
+    },
+    {
+      "timestamp": "2026-04-23T10:40:09.579704Z",
+      "kind": "create",
+      "message": "Character created",
+      "data": {
+        "id": "heartbeat-scenariod-ea4ff2-a370da",
+        "name": "heartbeat-scenarioD-ea4ff2"
+      }
+    },
+    {
+      "timestamp": "2026-04-23T10:40:09.591736Z",
+      "kind": "check",
+      "message": "GET /narrative/flags/heartbeat-scenariod-ea4ff2-a370da -> 200",
+      "data": {}
+    },
+    {
+      "timestamp": "2026-04-23T10:40:09.687535Z",
+      "kind": "explore",
+      "message": "Explore Thornhold #1 -> 200",
+      "data": {
+        "success": true,
+        "narration": "You search Thornhold carefully and find 5 gold pieces. You also notice the old statue in the town sq"
+      }
+    },
+    {
+      "timestamp": "2026-04-23T10:40:09.721293Z",
+      "kind": "explore",
+      "message": "Explore Thornhold #2 -> 200",
+      "data": {
+        "success": true,
+        "narration": "You search Thornhold but find nothing of value."
+      }
+    },
+    {
+      "timestamp": "2026-04-23T10:40:09.738627Z",
+      "kind": "check",
+      "message": "Narrative flags after explore",
+      "data": {
+        "thornhold_statue_observed": "1"
+      }
+    },
+    {
+      "timestamp": "2026-04-23T10:40:09.738676Z",
+      "kind": "check",
+      "message": "thornhold_statue_observed = 1",
+      "data": null
+    },
+    {
+      "timestamp": "2026-04-23T10:40:09.743314Z",
+      "kind": "attempt",
+      "message": "Attempting move to 'crossroads' (expected Drenna location)",
+      "data": null
+    },
+    {
+      "timestamp": "2026-04-23T10:40:09.829315Z",
+      "kind": "move",
+      "message": "Move to crossroads -> 200",
+      "data": {
+        "success": false,
+        "narration": "You can't reach The Crossroads from Thornhold. Available paths: forest-edge, south-road"
+      }
+    },
+    {
+      "timestamp": "2026-04-23T10:40:09.864426Z",
+      "kind": "check",
+      "message": "Character state after move",
+      "data": {
+        "location_id": "thornhold",
+        "current_location_id": null
+      }
+    },
+    {
+      "timestamp": "2026-04-23T10:40:10.837750Z",
+      "kind": "dm",
+      "message": "DM turn: 'I look for Sister Drenna' -> 200",
+      "data": {
+        "scene": ""
+      }
+    },
+    {
+      "timestamp": "2026-04-23T10:40:10.837822Z",
+      "kind": "dm",
+      "message": "DM turn scene",
+      "data": {
+        "scene_preview": "",
+        "choices_count": 4,
+        "flags": null
+      }
+    },
+    {
+      "timestamp": "2026-04-23T10:40:10.929738Z",
+      "kind": "check",
+      "message": "Current location before Kol attempt: south-road",
+      "data": null
+    },
+    {
+      "timestamp": "2026-04-23T10:40:10.929751Z",
+      "kind": "attempt",
+      "message": "Attempting move to 'cave-depths'",
+      "data": null
+    },
+    {
+      "timestamp": "2026-04-23T10:40:10.953833Z",
+      "kind": "move",
+      "message": "Move to cave-depths -> 200",
+      "data": {
+        "success": false,
+        "narration": "You can't reach Cave Depths — The Seal Chamber from South Road. Available paths: thornhold, crossroads"
+      }
+    },
+    {
+      "timestamp": "2026-04-23T10:40:10.953888Z",
+      "kind": "warning",
+      "message": "Direct move failed, will attempt DM travel",
+      "data": null
+    },
+    {
+      "timestamp": "2026-04-23T10:40:11.055630Z",
+      "kind": "dm",
+      "message": "DM turn: travel to Kol -> 502",
+      "data": {
+        "scene": "{\"detail\":\"Client error '404 Not Found' for url 'http://d20-rules-server:8600/characters/heartbeat-scenariod-ea4ff2-a370da/actions'\\nFor more information check: https://developer.mozilla.org/en-US/doc"
+      }
+    },
+    {
+      "timestamp": "2026-04-23T10:40:11.146443Z",
+      "kind": "final",
+      "message": "Final character state",
+      "data": {
+        "location": "south-road",
+        "hp": {
+          "max": 12,
+          "current": 12,
+          "temporary": 0
+        },
+        "ac": {
+          "value": 12,
+          "description": "Unarmored"
+        },
+        "level": null
+      }
+    },
+    {
+      "timestamp": "2026-04-23T10:40:11.157334Z",
+      "kind": "final",
+      "message": "Final flags",
+      "data": {
+        "detail": "Not Found"
+      }
+    }
+  ],
+  "scenario": "D"
+}

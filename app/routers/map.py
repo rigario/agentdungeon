@@ -57,7 +57,7 @@ def get_map_data():
 
         return {
             "locations": locations,
-            "current_location": "thornhold",  # Default starting location
+            "current_location": "rusty-tankard",  # Default starting location
             "total": len(locations),
         }
     finally:
