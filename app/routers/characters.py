@@ -307,6 +307,54 @@ def get_character(character_id: str, include_archived: bool = Query(False, descr
 
     return _row_to_response(row)
 
+@router.get("/{character_id}/status")
+def get_character_status(character_id: str):
+    """
+    Get lightweight character status (core fields only).
+    
+    Returns essential character state for quick agent checks:
+    - current_hp, max_hp
+    - location_id
+    - armor_class (value only)
+    - level
+    - narrative_flags (dict of all flags)
+    
+    This endpoint is optimized for agent polling (smaller payload than full sheet).
+    """
+    conn = get_db()
+    row = conn.execute("SELECT * FROM characters WHERE id = ?", (character_id,)).fetchone()
+    conn.close()
+
+    if not row:
+        raise HTTPException(404, f"Character not found: {character_id}")
+
+    if row["is_archived"]:
+        raise HTTPException(
+            404, 
+            f"Character is archived: {character_id}. Use POST /characters/{character_id}/restore to recover."
+        )
+
+    row_dict = dict(row)
+
+    # Build narrative flags dict
+    conn2 = get_db()
+    flag_rows = conn2.execute(
+        "SELECT flag_key, flag_value FROM narrative_flags WHERE character_id = ?",
+        (character_id,)
+    ).fetchall()
+    conn2.close()
+    narrative_flags = {r[0]: r[1] for r in flag_rows}
+
+    return {
+        "current_hp": row_dict["hp_current"],
+        "max_hp": row_dict["hp_max"],
+        "location_id": row_dict["location_id"],
+        "armor_class": row_dict["ac_value"],
+        "level": row_dict["level"],
+        "narrative_flags": narrative_flags,
+    }
+
+
 
 @router.patch("/{character_id}", response_model=CharacterResponse)
 def update_character(character_id: str, body: CharacterUpdate):
