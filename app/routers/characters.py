@@ -13,6 +13,7 @@ from typing import Optional
 from app.services.key_items import get_key_items, has_key_item
 from app.models.schemas import CharacterCreate, CharacterResponse, CharacterUpdate
 from app.services.database import get_db, init_character_fronts
+from app.services.auth_helpers import get_auth, require_character_ownership
 from app.services.srd_reference import (
     RACE_NAMES, CLASS_NAMES, BACKGROUNDS, SKILL_NAMES,
     validate_point_buy, generate_point_buy, build_character_sheet,
@@ -44,6 +45,7 @@ def _row_to_response(row) -> dict:
         sheet["id"] = d["id"]
         sheet["player"] = {"name": d["player_id"]}
         sheet["location_id"] = d["location_id"]
+        sheet["current_location_id"] = d["location_id"]
         sheet["approval_config"] = json.loads(d.get("approval_config", "{}"))
         sheet["aggression_slider"] = d.get("aggression_slider", 50)
         sheet["is_archived"] = bool(d.get("is_archived", 0))
@@ -82,6 +84,7 @@ def _row_to_response(row) -> dict:
         "conditions": json.loads(d.get("conditions_json", "{}")),
         "xp": d["xp"],
         "location_id": d["location_id"],
+        "current_location_id": d["location_id"],
         "approval_config": json.loads(d.get("approval_config", "{}")),
         "aggression_slider": d.get("aggression_slider", 50),
         "is_archived": bool(d.get("is_archived", 0)),
@@ -293,8 +296,10 @@ def list_characters(include_archived: bool = Query(False, description="Include a
 
 
 @router.get("/{character_id}", response_model=CharacterResponse)
-def get_character(character_id: str, include_archived: bool = Query(False, description="Include archived characters")):
+def get_character(character_id: str, request: Request, include_archived: bool = Query(False, description="Include archived characters")):
     """Get character state in community-compatible format. Archived excluded by default."""
+    # Audit logging — record who accessed this character (public read path)
+    auth = get_auth(request)
     conn = get_db()
     row = conn.execute("SELECT * FROM characters WHERE id = ?", (character_id,)).fetchone()
     conn.close()
@@ -307,8 +312,33 @@ def get_character(character_id: str, include_archived: bool = Query(False, descr
 
     return _row_to_response(row)
 
+
+
+
+@router.get("/{character_id}/validate")
+async def validate_character_state(character_id: str, auth: dict = Depends(get_auth)):
+    """Pre-turn validation: check character state is valid for action/turn processing.
+    
+    Returns validation status without mutating state. Used by DM runtime
+    to gate turn processing and by frontend for pre-flight checks.
+    
+    Response schema:
+    {
+        "valid": bool,
+        "reason": str | null,
+        "code": str | null,
+        "checks_run": list[str]
+    }
+    """
+    from app.services.character_validation import validate_for_turn
+    
+    require_character_ownership(character_id, auth)
+    result = validate_for_turn(character_id, check_combat=True)
+    return result
+
+
 @router.get("/{character_id}/status")
-def get_character_status(character_id: str):
+def get_character_status(character_id: str, request: Request):
     """
     Get lightweight character status (core fields only).
     
@@ -321,6 +351,9 @@ def get_character_status(character_id: str):
     
     This endpoint is optimized for agent polling (smaller payload than full sheet).
     """
+    # Audit logging — capture who accessed this character
+    auth = get_auth(request)
+    
     conn = get_db()
     row = conn.execute("SELECT * FROM characters WHERE id = ?", (character_id,)).fetchone()
     conn.close()
@@ -357,8 +390,14 @@ def get_character_status(character_id: str):
 
 
 @router.patch("/{character_id}", response_model=CharacterResponse)
-def update_character(character_id: str, body: CharacterUpdate):
+def update_character(character_id: str, body: CharacterUpdate, request: Request):
     """Update character fields."""
+    # Enforce character ownership (reject unauthenticated)
+    auth = get_auth(request)
+    if auth["auth_type"] is None:
+        raise HTTPException(401, "Authentication required for character mutations")
+    require_character_ownership(character_id, auth)
+    
     conn = get_db()
 
     existing = conn.execute("SELECT * FROM characters WHERE id = ?", (character_id,)).fetchone()
@@ -448,7 +487,7 @@ def update_character(character_id: str, body: CharacterUpdate):
 
 
 @router.post("/{character_id}/level-up", response_model=CharacterResponse)
-def level_up_character(character_id: str, choices: dict):
+def level_up_character(character_id: str, choices: dict, request: Request):
     """
     Level up a character with SRD 5.2 validation.
 
@@ -469,6 +508,12 @@ def level_up_character(character_id: str, choices: dict):
 
     Returns: updated character sheet with provenance signature.
     """
+    # Enforce character ownership (reject unauthenticated)
+    auth = get_auth(request)
+    if auth["auth_type"] is None:
+        raise HTTPException(401, "Authentication required for character mutations")
+    require_character_ownership(character_id, auth)
+    
     conn = get_db()
     existing = conn.execute("SELECT * FROM characters WHERE id = ?", (character_id,)).fetchone()
     if not existing:
@@ -576,8 +621,14 @@ def level_up_character(character_id: str, choices: dict):
 
 
 @router.delete("/{character_id}")
-def delete_character(character_id: str):
+def delete_character(character_id: str, request: Request):
     """Soft-delete a character (archive). Character data is preserved for recovery."""
+    # Enforce character ownership (reject unauthenticated)
+    auth = get_auth(request)
+    if auth["auth_type"] is None:
+        raise HTTPException(401, "Authentication required for character mutations")
+    require_character_ownership(character_id, auth)
+    
     conn = get_db()
 
     existing = conn.execute("SELECT * FROM characters WHERE id = ?", (character_id,)).fetchone()
@@ -610,8 +661,14 @@ def delete_character(character_id: str):
 
 
 @router.post("/{character_id}/restore")
-def restore_character(character_id: str):
+def restore_character(character_id: str, request: Request):
     """Restore an archived character. Reverses soft-delete."""
+    # Enforce character ownership (reject unauthenticated)
+    auth = get_auth(request)
+    if auth["auth_type"] is None:
+        raise HTTPException(401, "Authentication required for character mutations")
+    require_character_ownership(character_id, auth)
+    
     conn = get_db()
 
     existing = conn.execute("SELECT * FROM characters WHERE id = ?", (character_id,)).fetchone()
@@ -643,13 +700,15 @@ def restore_character(character_id: str):
 
 
 @router.get("/{character_id}/key-items")
-def list_key_items(character_id: str):
+def list_key_items(character_id: str, request: Request):
     """Get all key items for a character.
 
     Returns structured key items from equipment_json with display names,
     descriptions, and quest associations. These are the tangible quest
     items that the agent can see, use, and lose — not mere narrative flags.
     """
+    # Audit logging — record which identity accessed key items (public read path)
+    auth = get_auth(request)
     conn = get_db()
     existing = conn.execute("SELECT id FROM characters WHERE id = ?", (character_id,)).fetchone()
     if not existing:

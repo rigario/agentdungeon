@@ -21,6 +21,8 @@ from app.services.auth_helpers import get_auth, require_character_ownership
 from app.services.time_of_day import advance_time, get_action_time_cost, get_time_period, get_character_time, get_encounter_threshold_modifier
 from app.services.dm_proxy import get_dm_proxy, get_dm_session, build_world_context
 from app.services.character_lock import acquire_character_lock, release_character_lock
+from app.services.character_validation import validate_char_state
+
 
 router = APIRouter(prefix="/characters/{character_id}", tags=["actions"])
 
@@ -658,6 +660,18 @@ async def submit_action(character_id: str, body: ActionRequest, auth: dict = Dep
         timestamp = datetime.utcnow().isoformat()
 
         char = _get_character(character_id)
+        # Character-state validation gate pre-action
+        validation = validate_char_state(char, check_combat=True)
+        if not validation["valid"]:
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "error": "character_state_invalid",
+                    "reason": validation["reason"],
+                    "code": validation["code"],
+                    "checks_run": validation.get("checks_run", []),
+                },
+            )
         location_id = char["location_id"]
         location = _get_location(location_id)
         rng = _seeded_random(character_id, location_id, timestamp)

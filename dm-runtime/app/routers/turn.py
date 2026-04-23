@@ -18,6 +18,7 @@ from app.services import rules_client
 from app.services.intent_router import IntentRouter, classify_intent
 from app.services.character_lock import acquire_character_lock, release_character_lock
 from app.services.synthesis import synthesize_narration
+from app.services.character_validation import validate_character_for_turn
 
 router = APIRouter(prefix="/dm", tags=["dm"])
 
@@ -48,6 +49,23 @@ async def dm_turn(body: dict):
     if not lock_token:
         raise HTTPException(status_code=429, detail=f"Character {character_id} is busy")
     try:
+
+        # Pre-turn character state validation gate
+        try:
+            validation = await validate_character_for_turn(character_id)
+            if not validation.get("valid"):
+                raise HTTPException(
+                    status_code=403,
+                    detail={
+                        "error": "character_state_invalid",
+                        "reason": validation.get("reason"),
+                        "code": validation.get("code"),
+                        "checks_run": validation.get("checks_run", []),
+                    },
+                )
+        except Exception as e:
+            # Validation failed (network error or rules-server error)
+            raise HTTPException(status_code=502, detail=f"Validation error: {str(e)}")
 
         # Step 1-3: Route through IntentRouter (classifies, checks combat, dispatches)
         result = await _intent_router.route(character_id, message)
