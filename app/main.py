@@ -15,14 +15,22 @@ from app.routers import time as time_router
 from app.routers import cadence as cadence_router
 from app.routers import portal as portal_router
 from app.routers import dm_sessions
+from app.services.cadence_scheduler import start_scheduler, stop_scheduler
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialize database on startup."""
+    """Initialize database and start background cadence scheduler."""
     init_db()
     print(f"[D20] Database initialized")
+    
+    # Start cadence background scheduler
+    start_scheduler(app)
+    
     yield
+    
+    # Shut down scheduler on app exit
+    stop_scheduler(app)
     print(f"[D20] Server shutting down")
 
 
