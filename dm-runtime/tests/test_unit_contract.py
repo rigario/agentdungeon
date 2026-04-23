@@ -259,3 +259,35 @@ class TestIntentClassification:
     def test_confidence_broad(self):
         intent = self._classify("explore")
         assert intent.confidence <= 0.7
+
+    def test_absurd_attack_on_celestial(self):
+        """Physical absurdity: attacking celestial bodies should be rejected."""
+        intent = self._classify("attack the sun")
+        assert intent.type == IntentType.GENERAL
+        assert intent.confidence == 0.3
+        assert intent.details.get("_absurd") is True
+
+    def test_absurd_fly_to_moon(self):
+        """Physical absurdity: flying to the moon."""
+        intent = self._classify("fly to the moon")
+        assert intent.type == IntentType.GENERAL
+        assert intent.confidence == 0.3
+        assert intent.details.get("_absurd") is True
+
+    def test_absurd_devour_statue(self):
+        """Physical absurdity: eating large statues."""
+        intent = self._classify("I want to eat the statue")
+        assert intent.type == IntentType.GENERAL
+        assert intent.confidence == 0.3
+        assert intent.details.get("_absurd") is True
+
+    def test_absurd_checked_before_precise_verbs(self):
+        """CRITICAL: absurd patterns MUST override precise verb matching.
+        
+        Bug: "attack the sun" previously matched COMBAT because verb check ran first.
+        Regression would return IntentType.COMBAT here.
+        """
+        intent = self._classify("punch the sun")
+        assert intent.type == IntentType.GENERAL, "Absurd check must run before verb matching"
+        assert intent.confidence == 0.3
+

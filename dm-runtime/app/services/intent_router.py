@@ -200,6 +200,17 @@ def classify_intent(player_message: str) -> Intent:
                 confidence=0.6,
             )
 
+    # Check absurd / physically impossible actions BEFORE precise verb matching
+    # Ensures impossible actions (e.g., "attack the sun") aren't misrouted as valid combat
+    for pattern in _ABSURD_PATTERNS:
+        if re.search(pattern, msg):
+            return Intent(
+                type=IntentType.GENERAL,
+                action_type=None,
+                details={"intent": player_message, "_original_msg": player_message, "_absurd": True},
+                confidence=0.3,
+            )
+
     # Check precise verb patterns (→ actions)
     for intent_type, action_type, keywords in _INTENT_PATTERNS:
         for kw in keywords:
@@ -221,16 +232,6 @@ def classify_intent(player_message: str) -> Intent:
                     details=details,
                     confidence=0.8,
                 )
-
-    # Check absurd / physically impossible actions
-    for pattern in _ABSURD_PATTERNS:
-        if re.search(pattern, msg):
-            return Intent(
-                type=IntentType.GENERAL,
-                action_type=None,
-                details={"intent": player_message, "_original_msg": player_message, "_absurd": True},
-                confidence=0.3,
-            )
 
     # Default: broad intent → turn/start
     return Intent(
