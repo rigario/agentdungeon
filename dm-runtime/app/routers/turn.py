@@ -16,6 +16,7 @@ from app.contract import (
 )
 from app.services import rules_client
 from app.services.intent_router import IntentRouter, classify_intent
+from app.services.character_lock import acquire_character_lock, release_character_lock
 from app.services.synthesis import synthesize_narration
 
 router = APIRouter(prefix="/dm", tags=["dm"])
@@ -42,42 +43,50 @@ async def dm_turn(body: dict):
     if not character_id:
         raise HTTPException(status_code=400, detail="character_id is required")
 
-    # Step 1-3: Route through IntentRouter (classifies, checks combat, dispatches)
-    result = await _intent_router.route(character_id, message)
+    # Acquire per-character lock to prevent concurrent turn corruption
+    lock_token = await acquire_character_lock(character_id, timeout=25)
+    if not lock_token:
+        raise HTTPException(status_code=429, detail=f"Character {character_id} is busy")
+    try:
 
-    # Step 4: Handle errors
-    if not result.success:
-        status = result.error_status or 502
-        raise HTTPException(status_code=status, detail=result.error)
+        # Step 1-3: Route through IntentRouter (classifies, checks combat, dispatches)
+        result = await _intent_router.route(character_id, message)
 
-    # Step 5: Synthesize narration from server result (async — may use LLM)
-    intent = classify_intent(message)
-    intent_dict = {
-        "type": intent.type.value,
-        "target": intent.target,
-        "details": intent.details,
-        "server_endpoint": intent.server_endpoint.value,
-    }
-    world_context = result.world_context or {}
-    narrated = await synthesize_narration(result.to_dict(), intent_dict, world_context)
+        # Step 4: Handle errors
+        if not result.success:
+            status = result.error_status or 502
+            raise HTTPException(status_code=status, detail=result.error)
 
-    # Step 6: Build contract-compliant response
-    return DMResponse(
-        narration=NarrationPayload(**narrated["narration"]),
-        mechanics=MechanicsPayload(**narrated["mechanics"]),
-        choices=[ChoiceOption(**c) for c in narrated["choices"]],
-        server_trace=ServerTrace(
-            turn_id=narrated["server_trace"].get("turn_id"),
-            decision_point=narrated["server_trace"].get("decision_point"),
-            available_actions=narrated["server_trace"].get("available_actions", []),
-            intent_used=intent_dict,
-            server_endpoint_called=result.endpoint_called,
-            raw_server_response_keys=list(result.raw_response.keys()),
-        ),
-        session_id=session_id,
-    )
+        # Step 5: Synthesize narration from server result (async — may use LLM)
+        intent = classify_intent(message)
+        intent_dict = {
+            "type": intent.type.value,
+            "target": intent.target,
+            "details": intent.details,
+            "server_endpoint": intent.server_endpoint.value,
+        }
+        world_context = result.world_context or {}
+        narrated = await synthesize_narration(result.to_dict(), intent_dict, world_context)
+
+        # Step 6: Build contract-compliant response
+        return DMResponse(
+            narration=NarrationPayload(**narrated["narration"]),
+            mechanics=MechanicsPayload(**narrated["mechanics"]),
+            choices=[ChoiceOption(**c) for c in narrated["choices"]],
+            server_trace=ServerTrace(
+                turn_id=narrated["server_trace"].get("turn_id"),
+                decision_point=narrated["server_trace"].get("decision_point"),
+                available_actions=narrated["server_trace"].get("available_actions", []),
+                intent_used=intent_dict,
+                server_endpoint_called=result.endpoint_called,
+                raw_server_response_keys=list(result.raw_response.keys()),
+            ),
+            session_id=session_id,
+        )
 
 
+    finally:
+        await release_character_lock(character_id, lock_token)
 @router.get("/health")
 async def dm_health():
     """DM runtime health check — includes rules server connectivity and narrator status."""
