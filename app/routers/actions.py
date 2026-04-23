@@ -10,6 +10,7 @@ import json
 import hashlib
 import random
 import sqlite3
+import logging
 from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends
 from app.models.schemas import ActionRequest, ActionResponse
@@ -18,8 +19,11 @@ from app.services.srd_reference import get_monsters_by_cr, ability_modifier, get
 from app.services.key_items import add_key_item, remove_key_item, has_key_item, get_key_items, KEY_ITEMS
 from app.services.auth_helpers import get_auth, require_character_ownership
 from app.services.time_of_day import advance_time, get_action_time_cost, get_time_period, get_character_time, get_encounter_threshold_modifier
+from app.services.dm_proxy import get_dm_proxy, get_dm_session, build_world_context
 
 router = APIRouter(prefix="/characters/{character_id}", tags=["actions"])
+
+logger = logging.getLogger(__name__)
 
 
 def _seeded_random(character_id: str, location_id: str, timestamp: str) -> random.Random:
@@ -635,7 +639,7 @@ def _resolve_rest(char: dict, rest_type: str, rng: random.Random) -> dict:
 # ---------------------------------------------------------------------------
 
 @router.post("/actions")
-def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(get_auth)):
+async def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(get_auth)):
     """Submit an action. Server resolves it against game rules.
 
     Action types:
@@ -654,6 +658,46 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
     rng = _seeded_random(character_id, location_id, timestamp)
 
     conn = get_db()
+
+    # DM proxy: pre-action context + session
+    dm_session = get_dm_session(character_id)
+    world_context = build_world_context(character_id)
+
+    def _player_message() -> str:
+        msg = str(body.action_type)
+        if body.target:
+            msg += f" {body.target}"
+        if body.details:
+            if body.action_type == "cast" and body.details.get("spell"):
+                msg += f" with {body.details['spell']}"
+        return msg
+
+    player_message = _player_message()
+
+    async def _augment_dm(result: dict) -> dict:
+        """Proxy result through DM runtime for narrated output."""
+        nonlocal dm_session
+        try:
+            dm_resp = await get_dm_proxy().turn(
+                character_id=character_id,
+                world_context=world_context,
+                player_message=player_message,
+                session_id=dm_session,
+            )
+            narration = dm_resp.get("narration", {})
+            if isinstance(narration, dict):
+                prose = narration.get("scene", "") or narration.get("text", "")
+                result["narration"] = prose or result.get("narration", "")
+            elif isinstance(narration, str):
+                result["narration"] = narration
+            result["choices"] = dm_resp.get("choices", [])
+            new_sid = dm_resp.get("session_id")
+            if new_sid and new_sid != dm_session:
+                dm_session = new_sid
+        except Exception as e:
+            logger.warning(f"DM narration unavailable: {e}")
+        return result
+
 
     if body.action_type == "move":
         if not body.target:
@@ -823,7 +867,7 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
 
         # Return updated character state
         char = _get_character(character_id)
-        return {
+        return await _augment_dm({
             "success": result["success"],
             "narration": result["narration"],
             "events": result["events"],
@@ -834,7 +878,7 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
             "encounter": result.get("encounter"),
             "combat": result.get("combat"),
             "time_info": time_info,
-        }
+        })
 
     elif body.action_type == "attack":
         # Force an encounter at current location
@@ -974,7 +1018,7 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
         if portent_effect:
             narration += f"\n\n⚠ THE WORLD SHIFTS: {portent_effect}"
 
-        return {
+        return await _augment_dm({
             "success": True,
             "narration": narration,
             "events": combat_result["events"],
@@ -984,7 +1028,7 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
             },
             "combat": combat_result,
             "time_info": time_info,
-        }
+        })
 
     elif body.action_type == "cast":
         # ---------------------------------------------------------------
@@ -1258,7 +1302,7 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
         conn.commit()
         conn.close()
 
-        return {
+        return await _augment_dm({
             "success": True,
             "narration": narration,
             "events": events,
@@ -1267,7 +1311,7 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
                 "location_id": char["location_id"],
             },
             "time_info": time_info,
-        }
+        })
 
     elif body.action_type == "rest":
         rest_type = body.details.get("type", "short") if body.details else "short"
@@ -1345,7 +1389,7 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
         conn.commit()
         conn.close()
 
-        return {
+        return await _augment_dm({
             "success": True,
             "narration": result["narration"],
             "events": result["events"],
@@ -1354,7 +1398,7 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
                 "location_id": char["location_id"],
             },
             "time_info": time_info,
-        }
+        })
 
     elif body.action_type == "explore":
         # Search current location for loot or info
@@ -1397,7 +1441,7 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
         conn.commit()
         conn.close()
 
-        return {
+        return await _augment_dm({
             "success": True,
             "narration": narration,
             "events": events,
@@ -1406,7 +1450,7 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
                 "location_id": char["location_id"],
             },
             "time_info": time_info,
-        }
+        })
 
     elif body.action_type == "interact":
         # Look for NPCs at current location
@@ -1781,7 +1825,7 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
         conn.commit()
         conn.close()
 
-        return {
+        return await _augment_dm({
             "success": True,
             "narration": narration,
             "events": events,
@@ -1789,7 +1833,7 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
                 "hp": {"current": new_hp if 'new_hp' in dir() else char["hp_current"], "max": char["hp_max"]},
                 "location_id": char["location_id"],
             },
-        }
+        })
 
     elif body.action_type == "quest":
         # ---------------------------------------------------------------
