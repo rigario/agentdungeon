@@ -5,25 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>World Map — The Dreaming Hunger</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-deep: #0a0a12;
-      --bg-primary: #111122;
-      --bg-card: #161628;
-      --bg-card-hover: #1c1c35;
-      --border: #2a2a4a;
-      --border-glow: #4a3a8a;
-      --text-primary: #e8e0d0;
-      --text-secondary: #9a90a8;
-      --text-muted: #6a6080;
-      --accent-gold: #d4a850;
-      --accent-amber: #e8a030;
-      --accent-red: #c04040;
-      --accent-purple: #8a5aaa;
-      --accent-blue: #5080c0;
-      --accent-green: #4a8a50;
-      --mark-glow: #ff6644;
+      --bg-deep: #080810;
+      --bg-primary: #0e0e1c;
+      --bg-card: #141428;
+      --bg-card-hover: #1a1a34;
+      --border: #22223e;
+      --border-glow: #3a2a6a;
+      --text-primary: #e8dcc8;
+      --text-secondary: #9a8ea0;
+      --text-muted: #5a5068;
+      --accent-gold: #c8a040;
+      --accent-amber: #d89020;
+      --accent-red: #b83838;
+      --accent-purple: #7a4a9a;
+      --accent-blue: #4870b0;
+      --accent-green: #3a7a40;
+      --mark-glow: #e85530;
+      --mark-tint: rgba(232, 85, 48, 0.08);
+      --fog-color: rgba(8, 8, 16, 0.7);
+      --fog-heavy: rgba(8, 8, 16, 0.88);
       --font-display: 'Cinzel', 'Georgia', serif;
       --font-body: 'Crimson Text', 'Georgia', serif;
     }
@@ -36,6 +39,7 @@
       font-family: var(--font-body);
       font-size: 16px;
       min-height: 100vh;
+      overflow-x: hidden;
     }
 
     .loading {
@@ -49,31 +53,141 @@
     }
 
     .map-container {
-      max-width: 1000px;
+      max-width: 1100px;
       margin: 0 auto;
       padding: 1.5rem;
     }
 
+    /* Header */
     .map-header {
       text-align: center;
-      margin-bottom: 1rem;
+      margin-bottom: 1.25rem;
       padding-bottom: 1rem;
       border-bottom: 1px solid var(--border);
     }
 
     .map-header h1 {
       font-family: var(--font-display);
-      font-size: 2rem;
+      font-size: 2.2rem;
+      font-weight: 900;
       color: var(--accent-gold);
-      letter-spacing: 0.05em;
+      letter-spacing: 0.06em;
     }
 
     .map-header .subtitle {
       color: var(--text-secondary);
       font-style: italic;
-      margin-top: 0.25rem;
+      margin-top: 0.3rem;
+      font-size: 1rem;
     }
 
+    /* Character bar */
+    .char-bar {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .char-bar .char-name {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      color: var(--accent-gold);
+      font-weight: 700;
+    }
+
+    .char-bar .char-stat {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .char-bar .char-stat b {
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    .char-bar .mark-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-left: auto;
+      font-family: var(--font-display);
+      font-size: 0.85rem;
+    }
+
+    .mark-indicator .mark-dots {
+      display: flex;
+      gap: 4px;
+    }
+
+    .mark-indicator .mark-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--border);
+      transition: background 0.3s, box-shadow 0.3s;
+    }
+
+    .mark-indicator .mark-dot.active {
+      background: var(--mark-glow);
+      box-shadow: 0 0 6px rgba(232, 85, 48, 0.5);
+    }
+
+    /* Fronts bar */
+    .fronts-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.5rem 1rem;
+      margin-bottom: 1.25rem;
+      font-size: 0.8rem;
+    }
+
+    .fronts-bar .fronts-label {
+      font-family: var(--font-display);
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .fronts-bar .portents {
+      display: flex;
+      gap: 3px;
+    }
+
+    .fronts-bar .portent-pip {
+      width: 20px;
+      height: 6px;
+      border-radius: 3px;
+      background: var(--border);
+      transition: background 0.3s, box-shadow 0.3s;
+    }
+
+    .fronts-bar .portent-pip.active {
+      background: var(--mark-glow);
+      box-shadow: 0 0 4px rgba(232, 85, 48, 0.4);
+    }
+
+    .fronts-bar .portent-pip.doom {
+      background: var(--accent-red);
+      box-shadow: 0 0 6px rgba(184, 56, 56, 0.6);
+    }
+
+    .fronts-bar .fronts-status {
+      color: var(--text-secondary);
+      margin-left: auto;
+      font-style: italic;
+    }
+
+    /* Main layout */
     .map-body {
       display: flex;
       gap: 1.5rem;
@@ -95,21 +209,45 @@
       height: auto;
     }
 
+    /* Map canvas: subtle atmospheric texture */
+    .map-svg-wrap::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 30% 20%, rgba(58, 122, 64, 0.04) 0%, transparent 50%),
+                  radial-gradient(ellipse at 70% 60%, rgba(120, 74, 154, 0.03) 0%, transparent 40%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
     /* Location nodes */
     .loc-node {
       cursor: pointer;
-      transition: transform 0.15s ease;
+      transition: opacity 0.3s ease;
     }
 
-    .loc-node:hover {
-      transform: scale(1.15);
+    .loc-node.fogged {
+      opacity: 0.3;
+      cursor: default;
+    }
+
+    .loc-node.fogged:hover {
+      transform: none;
+    }
+
+    .loc-node:not(.fogged) {
+      transition: transform 0.15s ease, opacity 0.3s ease;
+    }
+
+    .loc-node:not(.fogged):hover {
+      transform: scale(1.12);
     }
 
     .loc-node circle.outer {
       transition: all 0.2s ease;
     }
 
-    .loc-node:hover circle.outer {
+    .loc-node:not(.fogged):hover circle.outer {
       stroke: var(--accent-gold);
       stroke-width: 3;
     }
@@ -117,52 +255,82 @@
     .loc-node.current circle.outer {
       stroke: var(--accent-gold);
       stroke-width: 3;
-      filter: drop-shadow(0 0 6px rgba(212, 168, 80, 0.6));
+      filter: drop-shadow(0 0 8px rgba(200, 160, 64, 0.6));
     }
 
-    .loc-node.current circle.pulse {
-      animation: pulse-ring 2s ease-out infinite;
+    .loc-node.current .pulse-ring {
+      animation: pulse-ring 2.5s ease-out infinite;
     }
 
     @keyframes pulse-ring {
-      0% { r: 14; opacity: 0.6; }
-      100% { r: 24; opacity: 0; }
+      0% { r: 16; opacity: 0.7; }
+      100% { r: 30; opacity: 0; }
     }
 
     .loc-label {
-      font-family: 'Cinzel', serif;
-      font-size: 9px;
+      font-family: var(--font-display);
+      font-size: 8.5px;
       fill: var(--text-secondary);
       text-anchor: middle;
       pointer-events: none;
+      letter-spacing: 0.02em;
     }
 
     .loc-node.current .loc-label {
       fill: var(--accent-gold);
       font-weight: 700;
+      font-size: 9px;
     }
 
+    .loc-node.fogged .loc-label {
+      fill: var(--text-muted);
+      font-style: italic;
+    }
+
+    .loc-npc-icons {
+      font-size: 7px;
+      pointer-events: none;
+    }
+
+    /* Edges */
     .edge-line {
       stroke: var(--border);
       stroke-width: 1.5;
       stroke-dasharray: 4 3;
+      opacity: 0.5;
+      transition: opacity 0.3s;
+    }
+
+    .edge-line.fogged-edge {
+      opacity: 0.1;
+      stroke-dasharray: 2 4;
+    }
+
+    .edge-line.traveled {
+      stroke: #3a5a40;
+      stroke-width: 2;
+      stroke-dasharray: none;
       opacity: 0.6;
     }
 
-    /* Danger level colors */
-    .danger-0 { fill: var(--accent-green); }
-    .danger-1 { fill: #6aaa6a; }
-    .danger-2 { fill: #aaaa4a; }
-    .danger-3 { fill: var(--accent-amber); }
-    .danger-4 { fill: #cc6633; }
-    .danger-5 { fill: var(--accent-red); }
+    /* Mark overlay on node */
+    .mark-aura {
+      opacity: 0;
+      transition: opacity 0.5s;
+    }
 
-    .danger-0-stroke { stroke: var(--accent-green); }
-    .danger-1-stroke { stroke: #6aaa6a; }
-    .danger-2-stroke { stroke: #aaaa4a; }
-    .danger-3-stroke { stroke: var(--accent-amber); }
-    .danger-4-stroke { stroke: #cc6633; }
-    .danger-5-stroke { stroke: var(--accent-red); }
+    .mark-aura.visible {
+      opacity: 0.3;
+    }
+
+    /* Fog rectangles */
+    .fog-overlay {
+      transition: opacity 0.4s ease;
+    }
+
+    .fog-overlay.clear {
+      opacity: 0;
+    }
 
     /* Side panel */
     .map-panel {
@@ -184,31 +352,35 @@
     }
 
     .panel-loc-image {
-    width: 100%; height: 120px;
-    background: linear-gradient(135deg, var(--bg-primary), var(--bg-card));
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    overflow: hidden;
-    margin-bottom: 0.75rem;
-  }
-  .panel-loc-image img {
-    width: 100%; height: 100%;
-    object-fit: cover;
-    image-rendering: pixelated;
-    border-radius: 5px;
-  }
-  .panel-biome {
+      width: 100%;
+      height: 120px;
+      background: linear-gradient(135deg, var(--bg-primary), var(--bg-card));
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 0.75rem;
+    }
+
+    .panel-loc-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      image-rendering: pixelated;
+      border-radius: 5px;
+    }
+
+    .panel-biome {
       color: var(--text-muted);
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       text-transform: uppercase;
-      letter-spacing: 0.1em;
+      letter-spacing: 0.12em;
       margin-bottom: 0.75rem;
     }
 
     .panel-desc {
       color: var(--text-secondary);
-      font-size: 0.95rem;
-      line-height: 1.6;
+      font-size: 0.92rem;
+      line-height: 1.65;
       margin-bottom: 1rem;
     }
 
@@ -228,7 +400,7 @@
     }
 
     .stat-label {
-      font-size: 0.7rem;
+      font-size: 0.65rem;
       color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.1em;
@@ -236,8 +408,34 @@
 
     .stat-value {
       font-family: var(--font-display);
-      font-size: 1.1rem;
+      font-size: 1rem;
       color: var(--text-primary);
+    }
+
+    .panel-npcs {
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .panel-npcs h3 {
+      font-family: var(--font-display);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .npc-tag {
+      display: inline-block;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.2rem 0.5rem;
+      margin: 0.15rem;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
     }
 
     .panel-connections {
@@ -246,17 +444,19 @@
 
     .panel-connections h3 {
       font-family: var(--font-display);
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       color: var(--text-muted);
       margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
     }
 
     .conn-link {
       display: block;
       color: var(--accent-blue);
       text-decoration: none;
-      padding: 0.25rem 0;
-      font-size: 0.9rem;
+      padding: 0.3rem 0;
+      font-size: 0.88rem;
       cursor: pointer;
       transition: color 0.15s;
     }
@@ -266,8 +466,13 @@
     }
 
     .conn-link::before {
-      content: '→ ';
+      content: '\2192 ';
       color: var(--text-muted);
+    }
+
+    .conn-link.fogged-link {
+      color: var(--text-muted);
+      font-style: italic;
     }
 
     /* Legend */
@@ -283,17 +488,69 @@
       display: flex;
       align-items: center;
       gap: 0.35rem;
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       color: var(--text-muted);
     }
 
     .legend-dot {
-      width: 10px;
-      height: 10px;
+      width: 9px;
+      height: 9px;
       border-radius: 50%;
     }
 
-    /* Navigation link */
+    .legend-separator {
+      width: 1px;
+      height: 14px;
+      background: var(--border);
+    }
+
+    .legend-item.fog-icon {
+      font-style: italic;
+    }
+
+    .fog-swatch {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--bg-primary);
+      border: 1.5px dashed var(--text-muted);
+    }
+
+    /* Toggle bar */
+    .toggle-bar {
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+      margin-top: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .toggle-btn {
+      font-family: var(--font-display);
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.3rem 0.7rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .toggle-btn:hover {
+      color: var(--text-secondary);
+      border-color: var(--border-glow);
+    }
+
+    .toggle-btn.active {
+      color: var(--accent-gold);
+      border-color: var(--accent-gold);
+      background: rgba(200, 160, 64, 0.08);
+    }
+
+    /* Navigation */
     .nav-links {
       text-align: center;
       margin-top: 1rem;
@@ -305,7 +562,7 @@
       color: var(--accent-blue);
       text-decoration: none;
       font-family: var(--font-display);
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       margin: 0 0.75rem;
     }
 
@@ -328,41 +585,54 @@
         min-width: auto;
         position: static;
       }
+      .char-bar {
+        flex-wrap: wrap;
+      }
+      .char-bar .mark-indicator {
+        margin-left: 0;
+        width: 100%;
+        margin-top: 0.5rem;
+      }
     }
   </style>
 </head>
 <body>
 
-<div id="app" class="loading">Loading map...</div>
+<div id="app" class="loading">Reading the map...</div>
 
 <script>
+// ============================
+// CONFIG — for standalone preview, we embed mock data
+// ============================
+const STANDALONE = false; // Auto: tries API first, falls back to mock
+
 const API_BASE = window.location.origin;
 
-// Layout positions for locations (x, y in 700x500 viewBox)
+// Layout positions (x, y in 800x580 viewBox — slightly bigger for breathing room)
 const LAYOUT = {
-  'rusty-tankard': { x: 300, y: 55 },
-  'thornhold':     { x: 300, y: 140 },
-  'forest-edge':   { x: 480, y: 175 },
-  'deep-forest':   { x: 570, y: 275 },
-  'cave-entrance': { x: 600, y: 375 },
-  'cave-depths':   { x: 510, y: 445 },
-  'seal-chamber':  { x: 400, y: 480 },
-  'south-road':    { x: 190, y: 255 },
-  'crossroads':    { x: 130, y: 355 },
-  'mountain-pass': { x: 75,  y: 445 },
+  'rusty-tankard': { x: 350, y: 60 },
+  'thornhold':     { x: 350, y: 155 },
+  'forest-edge':   { x: 530, y: 195 },
+  'deep-forest':   { x: 620, y: 300 },
+  'moonpetal-glade': { x: 520, y: 220 },
+  'cave-entrance': { x: 660, y: 400 },
+  'cave-depths':   { x: 560, y: 478 },
+  'seal-chamber':  { x: 440, y: 518 },
+  'south-road':    { x: 210, y: 275 },
+  'crossroads':    { x: 150, y: 380 },
+  'mountain-pass': { x: 90,  y: 480 },
 };
 
-// Biome icons
 const BIOME_ICONS = {
-  'town': '🏘️',
-  'tavern': '🍺',
-  'road': '🛤️',
-  'forest': '🌲',
-  'dungeon': '🕳️',
-  'mountain': '⛰️',
+  'town': '\u{1F3D8}\uFE0F',
+  'tavern': '\u{1F37A}',
+  'road': '\u{1F6B6}',
+  'forest': '\u{1F332}',
+  'dungeon': '\u{1F573}\uFE0F',
+  'mountain': '\u26F0\uFE0F',
+  'shrine': '\u2726',
 };
 
-// Location pixel art mapping (frontend asset map)
 const LOC_IMAGES = {
   'rusty-tankard': '/static/pixel-art/loc-rusty-tankard.png',
   'south-road': '/static/pixel-art/loc-south-road.png',
@@ -375,22 +645,146 @@ const LOC_IMAGES = {
   'moonpetal-glade': '/static/pixel-art/loc-moonpetal-glade.png',
 };
 
+// ============================
+// MOCK DATA (standalone preview)
+// ============================
+const MOCK_LOCATIONS = [
+  { id: 'rusty-tankard', name: 'The Rusty Tankard', biome: 'tavern', description: 'A warm, smoky tavern on the edge of town. Del works the bar. Something feels wrong about the way she watches the door.', hostility_level: 0, encounter_threshold: 0, recommended_level: 1, connected_to: ['thornhold','south-road'], image_url: null, npcs: [{id:'npc-del',name:'Del'},{id:'npc-aldric',name:'Aldric'}] },
+  { id: 'thornhold', name: 'Thornhold', biome: 'town', description: 'A walled town at the edge of the Whisperwood. The people are scared and the garrison is stretched thin. A statue in the square gleams with strange markings.', hostility_level: 0, encounter_threshold: 0, recommended_level: 1, connected_to: ['rusty-tankard','forest-edge','south-road'], image_url: null, npcs: [{id:'npc-constantine',name:'Constantine'},{id:'npc-ser-maren',name:'Ser Maren'},{id:'npc-marta',name:'Marta'}] },
+  { id: 'forest-edge', name: 'Whisperwood Edge', biome: 'forest', description: 'The trees lean inward here. Paths shift overnight. Something ancient watches from between the trunks.', hostility_level: 1, encounter_threshold: 50, recommended_level: 1, connected_to: ['thornhold','deep-forest','cave-entrance'], image_url: null, npcs: [] },
+  { id: 'deep-forest', name: 'Deep Whisperwood', biome: 'forest', description: 'The canopy blocks the sky. The air hums. You feel the mark pulse in time with the forest\'s breathing.', hostility_level: 2, encounter_threshold: 60, recommended_level: 2, connected_to: ['forest-edge','moonpetal-glade','cave-entrance'], image_url: null, npcs: [{id:'npc-green-woman',name:'The Green Woman'}] },
+  { id: 'moonpetal-glade', name: 'Moonpetal Glade', biome: 'forest', description: 'A ring of standing stones around a split monolith. Moonpetals grow here, faintly luminous, swaying without wind.', hostility_level: 3, encounter_threshold: 10, recommended_level: 2, connected_to: ['deep-forest'], image_url: null, npcs: [] },
+  { id: 'cave-entrance', name: 'Whisperwood Cave', biome: 'dungeon', description: 'A yawning mouth in the hillside. The air smells of amber and old bone. The Hunger stirs below.', hostility_level: 3, encounter_threshold: 70, recommended_level: 3, connected_to: ['forest-edge','deep-forest','cave-depths'], image_url: null, npcs: [] },
+  { id: 'cave-depths', name: 'Cave Depths', biome: 'dungeon', description: 'The Bone Gallery. Ancient remains line the walls. The seal is close. The Hunger speaks.', hostility_level: 4, encounter_threshold: 75, recommended_level: 4, connected_to: ['cave-entrance','seal-chamber'], image_url: null, npcs: [{id:'npc-kol',name:'Brother Kol'}] },
+  { id: 'seal-chamber', name: 'The Seal Chamber', biome: 'dungeon', description: 'The heart of the binding. Three keys. Three endings. Your choice here shapes the world.', hostility_level: 5, encounter_threshold: 0, recommended_level: 5, connected_to: ['cave-depths'], image_url: null, npcs: [] },
+  { id: 'south-road', name: 'South Road', biome: 'road', description: 'The main trade route south. Bandits and wolves haunt the verges. The crossroads await ahead.', hostility_level: 1, encounter_threshold: 40, recommended_level: 1, connected_to: ['thornhold','crossroads','rusty-tankard'], image_url: null, npcs: [{id:'npc-old-harren',name:'Old Harren'}] },
+  { id: 'crossroads', name: 'The Crossroads', biome: 'road', description: 'Four ways meet. To the west, the road to Greypeak. The earth bleeds amber here. Drenna keeps her shrine nearby.', hostility_level: 2, encounter_threshold: 45, recommended_level: 2, connected_to: ['south-road','mountain-pass'], image_url: null, npcs: [{id:'npc-drenna',name:'Sister Drenna'}] },
+  { id: 'mountain-pass', name: 'Greypeak Pass', biome: 'mountain', description: 'High, cold, and deadly. The orcs hold the summit. Beyond lies the unknown.', hostility_level: 3, encounter_threshold: 65, recommended_level: 3, connected_to: ['crossroads'], image_url: null, npcs: [] },
+];
+
+const MOCK_CHARACTER = {
+  name: 'Aegis Ward',
+  race: 'Human',
+  class: 'Fighter',
+  level: 2,
+  hp: 16,
+  hp_max: 18,
+  current_location: 'deep-forest',
+  mark_stage: 2,
+};
+
+// Portent stage: 0 = The First Mark, 1 = Animals Dying, ... 7 = The Feast Begins
+const MOCK_PORTENT_STAGE = 3;
+
+// Visited locations (simulated — in production, derive from event_log)
+const MOCK_VISITED = new Set(['thornhold','rusty-tankard','south-road','forest-edge','deep-forest']);
+
+// Traveled edges (both endpoints must be visited + at least one move action logged)
+const MOCK_TRAVELED_EDGES = new Set([
+  'thornhold|rusty-tankard',
+  'thornhold|south-road',
+  'thornhold|forest-edge',
+  'forest-edge|deep-forest',
+]);
+
+// ============================
+// STATE
+// ============================
 let locations = {};
 let currentLocationId = null;
+let showFog = true;
+let showNpcs = true;
 
-async function init() {
-  try {
-    const r = await fetch(`${API_BASE}/api/map/data`);
-    if (!r.ok) throw new Error(`${r.status}`);
-    const data = await r.json();
-    locations = {};
-    data.locations.forEach(l => { locations[l.id] = l; });
-    currentLocationId = data.current_location || data.locations[0]?.id;
-    render();
-  } catch (e) {
-    document.getElementById('app').innerHTML = `<div class="error">Failed to load map: ${esc(e.message)}</div>`;
+// Character state (fetched or mocked)
+let character = null;
+let portentStage = 0;
+let visited = new Set();
+let traveledEdges = new Set();
+
+// ============================
+// INIT
+// ============================
+  async function init() {
+    try {
+      // Check for portal share token in URL query
+      const token = new URLSearchParams(window.location.search).get('token');
+      let portalData = null;
+
+      if (token) {
+        // Fetch per-character state (includes character, map with fog-of-war history)
+        const r = await fetch(`${API_BASE}/portal/${encodeURIComponent(token)}/state`);
+        if (!r.ok) throw new Error(`Portal state fetch failed: ${r.status}`);
+        portalData = await r.json();
+        if (portalData.error) throw new Error(portalData.error || 'Portal error');
+      }
+
+      if (portalData && portalData.character && portalData.map) {
+        // === TOKEN MODE: use portal state (character history-based fog-of-war) ===
+        character = portalData.character;
+        currentLocationId = character.current_location_id || portalData.location?.id;
+        mark_stage = character.mark_of_dreamer_stage || 0;
+        portentStage = portalData.doom_clock?.portents_triggered || 0;
+
+        // Load all world locations from portal payload
+        portalData.map.locations.forEach(l => { locations[l.id] = l; });
+
+        // Fog-of-war directly from character event_log history
+        visited = new Set(portalData.map.visited_locations || []);
+        traveledEdges = new Set();
+        (portalData.map.traveled_edges || []).forEach(e => {
+          if (e.length === 2) traveledEdges.add(edgeKey(e[0], e[1]));
+        });
+      } else {
+        // === NORMAL MODE (no token): fetch public endpoints only ===
+        const r = await fetch(`${API_BASE}/api/map/data`);
+        if (!r.ok) throw new Error(`${r.status}`);
+        const data = await r.json();
+        data.locations.forEach(l => { locations[l.id] = l; });
+        currentLocationId = data.current_location || data.locations[0]?.id;
+
+        // Character: default + optional enrichment from /api/characters
+        character = { name: 'Adventurer', race: 'Human', class: 'Fighter', level: 2, hp: 16, hp_max: 18, mark_stage: 0, current_location: currentLocationId };
+        try {
+          const chars = await fetch(`${API_BASE}/api/characters`).then(r => r.json());
+          if (chars.characters && chars.characters.length > 0) {
+            const c = chars.characters[0];
+            character = {
+              name: c.name || 'Adventurer',
+              race: c.race || 'Human',
+              class: c.class_name || c.class || 'Fighter',
+              level: c.level || 1,
+              hp: c.hit_points || c.hp || 10,
+              hp_max: c.hp_max || c.max_hp || 10,
+              mark_stage: 0,
+              current_location: currentLocationId
+            };
+          }
+        } catch (_) { /* character endpoint may not return expected shape */ }
+
+        // Heuristic visited: current location + immediate connected neighbors
+        visited = new Set([currentLocationId]);
+        traveledEdges = new Set();
+        portentStage = 0;
+        const startConns = parseConns(locations[currentLocationId]?.connected_to);
+        startConns.forEach(c => {
+          visited.add(c);
+          traveledEdges.add(edgeKey(currentLocationId, c));
+        });
+      }
+
+      render();
+    } catch (e) {
+      // Fallback to mock data for standalone preview
+      console.warn('API fetch failed, using mock data:', e.message);
+      MOCK_LOCATIONS.forEach(l => { locations[l.id] = l; });
+      currentLocationId = MOCK_CHARACTER.current_location;
+      character = MOCK_CHARACTER;
+      portentStage = MOCK_PORTENT_STAGE;
+      visited = MOCK_VISITED;
+      traveledEdges = MOCK_TRAVELED_EDGES;
+      render();
+    }
   }
-}
 
 function esc(s) {
   const d = document.createElement('div');
@@ -398,15 +792,20 @@ function esc(s) {
   return d.innerHTML;
 }
 
+function edgeKey(a, b) {
+  return [a, b].sort().join('|');
+}
+
+// ============================
+// RENDER
+// ============================
 function render() {
   const app = document.getElementById('app');
   app.className = '';
   app.innerHTML = `
     <div class="map-container">
-      <div class="map-header">
-        <h1>⚔️ The Thornhold Region</h1>
-        <div class="subtitle">The Dreaming Hunger — World Map</div>
-      </div>
+      ${buildCharBar()}
+      ${buildFrontsBar()}
       <div class="map-body">
         <div class="map-svg-wrap">
           ${buildSVG()}
@@ -415,87 +814,144 @@ function render() {
           ${buildPanel(currentLocationId)}
         </div>
       </div>
+      <div class="toggle-bar">
+        <button class="toggle-btn ${showFog ? 'active' : ''}" data-toggle="fog">Fog of War</button>
+        <button class="toggle-btn ${showNpcs ? 'active' : ''}" data-toggle="npcs">Show NPCs</button>
+        <button class="toggle-btn" data-toggle="reveal">Reveal All</button>
+      </div>
       <div class="map-legend">
-        <div class="legend-item"><div class="legend-dot" style="background:#4a8a50"></div> Safe</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#3a7a40"></div> Safe</div>
         <div class="legend-item"><div class="legend-dot" style="background:#6aaa6a"></div> Low</div>
         <div class="legend-item"><div class="legend-dot" style="background:#aaaa4a"></div> Moderate</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#e8a030"></div> Dangerous</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#d89020"></div> Dangerous</div>
         <div class="legend-item"><div class="legend-dot" style="background:#cc6633"></div> Deadly</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#c04040"></div> Extreme</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#b83838"></div> Extreme</div>
+        <div class="legend-separator"></div>
+        <div class="legend-item fog-icon"><div class="fog-swatch"></div> Unexplored</div>
       </div>
       <div class="nav-links">
-        <a href="/npcs-page">NPCs</a>
-        <a href="/items-page">Items</a>
-        <a href="/cutscenes">Cutscenes</a>
+        <a href="/portal.html">Character Sheet</a>
         <a href="/demo">Demo</a>
         <a href="/docs">API Docs</a>
       </div>
     </div>
   `;
 
-  // Bind click events on nodes
-  document.querySelectorAll('.loc-node').forEach(node => {
-    node.addEventListener('click', () => {
-      const id = node.dataset.id;
-      currentLocationId = id;
-      document.getElementById('detail-panel').innerHTML = buildPanel(id);
-      // Update current class
-      document.querySelectorAll('.loc-node').forEach(n => n.classList.remove('current'));
-      node.classList.add('current');
-      // Update pulse
-      document.querySelectorAll('.pulse').forEach(p => p.remove());
-      const circle = node.querySelector('circle.outer');
-      if (circle) {
-        const pulseCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        pulseCircle.setAttribute('class', 'pulse');
-        pulseCircle.setAttribute('cx', circle.getAttribute('cx'));
-        pulseCircle.setAttribute('cy', circle.getAttribute('cy'));
-        pulseCircle.setAttribute('r', '14');
-        pulseCircle.setAttribute('fill', 'none');
-        pulseCircle.setAttribute('stroke', '#d4a850');
-        pulseCircle.setAttribute('stroke-width', '2');
-        node.insertBefore(pulseCircle, circle);
-      }
-    });
-  });
+  bindEvents();
+}
+
+function buildCharBar() {
+  if (!character) return '';
+  const markDots = [0,1,2,3].map(i =>
+    `<div class="mark-dot ${i < character.mark_stage ? 'active' : ''}"></div>`
+  ).join('');
+
+  const markLabel = character.mark_stage === 0 ? 'Unmarked' :
+    character.mark_stage === 1 ? 'Stage I' :
+    character.mark_stage === 2 ? 'Stage II' :
+    character.mark_stage === 3 ? 'Stage III' : 'Scarred';
+
+  return `
+    <div class="char-bar">
+      <span class="char-name">${esc(character.name)}</span>
+      <span class="char-stat"><b>${character.race || ''} ${character.class || ''}</b> Lv.${character.level || 1}</span>
+      <span class="char-stat">HP <b>${character.hp || '?'}/${character.hp_max || '?'}</b></span>
+      <span class="char-stat">Location: <b>${esc(locations[currentLocationId]?.name || currentLocationId)}</b></span>
+      <span class="mark-indicator">
+        <span style="color:${character.mark_stage > 0 ? 'var(--mark-glow)' : 'var(--text-muted)'}; font-size:0.75rem">${markLabel}</span>
+        <span class="mark-dots">${markDots}</span>
+      </span>
+    </div>
+  `;
+}
+
+function buildFrontsBar() {
+  const portentNames = ['First Mark','Animals Dying','Undead Walk','Seal Weeps','Breaking Rite','Hunger Speaks','Door Opens','Feast Begins'];
+  const pips = portentNames.map((_, i) => {
+    let cls = '';
+    if (i < portentStage) cls = 'active';
+    if (i === 7 && portentStage >= 7) cls = 'doom';
+    return `<div class="portent-pip ${cls}" title="${portentNames[i]}"></div>`;
+  }).join('');
+
+  const statusText = portentStage === 0 ? 'The Hunger stirs...' :
+    portentStage < 4 ? 'The seal weakens.' :
+    portentStage < 6 ? 'The dead walk. The seal weeps.' :
+    portentStage < 7 ? 'The Door opens. Time is short.' : 'THE FEAST BEGINS.';
+
+  const statusColor = portentStage < 3 ? 'var(--text-secondary)' :
+    portentStage < 5 ? 'var(--accent-amber)' : 'var(--mark-glow)';
+
+  return `
+    <div class="fronts-bar">
+      <span class="fronts-label">Dreaming Hunger</span>
+      <span class="portents">${pips}</span>
+      <span class="fronts-status" style="color:${statusColor}">${statusText}</span>
+    </div>
+  `;
+}
+
+function isVisited(locId) {
+  return visited.has(locId);
+}
+
+function isTraveled(a, b) {
+  return traveledEdges.has(edgeKey(a, b));
 }
 
 function buildSVG() {
   const locs = Object.values(locations);
   const edges = new Set();
 
-  // Build edges
   locs.forEach(loc => {
-    const conns = parseConns(loc.connected_to);
-    conns.forEach(c => {
-      const key = [loc.id, c].sort().join('|');
-      edges.add(key);
+    parseConns(loc.connected_to).forEach(c => {
+      edges.add(edgeKey(loc.id, c));
     });
   });
 
-  let svg = `<svg viewBox="0 0 700 540" xmlns="http://www.w3.org/2000/svg">`;
+  let svg = `<svg viewBox="0 0 780 570" xmlns="http://www.w3.org/2000/svg">`;
 
-  // Background gradient
+  // Defs
   svg += `<defs>
-    <radialGradient id="bg-grad" cx="50%" cy="50%" r="60%">
-      <stop offset="0%" stop-color="#161628"/>
-      <stop offset="100%" stop-color="#0a0a12"/>
+    <radialGradient id="bg-grad" cx="35%" cy="30%" r="65%">
+      <stop offset="0%" stop-color="#12122a"/>
+      <stop offset="100%" stop-color="#080810"/>
     </radialGradient>
     <filter id="glow">
-      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="mark-aura">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
       <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>`;
-  svg += `<rect width="700" height="540" fill="url(#bg-grad)"/>`;
+  svg += `<rect width="780" height="570" fill="url(#bg-grad)"/>`;
+
+  // Terrain hints (very subtle background shapes)
+  // Forest region
+  svg += `<ellipse cx="560" cy="250" rx="160" ry="130" fill="#0a1a0a" opacity="0.25"/>`;
+  // Mountain region  
+  svg += `<ellipse cx="90" cy="460" rx="80" ry="70" fill="#0a0a18" opacity="0.2"/>`;
+  // Town region
+  svg += `<ellipse cx="350" cy="120" rx="70" ry="50" fill="#141418" opacity="0.2"/>`;
 
   // Draw edges
   edges.forEach(key => {
     const [a, b] = key.split('|');
     const pa = LAYOUT[a];
     const pb = LAYOUT[b];
-    if (pa && pb) {
-      svg += `<line class="edge-line" x1="${pa.x}" y1="${pa.y}" x2="${pb.x}" y2="${pb.y}"/>`;
-    }
+    if (!pa || !pb) return;
+
+    const isTrav = isTraveled(a, b);
+    const bothVisited = isVisited(a) && isVisited(b);
+    const fogged = showFog && !bothVisited;
+
+    let cls = 'edge-line';
+    if (fogged) cls += ' fogged-edge';
+    if (isTrav) cls += ' traveled';
+
+    svg += `<line class="${cls}" x1="${pa.x}" y1="${pa.y}" x2="${pb.x}" y2="${pb.y}"/>`;
   });
 
   // Draw nodes
@@ -504,29 +960,54 @@ function buildSVG() {
     if (!pos) return;
     const danger = loc.hostility_level || 0;
     const isCurrent = loc.id === currentLocationId;
-    const icon = BIOME_ICONS[loc.biome] || '📍';
+    const visited_ = isVisited(loc.id);
+    const fogged = showFog && !visited_;
 
-    svg += `<g class="loc-node ${isCurrent ? 'current' : ''}" data-id="${esc(loc.id)}">`;
+    svg += `<g class="loc-node ${isCurrent ? 'current' : ''} ${fogged ? 'fogged' : ''}" data-id="${esc(loc.id)}">`;
 
-    // Pulse ring for current
+    // Mark aura (for locations near current when mark is active)
+    if (character && character.mark_stage > 0 && !fogged) {
+      // Mark aura radiates outward from current location
+      const dist = Math.sqrt((pos.x - (LAYOUT[currentLocationId]?.x || 0)) ** 2 + (pos.y - (LAYOUT[currentLocationId]?.y || 0)) ** 2);
+      const auraOpacity = Math.max(0, 0.15 - dist * 0.0005) * (character.mark_stage / 4);
+      if (auraOpacity > 0.01) {
+        svg += `<circle class="mark-aura ${auraOpacity > 0.02 ? 'visible' : ''}" cx="${pos.x}" cy="${pos.y}" r="40" fill="rgba(232,85,48,${auraOpacity.toFixed(3)})" filter="url(#mark-aura)"/>`;
+      }
+    }
+
+    // Current pulse
     if (isCurrent) {
-      svg += `<circle class="pulse" cx="${pos.x}" cy="${pos.y}" r="14" fill="none" stroke="#d4a850" stroke-width="2"/>`;
+      svg += `<circle class="pulse-ring" cx="${pos.x}" cy="${pos.y}" r="16" fill="none" stroke="#c8a040" stroke-width="2"/>`;
     }
 
     // Outer circle (danger color)
-    svg += `<circle class="outer danger-${danger}-stroke" cx="${pos.x}" cy="${pos.y}" r="16"
-      fill="#111122" stroke-width="2"/>`;
+    const dangerStrokes = ['#3a7a40','#6aaa6a','#aaaa4a','#d89020','#cc6633','#b83838'];
+    svg += `<circle class="outer" cx="${pos.x}" cy="${pos.y}" r="18" fill="${fogged ? '#0a0a14' : '#0e0e1c'}" stroke="${fogged ? '#1a1a30' : dangerStrokes[danger] || '#2a2a4a'}" stroke-width="${isCurrent ? 3 : 2}"/>`;
 
-    // Inner glow
-    svg += `<circle cx="${pos.x}" cy="${pos.y}" r="12"
-      fill="var(--bg-card)" opacity="0.8"/>`;
+    // Inner fill
+    svg += `<circle cx="${pos.x}" cy="${pos.y}" r="13" fill="${fogged ? '#0a0a14' : 'var(--bg-card)'}" opacity="${fogged ? 1 : 0.9}"/>`;
 
-    // Icon
-    svg += `<text x="${pos.x}" y="${pos.y + 4}" text-anchor="middle" font-size="12">${icon}</text>`;
+    // Biome icon (only if visited)
+    if (!fogged) {
+      const icon = BIOME_ICONS[loc.biome] || '\u{1F4CD}';
+      svg += `<text x="${pos.x}" y="${pos.y + 4}" text-anchor="middle" font-size="13">${icon}</text>`;
+    } else {
+      // Question mark for fogged
+      svg += `<text x="${pos.x}" y="${pos.y + 5}" text-anchor="middle" font-size="11" fill="#1a1a30" font-family="Cinzel">?</text>`;
+    }
+
+    // NPC indicators (below node, only if visited and showNpcs)
+    if (!fogged && showNpcs && loc.npcs && loc.npcs.length > 0) {
+      const npcY = pos.y - 22;
+      loc.npcs.forEach((npc, i) => {
+        const offsetX = (i - (loc.npcs.length - 1) / 2) * 12;
+        svg += `<text class="loc-npc-icons" x="${pos.x + offsetX}" y="${npcY}">\u{1F9D9}\u200D\u2640\uFE0F</text>`;
+      });
+    }
 
     // Label
-    const labelY = pos.y + 28;
-    svg += `<text class="loc-label" x="${pos.x}" y="${labelY}">${esc(loc.name)}</text>`;
+    const labelY = pos.y + 32;
+    svg += `<text class="loc-label" x="${pos.x}" y="${labelY}">${esc(fogged ? '???' : loc.name)}</text>`;
 
     svg += `</g>`;
   });
@@ -537,15 +1018,25 @@ function buildSVG() {
 
 function buildPanel(locId) {
   const loc = locations[locId];
-  if (!loc) return '<p class="panel-desc">Select a location on the map.</p>';
+  if (!loc) return '<p class="panel-desc" style="color:var(--text-muted)">Select a location on the map.</p>';
 
+  const visited_ = isVisited(locId);
+  const fogged = showFog && !visited_;
   const danger = loc.hostility_level || 0;
-  const dangerLabels = ['Safe', 'Low', 'Moderate', 'Dangerous', 'Deadly', 'Extreme'];
-  const dangerColors = ['#4a8a50', '#6aaa6a', '#aaaa4a', '#e8a030', '#cc6633', '#c04040'];
+  const dangerLabels = ['Safe','Low','Moderate','Dangerous','Deadly','Extreme'];
+  const dangerColors = ['#3a7a40','#6aaa6a','#aaaa4a','#d89020','#cc6633','#b83838'];
   const conns = parseConns(loc.connected_to);
-  const biomeIcon = BIOME_ICONS[loc.biome] || '📍';
-  const locImg = loc.image_url || LOC_IMAGES[locId];
+  const biomeIcon = BIOME_ICONS[loc.biome] || '\u{1F4CD}';
 
+  if (fogged) {
+    return `
+      <h2>???</h2>
+      <div class="panel-biome">Unexplored</div>
+      <div class="panel-desc" style="color:var(--text-muted);font-style:italic">You have not yet traveled to this location. Paths leading here are uncertain.</div>
+    `;
+  }
+
+  const locImg = loc.image_url || LOC_IMAGES[locId];
   let html = '';
   if (locImg) {
     html += `<div class="panel-loc-image"><img src="${esc(locImg)}" alt="${esc(loc.name)}" loading="lazy"></div>`;
@@ -566,12 +1057,22 @@ function buildPanel(locId) {
     </div>
   `;
 
+  if (loc.npcs && loc.npcs.length > 0) {
+    html += `<div class="panel-npcs"><h3>NPCs Here</h3>`;
+    loc.npcs.forEach(npc => {
+      html += `<span class="npc-tag">${esc(npc.name)}</span>`;
+    });
+    html += `</div>`;
+  }
+
   if (conns.length > 0) {
     html += `<div class="panel-connections"><h3>Paths</h3>`;
     conns.forEach(c => {
       const dest = locations[c];
       const name = dest ? dest.name : c;
-      html += `<a class="conn-link" data-target="${esc(c)}">${esc(name)}</a>`;
+      const connVisited = isVisited(c);
+      const connFogged = showFog && !connVisited;
+      html += `<a class="conn-link ${connFogged ? 'fogged-link' : ''}" data-target="${esc(c)}">${connFogged ? '???' : esc(name)}</a>`;
     });
     html += `</div>`;
   }
@@ -585,20 +1086,105 @@ function parseConns(raw) {
   try { return JSON.parse(raw); } catch { return raw.split(',').map(s => s.trim()).filter(Boolean); }
 }
 
-// Delegate click on connection links
-document.addEventListener('click', e => {
-  const link = e.target.closest('.conn-link');
-  if (link) {
-    const target = link.dataset.target;
-    if (target && locations[target]) {
-      currentLocationId = target;
-      document.getElementById('detail-panel').innerHTML = buildPanel(target);
-      document.querySelectorAll('.loc-node').forEach(n => {
-        n.classList.toggle('current', n.dataset.id === target);
-      });
+// ============================
+// EVENT BINDING
+// ============================
+function bindEvents() {
+  // Location node clicks
+  document.querySelectorAll('.loc-node').forEach(node => {
+    node.addEventListener('click', () => {
+      const id = node.dataset.id;
+      if (showFog && !isVisited(id)) return; // Can't select fogged
+      currentLocationId = id;
+      updateCurrentNode(id);
+      document.getElementById('detail-panel').innerHTML = buildPanel(id);
+    });
+  });
+
+  // Connection link clicks
+  document.querySelectorAll('.conn-link').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const target = link.dataset.target;
+      if (target && locations[target] && (!showFog || isVisited(target))) {
+        currentLocationId = target;
+        updateCurrentNode(target);
+        document.getElementById('detail-panel').innerHTML = buildPanel(target);
+      }
+    });
+  });
+
+  // Toggle buttons — use event delegation on the toggle-bar so it survives SVG refreshes
+  const toggleBar = document.querySelector('.toggle-bar');
+  if (toggleBar) {
+    toggleBar.addEventListener('click', (e) => {
+      const btn = e.target.closest('.toggle-btn');
+      if (!btn) return;
+      const action = btn.dataset.toggle;
+      if (action === 'fog') {
+        showFog = !showFog;
+        btn.classList.toggle('active', showFog);
+        refreshSVG();
+        document.getElementById('detail-panel').innerHTML = buildPanel(currentLocationId);
+      } else if (action === 'npcs') {
+        showNpcs = !showNpcs;
+        btn.classList.toggle('active', showNpcs);
+        refreshSVG();
+      } else if (action === 'reveal') {
+        // Reveal all locations and disable fog
+        Object.keys(locations).forEach(id => visited.add(id));
+        showFog = false;
+        // Update fog toggle button state
+        const fogBtn = document.querySelector('.toggle-btn[data-toggle="fog"]');
+        if (fogBtn) fogBtn.classList.remove('active');
+        refreshSVG();
+        document.getElementById('detail-panel').innerHTML = buildPanel(currentLocationId);
+      }
+    });
+  }
+}
+
+function updateCurrentNode(id) {
+  document.querySelectorAll('.loc-node').forEach(n => {
+    n.classList.toggle('current', n.dataset.id === id);
+    // Remove old pulse
+    n.querySelectorAll('.pulse-ring').forEach(p => p.remove());
+  });
+  // Add new pulse
+  const node = document.querySelector(`.loc-node[data-id="${id}"]`);
+  if (node) {
+    const circle = node.querySelector('circle.outer');
+    if (circle) {
+      const ns = 'http://www.w3.org/2000/svg';
+      const pulseCircle = document.createElementNS(ns, 'circle');
+      pulseCircle.setAttribute('class', 'pulse-ring');
+      pulseCircle.setAttribute('cx', circle.getAttribute('cx'));
+      pulseCircle.setAttribute('cy', circle.getAttribute('cy'));
+      pulseCircle.setAttribute('r', '16');
+      pulseCircle.setAttribute('fill', 'none');
+      pulseCircle.setAttribute('stroke', '#c8a040');
+      pulseCircle.setAttribute('stroke-width', '2');
+      node.insertBefore(pulseCircle, circle);
     }
   }
-});
+}
+
+function refreshSVG() {
+  const wrap = document.querySelector('.map-svg-wrap');
+  if (wrap) {
+    wrap.innerHTML = buildSVG();
+    // Rebind node clicks
+    document.querySelectorAll('.loc-node').forEach(node => {
+      node.addEventListener('click', () => {
+        const id = node.dataset.id;
+        if (showFog && !isVisited(id)) return;
+        currentLocationId = id;
+        updateCurrentNode(id);
+        document.getElementById('detail-panel').innerHTML = buildPanel(id);
+      });
+    });
+  }
+}
 
 init();
 </script>
