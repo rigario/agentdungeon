@@ -79,14 +79,15 @@ async def narrate_via_direct(
                         "temperature": temperature,
                         "response_format": {"type": "json_object"},
                     },
-                    timeout=8.0,   # Fail fast → structured passthrough fallback (8s SLA)
+                    headers={"User-Agent": "Kilo-Code/1.0"},
+                    timeout=15.0,  # Kimi needs ~15s; fast-fail → passthrough fallback
                 )
             except httpx.TimeoutException as e:
-                logger.warning(f"Kimi API timeout after 8s: {e}")
+                logger.warning(f"Kimi API timeout after 15s: {e}")
                 return None
         else:
             # Fallback: create temporary client (no pooling) with fast timeout
-            async with httpx.AsyncClient(timeout=8.0) as client:
+            async with httpx.AsyncClient(timeout=15.0) as client:
                 response = await client.post(
                     f"{KIMI_BASE_URL}/chat/completions",
                     json={
@@ -99,16 +100,18 @@ async def narrate_via_direct(
                         "temperature": temperature,
                         "response_format": {"type": "json_object"},
                     },
-                    timeout=15.0,
+                    headers={"User-Agent": "Kilo-Code/1.0"},
+                    timeout=15.0,  # Kimi needs ~15s; fast-fail → passthrough fallback
                 )
 
         response.raise_for_status()
         data = response.json()
 
-        content = data["choices"][0]["message"].get("content", "")
-        # Kimi coding API may put output in reasoning_content when thinking
+        # Kimi coding API outputs prose in reasoning_content (not content) for DM narration
+        content = data["choices"][0]["message"].get("reasoning_content", "")
+        # Fallback to content if reasoning_content missing (defensive)
         if not content or not content.strip():
-            content = data["choices"][0]["message"].get("reasoning_content", "")
+            content = data["choices"][0]["message"].get("content", "")
         if not content or not content.strip():
             logger.warning("Kimi returned empty content and reasoning_content")
             return None
