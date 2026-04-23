@@ -75,6 +75,9 @@ async def synthesize_narration(server_result: dict, intent: dict, world_context:
 
     Tries LLM narration first. Falls back to passthrough if LLM unavailable.
     """
+    # Defensive: world_context can be None from some call paths
+    world_context = world_context or {}
+
     # Handle absurd / impossible actions flagged by intent router
     if intent.get("details", {}).get("_absurd"):
         return _build_absurd_refusal(intent, world_context)
@@ -146,10 +149,10 @@ def _build_from_llm(llm_output: dict, server_result: dict, world_context: dict) 
 
 def _build_passthrough(server_result: dict, intent: dict, world_context: dict) -> dict:
     """Fallback: structured passthrough when LLM is unavailable."""
-    # Normalize world_context
+    # Normalize inputs — world_context and world_ctx can be None from server_result
     world_context = world_context or {}
     narration = server_result.get("narration", "")
-    world_ctx = server_result.get("world_context", world_context)
+    world_ctx = server_result.get("world_context", world_context) or {}  # Guard against explicit null
 
     # Extract NPC lines from world context
     npc_lines = []
@@ -181,6 +184,8 @@ def _extract_mechanics(server_result: dict, world_context: dict) -> dict:
     MechanicsPayload.what_happened requires a list[str], so this function must
     normalize richer server structures (dice/event dicts) into readable strings.
     """
+    # Defensive: world_context may be None if called from a non-normalized path
+    world_context = world_context or {}
     char = world_context.get("character") or server_result.get("character_state", {})
 
     what_happened = []
@@ -257,7 +262,10 @@ def _extract_mechanics(server_result: dict, world_context: dict) -> dict:
 def _extract_choices(server_result: dict, world_context: dict) -> list:
     """Extract player choices from server data."""
     choices = []
-    
+
+    # Defensive: world_context may be None if called from a non-normalized path
+    world_context = world_context or {}
+
     # COMBAT: Return only combat action choices — no movement or exploration
     if _is_combat_response(server_result):
         combat_choices = [

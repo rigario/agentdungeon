@@ -291,3 +291,80 @@ class TestIntentClassification:
         assert intent.type == IntentType.GENERAL, "Absurd check must run before verb matching"
         assert intent.confidence == 0.3
 
+
+# =============================================================================
+# Move-Action Crash Regression (Task 21fcc77a)
+# =============================================================================
+# Bug: POST /dm/turn with move intent returned 502 when rules-server
+# response had world_context=null. Root cause: synthesis._build_passthrough
+# extracted world_ctx = server_result.get("world_context", world_context)
+# which could be None (explicit null), then passed to _extract_mechanics/
+# _extract_choices that called .get() on None → AttributeError.
+# Fix: Normalize world_ctx to {} and world_context to {} at entry points.
+
+class TestMoveActionCrashRegression:
+    """Verify that move (and any) actions handle null world_context gracefully."""
+
+    def test_build_passthrough_handles_null_world_context_from_server(self):
+        """_build_passthrough must not crash when server returns world_context=null."""
+        from app.services.synthesis import _build_passthrough
+
+        # Simulate a move-action response where world_context is explicitly null
+        server_result = {
+            "narration": "You walk to the crossroads.",
+            "events": [{"desc": "You move from town-square to crossroads"}],
+            "character_state": {"hp": {"current": 10, "max": 10}},
+            "world_context": None,  # <-- critical: rules-server returns explicit null
+        }
+        intent = {"type": "move", "action_type": "move", "target": "crossroads"}
+        passed_world_context = {"character": {"name": "Test"}}
+
+        # Should NOT raise AttributeError
+        result = _build_passthrough(server_result, intent, passed_world_context)
+
+        assert result["narration"]["scene"] == "You walk to the crossroads."
+        assert result["mechanics"]["hp"]["current"] == 10
+        # choices should include connections from passed_world_context (empty from server null)
+        assert isinstance(result["choices"], list)
+
+    def test_build_passthrough_handles_missing_world_context_key(self):
+        """_build_passthrough must also handle missing world_context key."""
+        from app.services.synthesis import _build_passthrough
+
+        server_result = {
+            "narration": "You explore the area.",
+            "events": [],
+            "character_state": {"location_id": "town-square"},
+            # No world_context key at all
+        }
+        intent = {"type": "explore", "action_type": "explore"}
+        passed_world_context = {}
+
+        result = _build_passthrough(server_result, intent, passed_world_context)
+        assert result["narration"]["scene"] == "You explore the area."
+
+    def test_extract_mechanics_handles_none_world_context(self):
+        """_extract_mechanics defensive guard must handle world_context=None."""
+        from app.services.synthesis import _extract_mechanics
+
+        server_result = {
+            "events": [{"desc": "Action resolved"}],
+            "character_state": {"hp_current": 15, "hp_max": 20, "location_id": "cave-mouth"},
+        }
+        # Pass world_context as None explicitly
+        result = _extract_mechanics(server_result, None)
+        assert result["hp"]["current"] == 15
+        assert result["hp"]["max"] == 20
+        assert isinstance(result["what_happened"], list)
+
+    def test_extract_choices_handles_none_world_context(self):
+        """_extract_choices defensive guard must handle world_context=None."""
+        from app.services.synthesis import _extract_choices
+
+        server_result = {"asks": [{"id": "continue", "label": "Continue"}]}
+        result = _extract_choices(server_result, None)
+        # Should not crash; should return the ask-based choice
+        assert len(result) >= 1
+        assert result[0]["id"] == "continue"
+
+
