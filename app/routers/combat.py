@@ -289,6 +289,10 @@ def start_combat(character_id: str, encounter_name: str = "Wild Encounter",
         "events": pre_combat_events,
         "narration": " ".join(narration_parts),
         "character": {"name": char["name"], "hp": {"current": player_hp, "max": char["hp_max"]}, "ac": char["ac_value"]},
+        "character_state": {
+            "hp": {"current": player_hp, "max": char["hp_max"]},
+            "location_id": location_id,
+        },
         "enemies": alive_enemies,
     }
 
@@ -480,6 +484,10 @@ def combat_act(character_id: str, body: CombatAction, auth: dict = Depends(get_a
         "narration": " ".join(events),
         "events": events,
         "character": {"name": char["name"], "hp": {"current": char["hp_current"], "max": char["hp_max"]}, "ac": char["ac_value"]},
+        "character_state": {
+            "hp": {"current": char["hp_current"], "max": char["hp_max"]},
+            "location_id": char["location_id"],
+        },
         "enemies": [{"name": e["name"], "hp": {"current": e["hp_current"], "max": e["hp_max"]}, "ac": e["ac"]} for e in alive],
     }
 

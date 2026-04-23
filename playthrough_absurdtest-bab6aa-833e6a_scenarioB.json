@@ -1,0 +1,214 @@
+{
+  "playthrough_id": "41236722-2d10-4d08-b508-9cdd4b9ee73f",
+  "character_name": "AbsurdTest-bab6aa",
+  "character_id": "absurdtest-bab6aa-833e6a",
+  "timestamp": "2026-04-22T22:41:47.065064",
+  "rules_url": "https://d20.holocronlabs.ai",
+  "dm_url": "https://d20.holocronlabs.ai",
+  "transcript": [
+    {
+      "timestamp": "2026-04-22T22:41:40.843162",
+      "kind": "health",
+      "message": "Rules: 200, DM: 200"
+    },
+    {
+      "timestamp": "2026-04-22T22:41:40.864240",
+      "kind": "create",
+      "message": "Character created: absurdtest-bab6aa-833e6a",
+      "data": {
+        "char": {
+          "id": "absurdtest-bab6aa-833e6a",
+          "name": "AbsurdTest-bab6aa",
+          "version": "5.2",
+          "player": {
+            "name": "default",
+            "id": null
+          },
+          "alignment": "Humans tend toward no particular alignment. The best and the worst are found among them.",
+          "race": {
+            "name": "Human",
+            "size": "Medium",
+            "traits": []
+          },
+          "classes": [
+            {
+              "name": "Fighter",
+              "level": 1,
+              "hit_die": 10,
+              "spellcasting": "",
+              "subtype": "",
+              "features": [
+                {
+                  "name": "Fighting Style",
+                  "description": "You adopt a particular style of fighting."
+                },
+                {
+                  "name": "Second Wind",
+                  "description": "You can use a bonus action to regain hit points."
+                }
+              ]
+            }
+          ],
+          "background": {
+            "name": "Soldier"
+          },
+          "ability_scores": {
+            "str": 16,
+            "dex": 15,
+            "con": 14,
+            "int": 11,
+            "wis": 13,
+            "cha": 9
+          },
+          "hit_points": {
+            "max": 12,
+            "current": 12,
+            "temporary": 0
+          },
+          "armor_class": {
+            "value": 12,
+            "description": "Unarmored"
+          },
+          "speed": {
+            "Walk": 30,
+            "Burrow": 0,
+            "Climb": 0,
+            "Fly": 0,
+            "Swim": 0
+          },
+          "skills": {
+            "Athletics": true,
+            "Intimidation": true
+          },
+          "saving_throws": {
+            "str": true,
+            "con": true
+          },
+          "languages": [
+            "Common"
+          ],
+          "weapon_proficiencies": [
+            "Simple weapons",
+            "Martial weapons"
+          ],
+          "armor_proficiencies": [
+            "All armor",
+            "Shields"
+          ],
+          "equipment": [
+            "Longsword",
+            "Shield",
+            "Chain Mail",
+            "Light Crossbow"
+          ],
+          "treasure": {
+            "gp": 10,
+            "sp": 0,
+            "cp": 0,
+            "pp": 0,
+            "ep": 0
+          },
+          "spell_slots": {},
+          "spells": [],
+          "feats": [],
+          "conditions": {},
+          "xp": 0,
+          "location_id": "thornhold",
+          "approval_config": {
+            "spell_level_min": 3,
+            "hp_threshold_pct": 25,
+            "flee_combat": true,
+            "named_npc_interaction": true,
+            "moral_choice": true,
+            "dangerous_area_entry": true,
+            "quest_acceptance": true
+          },
+          "aggression_slider": 50,
+          "is_archived": false,
+          "archived_at": null,
+          "provenance": {
+            "data_source": "soryy708/dnd5-srd (MIT License)",
+            "created_at": "2026-04-22 22:41:40",
+            "signature": "sha256:7dadbd7c701137c5"
+          }
+        }
+      }
+    },
+    {
+      "timestamp": "2026-04-22T22:41:40.876581",
+      "kind": "location",
+      "message": "Starting location: thornhold"
+    },
+    {
+      "timestamp": "2026-04-22T22:41:40.887129",
+      "kind": "flags",
+      "message": "Initial flags: {}"
+    },
+    {
+      "timestamp": "2026-04-22T22:41:40.887144",
+      "kind": "test",
+      "message": "\n--- Test 1: Swallow statue ---"
+    },
+    {
+      "timestamp": "2026-04-22T22:41:45.616127",
+      "kind": "dm_absurd1",
+      "message": "Status: 200",
+      "data": {
+        "scene_excerpt": "You try, but it's simply not possible. That's far too large and solid to fit in your mouth. Perhaps you meant 'examine the statue' instead?",
+        "choices_count": 0,
+        "choices": []
+      }
+    },
+    {
+      "timestamp": "2026-04-22T22:41:45.616156",
+      "kind": "analysis",
+      "message": "Absurd1 analysis: misrouted=False, refused=True"
+    },
+    {
+      "timestamp": "2026-04-22T22:41:45.616160",
+      "kind": "test",
+      "message": "\n--- Test 2: Fly to moon ---"
+    },
+    {
+      "timestamp": "2026-04-22T22:41:46.450881",
+      "kind": "dm_absurd2",
+      "message": "Status: 200",
+      "data": {
+        "scene_excerpt": "Traveled to South Road. First visit to South Road!",
+        "choices_count": 4
+      }
+    },
+    {
+      "timestamp": "2026-04-22T22:41:46.450918",
+      "kind": "analysis",
+      "message": "Absurd2 analysis: misrouted=True, refused=False"
+    },
+    {
+      "timestamp": "2026-04-22T22:41:46.450921",
+      "kind": "test",
+      "message": "\n--- Control: Statue query ---"
+    },
+    {
+      "timestamp": "2026-04-22T22:41:47.048455",
+      "kind": "dm_control",
+      "message": "Statue query response",
+      "data": {
+        "excerpt": "You approach Sister Drenna (cultist_refugee). I joined the Eye for my daughter. She was sick \u2014 wasting disease. Kol said the Hunger could heal her. It did. But the price was my arm. And my doubt."
+      }
+    },
+    {
+      "timestamp": "2026-04-22T22:41:47.048478",
+      "kind": "test",
+      "message": "\n--- Issue 001 check: Combat choices ---"
+    },
+    {
+      "timestamp": "2026-04-22T22:41:47.064999",
+      "kind": "final_flags",
+      "message": "Flags after tests: {'drenna_recruited_by_kol': '1'}"
+    }
+  ],
+  "final_flags": {
+    "drenna_recruited_by_kol": "1"
+  },
+  "summary": "Scenario B: Absurd action intent routing test"
+}

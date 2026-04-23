@@ -1438,6 +1438,38 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
                     npc = n_dict
                     break
 
+            # Check for interactive non-NPC objects before random fallback
+            if npc is None:
+                # Known interactive objects per location (environmental interactables)
+                interactive_objects = {
+                    "thornhold": {
+                        "statue": (
+                            "You approach the weathered stone hand in the town square. It points northeast, "
+                            "half-sunk into cobblestones. The hand's fingers are carved with the same seal sigil "
+                            "you've seen elsewhere — three concentric rings, the outermost broken. Moss grows between the cracks."
+                        ),
+                        "seal marker": (
+                            "The seal marker stands in the central square — a weathered stone hand reaching skyward. "
+                            "The symbols on its palm match those in the cave. One of the rings in the concentric pattern "
+                            "is fractured — as if something broke through from the other side."
+                        ),
+                    },
+                }
+                if location_id in interactive_objects:
+                    for obj_name, obj_desc in interactive_objects[location_id].items():
+                        if obj_name in target_lower or target_lower in obj_name:
+                            conn2.close()
+                            conn.close()
+                            return {
+                                "success": True,
+                                "narration": obj_desc,
+                                "events": [{"type": "object_interaction", "object": obj_name, "location": location_id}],
+                                "character_state": {
+                                    "hp": {"current": char["hp_current"], "max": char["hp_max"]},
+                                    "location_id": char["location_id"],
+                                },
+                            }
+
         # Fall back to random NPC if no target match
         if npc is None:
             npc = dict(rng.choice(npcs))

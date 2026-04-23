@@ -185,7 +185,7 @@ def get_starting_equipment() -> list[dict]:
 # ---------------------------------------------------------------------------
 
 POINT_BUY_COSTS = {
-    8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9,
+    8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 6, 15: 9,
 }
 POINT_BUY_BUDGET = 27
 
@@ -209,8 +209,9 @@ def validate_point_buy(stats: dict) -> tuple[bool, str]:
             return False, f"Invalid point-buy value: {value}"
         total_cost += POINT_BUY_COSTS[value]
 
-    if total_cost > POINT_BUY_BUDGET:
-        return False, f"Point-buy exceeded: {total_cost}/{POINT_BUY_BUDGET} points used"
+    # Must spend exactly POINT_BUY_BUDGET points (standard 27-point buy)
+    if total_cost != POINT_BUY_BUDGET:
+        return False, f"Point-buy must total exactly {POINT_BUY_BUDGET} points, got {total_cost}"
 
     return True, "OK"
 

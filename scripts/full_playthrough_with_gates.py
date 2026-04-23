@@ -138,7 +138,17 @@ def phase_antechamber_puzzle(client: httpx.Client, state: PlaythroughState):
     state.log("Moving to cave-entrance")
     try:
         result = do_action(client, state.char_id, "move", target="cave-entrance")
-        state.location_id = "cave-entrance"
+        if result.get("success"):
+            state.location_id = "cave-entrance"
+        else:
+            state.log(f"Move to cave-entrance failed: {result.get('narration','')[:200]}", "warning")
+            # Use DM turn to navigate instead
+            dm_resp = do_dm_turn(client, state.char_id, "I head toward the cave entrance.")
+            scene = dm_resp.get("narration", {}).get("scene", "")
+            state.log(f"DM: {scene[:200]}")
+            # Refresh character state
+            char_data = get_character(client, state.char_id)
+            state.location_id = char_data.get("location_id")
     except Exception as e:
         state.log(f"Direct move blocked: {e}", "warning")
         dm_resp = do_dm_turn(client, state.char_id, "I head toward the cave entrance.")
@@ -168,9 +178,9 @@ def phase_antechamber_puzzle(client: httpx.Client, state: PlaythroughState):
 
 def phase_south_road_wolves(client: httpx.Client, state: PlaythroughState):
     state.log("\n=== PHASE 4: South Road — Wolves ===")
-    state.log("Travel to south-rd")
-    do_action(client, state.char_id, "move", target="south-rd")
-    state.location_id = "south-rd"
+    state.log("Travel to south-road")
+    do_action(client, state.char_id, "move", target="south-road")
+    state.location_id = "south-road"
 
     state.log("Exploring to trigger encounter")
     explore = do_action(client, state.char_id, "explore")
