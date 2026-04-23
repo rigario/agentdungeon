@@ -179,8 +179,16 @@ def phase_antechamber_puzzle(client: httpx.Client, state: PlaythroughState):
 def phase_south_road_wolves(client: httpx.Client, state: PlaythroughState):
     state.log("\n=== PHASE 4: South Road — Wolves ===")
     state.log("Travel to south-road")
-    do_action(client, state.char_id, "move", target="south-road")
-    state.location_id = "south-road"
+    result = do_action(client, state.char_id, "move", target="south-road")
+    if result.get("success"):
+        state.location_id = "south-road"
+    else:
+        state.log(f"Move to south-road failed: {result.get('narration','')[:200]}", "warning")
+        dm_resp = do_dm_turn(client, state.char_id, "I travel the south road toward the forest.")
+        scene = dm_resp.get("narration", {}).get("scene", "")
+        state.log(f"DM narration: {scene[:200]}")
+        char_data = get_character(client, state.char_id)
+        state.location_id = char_data.get("location_id")
 
     state.log("Exploring to trigger encounter")
     explore = do_action(client, state.char_id, "explore")
@@ -195,8 +203,14 @@ def phase_south_road_wolves(client: httpx.Client, state: PlaythroughState):
 def phase_sister_drenna_quest(client: httpx.Client, state: PlaythroughState):
     state.log("\n=== PHASE 5: Sister Drenna — Quest Gate ===")
     state.log("Move to crossroads")
-    do_action(client, state.char_id, "move", target="crossroads")
-    state.location_id = "crossroads"
+    result = do_action(client, state.char_id, "move", target="crossroads")
+    if result.get("success"):
+        state.location_id = "crossroads"
+    else:
+        state.log(f"Move to crossroads failed: {result.get('narration','')[:200]}", "warning")
+        dm_resp = do_dm_turn(client, state.char_id, "I make my way to the crossroads.")
+        char_data = get_character(client, state.char_id)
+        state.location_id = char_data.get("location_id")
 
     state.log("Talk to Sister Drenna")
     dm_resp = do_dm_turn(client, state.char_id,
@@ -228,8 +242,14 @@ def phase_kol_encounter(client: httpx.Client, state: PlaythroughState):
     state.log("\n=== PHASE 6: Brother Kol — Cave Depths ===")
     state.log("Proceed to cave-depths")
     try:
-        do_action(client, state.char_id, "move", target="cave-depths")
-        state.location_id = "cave-depths"
+        result = do_action(client, state.char_id, "move", target="cave-depths")
+        if result.get("success"):
+            state.location_id = "cave-depths"
+        else:
+            state.log(f"Move to cave-depths failed: {result.get('narration','')[:200]}", "warning")
+            dm_resp = do_dm_turn(client, state.char_id, "I venture deeper into the cave system.")
+            char_data = get_character(client, state.char_id)
+            state.location_id = char_data.get("location_id")
     except Exception as e:
         dm_resp = do_dm_turn(client, state.char_id, "I venture deeper into the cave system.")
 
