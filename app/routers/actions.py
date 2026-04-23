@@ -1441,7 +1441,12 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
         # Fall back to random NPC if no target match
         if npc is None:
             npc = dict(rng.choice(npcs))
-        dialogues = json.loads(npc.get("dialogue_templates", "[]"))
+        # Defensive: handle NULL or malformed JSON in dialogue_templates
+        raw_dialogues = npc.get("dialogue_templates") or "[]"
+        try:
+            dialogues = json.loads(raw_dialogues)
+        except (json.JSONDecodeError, TypeError, ValueError):
+            dialogues = []
 
         # Set encounter flag for named NPCs (kol_brother_met, etc.)
         if npc["id"] == "npc-brother-kol":
@@ -1503,6 +1508,12 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
         conn.commit()
         conn.close()
 
+        # Safely parse NPC trades JSON (handle NULL/malformed)
+        try:
+            trades = json.loads(npc.get("trades_json") or "[]")
+        except (json.JSONDecodeError, TypeError, ValueError):
+            trades = []
+
         result = {
             "success": True,
             "narration": f"You approach {npc['name']} ({npc['archetype']}). {dialogue}",
@@ -1511,7 +1522,7 @@ def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(g
                 "hp": {"current": char["hp_current"], "max": char["hp_max"]},
                 "location_id": char["location_id"],
             },
-            "npc": {"name": npc["name"], "archetype": npc["archetype"], "trades": json.loads(npc.get("trades_json", "[]"))},
+            "npc": {"name": npc["name"], "archetype": npc["archetype"], "trades": trades},
             "time_info": time_info,
         }
 
