@@ -14,6 +14,7 @@ import re
 from typing import Optional
 from dataclasses import dataclass, field
 
+from fastapi import HTTPException
 from app.contract import IntentType, ServerEndpoint, RoutingPolicy
 
 
@@ -309,6 +310,33 @@ class IntentRouter:
         """
         # Step 1: Classify intent
         intent = classify_intent(player_message)
+
+        # Approval gate — check before routing to rules server
+        try:
+            approval_payload = {
+                "action_type": intent.action_type,
+                "target": intent.target,
+                "details": intent.details,
+            }
+            approval = await self._client.check_approval(character_id, approval_payload)
+            if approval.get("needs_approval"):
+                raise HTTPException(
+                    status_code=202,
+                    detail={
+                        "error": "approval_required",
+                        "reasons": approval["reasons"],
+                        "context": approval["context"],
+                        "intent": {
+                            "type": intent.type.value,
+                            "action_type": intent.action_type,
+                        },
+                    },
+                )
+        except Exception:
+            # If approval check fails (rules server down), allow to proceed
+            # This prevents total outage — human-in-the-loop becomes advisory
+            pass
+
 
         # Step 2: Check for active combat (overrides intent routing)
         active_combat = await self.check_active_combat(character_id)

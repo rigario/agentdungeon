@@ -510,46 +510,32 @@ approval_router = APIRouter(tags=["approval"])
 def check_approval(character_id: str, body: ApprovalCheck, auth: dict = Depends(get_auth)):
     """Check if an action needs human approval."""
     require_character_ownership(character_id, auth)
-    char = _get_char(character_id)
-    config = json.loads(char.get("approval_config", "{}"))
-    hp_pct = (char["hp_current"] / char["hp_max"] * 100) if char["hp_max"] > 0 else 100
+    from app.services.database import get_db
+    from app.services.approval_gate import evaluate_approval_gate
+
     conn = get_db()
-    loc_row = conn.execute("SELECT * FROM locations WHERE id = ?", (char["location_id"],)).fetchone()
+    char_row = conn.execute("SELECT * FROM characters WHERE id = ?", (character_id,)).fetchone()
     conn.close()
-    location = dict(loc_row) if loc_row else None
-    reasons = []
+    if not char_row:
+        raise HTTPException(status_code=404, detail=f"Character not found: {character_id}")
+    char = dict(char_row)
 
-    if hp_pct < config.get("hp_threshold_pct", 25):
-        reasons.append(f"HP at {hp_pct:.0f}% (threshold: {config['hp_threshold_pct']}%)")
+    # Fetch location if needed for move actions
+    location = None
+    if body.action_type == "move":
+        loc_id = char.get("location_id")
+        if loc_id:
+            conn = get_db()
+            loc_row = conn.execute("SELECT * FROM locations WHERE id = ?", (loc_id,)).fetchone()
+            conn.close()
+            if loc_row:
+                location = dict(loc_row)
 
-    if body.action_type == "cast" and body.details:
-        if body.details.get("spell_level", 0) >= config.get("spell_level_min", 3):
-            reasons.append(f"Spell level {body.details['spell_level']} >= {config['spell_level_min']}")
-
-    if body.action_type == "interact" and body.details and body.details.get("is_named"):
-        if config.get("named_npc_interaction", True):
-            reasons.append("Named/story NPC")
-
-    if body.action_type == "quest_accept" and config.get("quest_acceptance", True):
-        reasons.append("Quest acceptance")
-
-    if body.action_type == "moral_choice" and config.get("moral_choice", True):
-        reasons.append("Moral choice")
-
-    if body.action_type == "move" and location:
-        if location.get("recommended_level", 1) > char.get("level", 1) + 1:
-            if config.get("dangerous_area_entry", True):
-                reasons.append(f"Dangerous area: {location['name']} (level {location['recommended_level']})")
-
-    if body.action_type == "flee" and config.get("flee_combat", False):
-        reasons.append("Fleeing combat")
-
-    return {
-        "needs_approval": len(reasons) > 0,
-        "reasons": reasons,
-        "context": {
-            "hp": {"current": char["hp_current"], "max": char["hp_max"], "pct": round(hp_pct, 1)},
-            "location": location["name"] if location else char["location_id"],
-            "character_level": char.get("level", 1),
-        },
-    }
+    result = evaluate_approval_gate(
+        character=char,
+        action_type=body.action_type,
+        target=body.target,
+        details=body.details,
+        location=location,
+    )
+    return result
