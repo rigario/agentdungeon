@@ -327,6 +327,82 @@ class TestPersistence:
 
 
 # ---------------------------------------------------------------------------
+# 6b. Location persistence regression (ISSUE-007)
+# ---------------------------------------------------------------------------
+
+class TestLocationPersistence:
+    """Regression test for ISSUE-007: character location_id must persist after move action.
+
+    Verifies that POST /characters/{id}/actions with action_type='move' correctly
+    updates the character's location_id in the database, and that subsequent GET
+    reflects the new location. This guards against the bug where location_id was
+    not updated, causing current_location_id to remain stale.
+    """
+
+    @skip_no_seed
+    def test_move_updates_location_id(self, rules, character):
+        """Move action should update character's location_id to target location."""
+        # 1. Get initial character state
+        r_initial = rules.get(f"/characters/{character}")
+        assert r_initial.status_code == 200
+        initial_data = r_initial.json()
+        start_location = initial_data.get("location_id")
+        assert start_location is not None, "Character must have an initial location"
+
+        # 2. Determine a valid connected location to move to
+        # From world seed: rusty-tankard connects to thornhold
+        # This is derived from app/scripts/seed.py LOCATIONS constant
+        START_LOCATION_CONNECTIONS = {
+            "rusty-tankard": ["thornhold"],
+            "thornhold": ["forest-edge", "south-road"],
+            "forest-edge": ["deep-forest", "thornhold"],
+            "south-road": ["crossroads", "thornhold"],
+            "deep-forest": ["forest-edge", "cave-entrance"],
+            "crossroads": ["south-road", "greypeak-pass"],
+            "greypeak-pass": ["crossroads"],
+            "cave-entrance": ["deep-forest", "cave-depths"],
+            "cave-depths": ["cave-entrance", "seal-chamber"],
+            "seal-chamber": ["cave-depths"],
+        }
+        connected = START_LOCATION_CONNECTIONS.get(start_location)
+        assert connected, f"Unknown start location '{start_location}' — add to connection map"
+        target_location = connected[0]
+
+        # 3. Perform move action
+        r_move = rules.post(
+            f"/characters/{character}/actions",
+            json={"action_type": "move", "target": target_location}
+        )
+        assert r_move.status_code == 200, f"Move action failed [{r_move.status_code}]: {r_move.text}"
+        move_data = r_move.json()
+        assert move_data.get("success") is True, f"Move returned success=False: {move_data}"
+
+        # 4. Verify character location updated
+        r_after = rules.get(f"/characters/{character}")
+        assert r_after.status_code == 200
+        after_data = r_after.json()
+        new_location = after_data.get("location_id")
+
+        assert new_location == target_location, (
+            f"Location persistence failed: after move to '{target_location}', "
+            f"character location_id is '{new_location}' (expected '{target_location}')"
+        )
+
+        # 5. Verify current_location_id alias matches
+        assert after_data.get("current_location_id") == target_location, (
+            f"current_location_id mismatch: expected '{target_location}', got '{after_data.get('current_location_id')}'"
+        )
+
+        # 6. Verify event_log contains the move
+        r_log = rules.get(f"/characters/{character}/event-log")
+        assert r_log.status_code == 200
+        log_data = r_log.json()
+        events = log_data.get("events", log_data) if isinstance(log_data, dict) else log_data
+        move_events = [e for e in events if e.get("event_type") == "move" and e.get("location_id") == target_location]
+        assert len(move_events) >= 1, f"No move event found in log for target '{target_location}'"
+
+
+# ---------------------------------------------------------------------------
 # 7. Cadence status
 # ---------------------------------------------------------------------------
 
