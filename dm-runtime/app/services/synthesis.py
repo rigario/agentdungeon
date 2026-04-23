@@ -24,6 +24,13 @@ def _is_combat_response(server_result: dict) -> bool:
         return True
     if isinstance(server_result.get("combat"), dict):
         return True
+    # Fallback: check for other combat indicators when primary keys missing
+    # - round > 0 indicates active combat round
+    # - combat_log populated means combat events were recorded
+    if server_result.get("round", 0) > 0:
+        return True
+    if server_result.get("combat_log"):
+        return True
     return False
 
 
@@ -79,6 +86,8 @@ async def synthesize_narration(server_result: dict, intent: dict, world_context:
 
 def _build_from_llm(llm_output: dict, server_result: dict, world_context: dict) -> dict:
     """Build response using LLM narration."""
+    # Normalize world_context
+    world_context = world_context or {}
     # NPC lines from LLM
     npc_lines = []
     for line in llm_output.get("npc_lines", []):
@@ -106,6 +115,8 @@ def _build_from_llm(llm_output: dict, server_result: dict, world_context: dict) 
 
 def _build_passthrough(server_result: dict, intent: dict, world_context: dict) -> dict:
     """Fallback: structured passthrough when LLM is unavailable."""
+    # Normalize world_context
+    world_context = world_context or {}
     narration = server_result.get("narration", "")
     world_ctx = server_result.get("world_context", world_context)
 

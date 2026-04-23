@@ -348,7 +348,8 @@ class IntentRouter:
 
             result = await self._client.submit_action(character_id, payload)
             # Attack actions wrap combat data under 'combat' key — extract to top-level
-            combat_data = result.get("combat", {})
+            # Handle null combat value: result.get("combat", {}) returns None when key exists with null
+            combat_data = result.get("combat") or {}
             return RouterResult(
                 success=True,
                 endpoint_called="actions",
