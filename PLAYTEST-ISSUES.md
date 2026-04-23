@@ -1,8 +1,8 @@
 # D20 Playtest Issues Log
 
-**Last Reviewed:** 2026-04-23 05:43 UTC — Heartbeat — Scenario D
+**Last Reviewed:** 2026-04-23 07:42 UTC — Heartbeat — Scenario A run
 
-**Open Issues:** 3 | **Fixed Issues:** 5
+**Open Issues:** 4 | **Fixed Issues:** 5
 ---
 
 ## Open Issues
@@ -51,6 +51,17 @@
 - Condition: Isolated statue-examination test with fresh character at south-road
 - Status: CONFIRMED — DM returned Ser Maren (guard) dialogue instead of statue description
 - Evidence: Endpoint `/dm/turn`, status=200, char ID `hb-d-stat-...`; intent.type=interact, target="statue carefully"; narration.scene="You approach Ser Maren (guard) ..."
+
+
+**Heartbeat Check (2026-04-23 06:45 UTC — Scenario E):**
+- Condition: Full playtest run, character reached cave-depths, statue examine attempted
+- Status: CONFIRMED — DM returned wrong NPC (Ser Maren guard) instead of statue description
+- Evidence: `/dm/turn` status=200, char ID `scenarioe-1776926233-a5caae`, target="statue carefully", narration.scene="You approach Ser Maren (guard)..."
+**Heartbeat Check (2026-04-23 07:43 UTC — Scenario A):**
+- Condition: Fresh character, explore Thornhold, DM turn statue examination
+- Status: CONFIRMED — DM returned Marta the Merchant dialogue (wrong NPC)
+- Evidence: `/dm/turn` status=200, char ID `hb-scena-1776929801-1b2699-473423`, target="statue carefully", narration.scene="You approach Marta the Merchant (merchant). Looking to buy or sell?"
+
 ### ISSUE-007: Location persistence regression after move action (P1-High)
 
 **Severity:** P1-High  (blocks world model, quest/NPC access)
@@ -88,6 +99,17 @@
 - Tested location persistence across 6 moves: thornhold→south-road→forest-edge→deep-forest→cave-entrance→cave-depths
 - Each move verified via GET location_id; all matched target (no nulls observed)
 - Status: ISSUE-007 remains NOT REPRODUCED — location persistence working correctly
+
+
+**Heartbeat Check (2026-04-23 06:45 UTC — Scenario E):**
+- Condition: Verified location persistence across 8 moves (south-road<->thornhold->forest-edge->deep-forest->cave-entrance->cave-depths)
+- Status: NOT REPRODUCED — character location persisted correctly after every move; `location_id` matched expected target; no nulls observed
+
+**Heartbeat Check (2026-04-23 07:43 UTC — Scenario A):**
+- Condition: Character creation → explore → move sequence; verified both `location_id` and `current_location_id` after each step
+- Status: CONFIRMED — `location_id` updates correctly (thornhold → south-road), but `current_location_id` remains `None` across all states (creation, after explore, after move). Field never populated in GET response.
+- Evidence: GET after create: `current_location_id=None`; GET after move: `current_location_id=None` (while `location_id='south-road'`). Field-level bug persists.
+
 ### ISSUE-008: full_playthrough_with_gates.py crashes due to invalid location ID and missing success validation (P1-High)
 
 **Severity:** P1-High  (blocks automated Scenario C/D/E playtest runs)
@@ -128,9 +150,45 @@
 - Confirmed: south-rd returns 404; canonical ID is south-road
 - Action: ISSUE-008 created; harness repair required before next automated Scenario C run
 
----
 
-## Fixed Issues
+
+**Heartbeat Check (2026-04-23 06:45 UTC — Scenario E):**
+- Condition: Scenario E executed via direct API calls (bypassing broken harness)
+- Status: Harness remains broken — production endpoints functional; script errors unrelated to server
+
+### ISSUE-009: POST /portal/token returns 500 Internal Server Error (P1-High)
+
+**Severity:** P1-High  (blocks Scenario E completion, portal sharing)
+**Category:** Technical  (endpoint/DB)
+**Reproduces:** YES
+**Discovered:** 2026-04-23 06:45 UTC — Heartbeat agent, Scenario E
+
+**Steps:**
+1. Create character — ID: `scenarioe-1776926233-a5caae`
+2. POST `/portal/token` with `{"character_id": "scenarioe-1776926233-a5caae"}`
+3. Observe response status and body
+
+**Expected:** 201 Created with token object containing `token`, `character_id`, `character_name`
+**Actual:** 500 Internal Server Error (plain text "Internal Server Error")
+
+**Evidence:**
+- Endpoint: `/portal/token`
+- Status: 500
+- Character ID: `scenarioe-1776926233-a5caae`
+- Timestamp: 2026-04-23 06:45 UTC
+- Response excerpt: "Internal Server Error"
+- Character verified: GET `/characters/scenarioe-1776926233-a5caae` returns 200 with valid sheet
+
+**Analysis:** Likely causes: (a) `share_tokens` table missing in production DB, (b) foreign key constraint violation (character not found at token creation), or (c) unhandled exception in `create_share_token()` (portal.py). Smoke tests currently do not cover portal token generation.
+
+**MC Task:** Check production VPS logs for traceback; verify `share_tokens` table exists with correct schema; add smoke test for `/portal/token`.
+
+**Heartbeat Check (2026-04-23 07:43 UTC — Scenario A):**
+- Condition: POST `/portal/token` with valid character ID from Scenario A run
+- Status: NOT REPRODUCED — endpoint returns 201 Created with token object (issue appears resolved)
+- Evidence: POST `/portal/token` status=201; response excerpt: `{"id":"...","token":"KPsvB6...","character_id":"hb-scena-1776929801-1b2699-473423"}`; character verified via GET 200
+
+---
 
 ### ISSUE-001: DM runtime root endpoint returns HTML instead of JSON (test mismatch)
 **Fixed:** 2026-04-23 — Smoke test updated to check `/dm/health` instead of `/`
@@ -263,6 +321,61 @@
 - Combat chain traversal required sequential exploration to unlock next region: forest-edge after initial explore, deep-forest after arrival, cave-entrance after deep-forest explore, cave-depths after cave-entrance explore.
 - Quest flag `kol_backstory_known` did not auto-set after Kol dialogue; may require explicit quest acceptance action or additional Drenna confession not triggered.
 - World geography to reach Kol works via combat chain path (forest-edge→deep-forest→cave-entrance→cave-depths). Drenna reachable directly via south-road.
+### 2026-04-23 06:45 UTC — Heartbeat Agent — Scenario E (Portal / Ending Access)
+
+**Character:** ScenarioE-run (ID: `scenarioe-1776926233-a5caae`)
+**Smoke Test:** 16/16 PASS (production endpoints healthy)
+
+**Path taken:**
+- Thornhold -> explore (set thornhold_statue_observed=1)
+- South-road (move success)
+- Back to thornhold (move success)
+- Forest-edge (move success; encounter triggered: goblin ambush — resolved via DM turn)
+- Deep-forest (move success)
+- Cave-entrance (move success)
+- Cave-depths (move success; reached Seal Chamber)
+
+**Flags captured:** `thornhold_statue_observed=1`
+
+**Key Evidence:**
+- `/characters POST` → 201 created, initial location thornhold
+- `/characters/{char_id}/actions` explore → 200, set statue flag
+- Move actions: status 200 with success=True, location confirmed via GET
+- Final GET `/characters/{char_id}` → `location_id = cave-depths` ✓
+- `/portal/token` POST → **500 Internal Server Error**
+
+**Issues Found:**
+- CONFIRMED: ISSUE-006 — DM statue-examine returns wrong NPC (Ser Maren guard)
+- NOT REPRODUCED: ISSUE-007 — location persistence OK
+- NOT REPRODUCED: ISSUE-008 — harness bug bypassed
+- **NEW: ISSUE-009** — Portal token generation fails with 500 (P1-High)
+
+**Notes:** World connectivity verified. Endings: Reseal reachable, Merge reachable, Communion NOT reachable (missing `kol_backstory_known`). Portal token endpoint blocks Scenario E.
+
+### 2026-04-23 07:43 UTC — Heartbeat Agent — Scenario A
+
+**Character:** hb-scenA-1776929801-1b2699 (ID: `hb-scena-1776929801-1b2699-473423`)
+**Smoke Test:** 16/16 PASS (production endpoints healthy)
+
+**Transcript (key calls):**
+- POST `/characters` → 201 created, `location_id='thornhold'` (initial `current_location_id=None`)
+- POST `/characters/{id}/actions` explore → 200; narration: "You search Thornhold but find nothing of value. You glance at the statue..."; flag `thornhold_statue_observed=1`
+- POST `/dm/turn` with "I examine the statue carefully" → 200; narration **"You approach Marta the Merchant (merchant). Looking to buy or sell?"** — ISSUE-006 reproduced
+- POST `/characters/{id}/actions` move to south-road → 200 success; `character_state.location_id='south-road'` (verified via GET: `location_id='south-road'`, `current_location_id=None`) — ISSUE-007 field discrepancy persists
+
+**Flags Set:** `thornhold_statue_observed=1`
+**Final Character State:** `location_id` updates correctly (tested: south-road ↔ thornhold), but `current_location_id` remains `None`
+
+**Issues Confirmed:**
+- ISSUE-006 (P2) — DM statue-examination returns wrong NPC (Marta). Reproduced.
+- ISSUE-007 (P1) — `current_location_id` field never set; discrepancy with `location_id`.
+- ISSUE-009 (P1) — Portal token now functional (returns 201); not reproduced.
+
+**Notes:**
+- Harness (ISSUE-008) remains broken; Scenario A bypassed via direct API calls.
+- Communion ending still unreachable (ISSUE-013 external); not addressed this run.
+- Recommend: (1) Fix synthesis routing for statue interaction (ISSUE-006), (2) Align `current_location_id` with `location_id` state updates (ISSUE-007), (3) Verify ISSUE-009 resolution across multiple runs; consider closing.
+
 ---
 
 ## Template for New Issues
