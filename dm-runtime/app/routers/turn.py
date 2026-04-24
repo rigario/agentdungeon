@@ -10,7 +10,6 @@ from fastapi import APIRouter, HTTPException
 from app.contract import DMResponse, NarrationPayload, MechanicsPayload, ChoiceOption, ServerTrace
 from app.services import rules_client
 from app.services.intent_router import IntentRouter, classify_intent
-from app.services.character_lock import acquire_character_lock, release_character_lock
 from app.services.character_validation import validate_character_for_turn
 from app.services.synthesis import synthesize_narration
 
@@ -27,61 +26,54 @@ async def dm_turn(body: dict):
     if not character_id:
         raise HTTPException(status_code=400, detail="character_id is required")
 
-    lock_token = await acquire_character_lock(character_id, timeout=25)
-    if not lock_token:
-        raise HTTPException(status_code=429, detail=f"Character {character_id} is busy")
-
     try:
-        try:
-            validation = await validate_character_for_turn(character_id)
-            if not validation.get("valid"):
-                raise HTTPException(
-                    status_code=403,
-                    detail={
-                        "error": "character_state_invalid",
-                        "reason": validation.get("reason"),
-                        "code": validation.get("code"),
-                        "checks_run": validation.get("checks_run", []),
-                    },
-                )
-        except HTTPException:
-            raise
-        except Exception as e:
-            raise HTTPException(status_code=502, detail=f"Validation error: {str(e)}")
+        validation = await validate_character_for_turn(character_id)
+        if not validation.get("valid"):
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "error": "character_state_invalid",
+                    "reason": validation.get("reason"),
+                    "code": validation.get("code"),
+                    "checks_run": validation.get("checks_run", []),
+                },
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Validation error: {str(e)}")
 
-        result = await _intent_router.route(character_id, message)
-        if not result.success:
-            status = result.error_status or 502
-            raise HTTPException(status_code=status, detail=result.error)
+    result = await _intent_router.route(character_id, message)
+    if not result.success:
+        status = result.error_status or 502
+        raise HTTPException(status_code=status, detail=result.error)
 
-        intent = classify_intent(message)
-        intent_dict = {
-            "type": intent.type.value,
-            "target": intent.target,
-            "details": intent.details,
-            "server_endpoint": intent.server_endpoint.value,
-        }
-        world_context = result.world_context or {}
-        narrated = await synthesize_narration(result.to_dict(), intent_dict, world_context, session_id=session_id)
-        resolved_session_id = narrated.get("session_id") or session_id
+    intent = classify_intent(message)
+    intent_dict = {
+        "type": intent.type.value,
+        "target": intent.target,
+        "details": intent.details,
+        "server_endpoint": intent.server_endpoint.value,
+    }
+    world_context = result.world_context or {}
+    narrated = await synthesize_narration(result.to_dict(), intent_dict, world_context, session_id=session_id)
+    resolved_session_id = narrated.get("session_id") or session_id
 
-        return DMResponse(
-            narration=NarrationPayload(**narrated["narration"]),
-            mechanics=MechanicsPayload(**narrated["mechanics"]),
-            choices=[ChoiceOption(**c) for c in narrated["choices"]],
-            server_trace=ServerTrace(
-                turn_id=narrated["server_trace"].get("turn_id"),
-                decision_point=narrated["server_trace"].get("decision_point"),
-                available_actions=narrated["server_trace"].get("available_actions", []),
-                combat_log=narrated["server_trace"].get("combat_log", []),
-                intent_used=intent_dict,
-                server_endpoint_called=result.endpoint_called,
-                raw_server_response_keys=list(result.raw_response.keys()),
-            ),
-            session_id=resolved_session_id,
-        )
-    finally:
-        await release_character_lock(character_id, lock_token)
+    return DMResponse(
+        narration=NarrationPayload(**narrated["narration"]),
+        mechanics=MechanicsPayload(**narrated["mechanics"]),
+        choices=[ChoiceOption(**c) for c in narrated["choices"]],
+        server_trace=ServerTrace(
+            turn_id=narrated["server_trace"].get("turn_id"),
+            decision_point=narrated["server_trace"].get("decision_point"),
+            available_actions=narrated["server_trace"].get("available_actions", []),
+            combat_log=narrated["server_trace"].get("combat_log", []),
+            intent_used=intent_dict,
+            server_endpoint_called=result.endpoint_called,
+            raw_server_response_keys=list(result.raw_response.keys()),
+        ),
+        session_id=resolved_session_id,
+    )
 
 
 @router.post("/narrate", response_model=DMResponse)

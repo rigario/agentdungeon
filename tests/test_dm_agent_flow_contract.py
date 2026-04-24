@@ -106,6 +106,17 @@ def test_dm_proxy_uses_narrate_endpoint_not_turn(monkeypatch):
     assert saved == [("char-1", "sess-real")]
 
 
+def test_dm_turn_does_not_take_runtime_lock():
+    """DM /turn orchestrates locked rules calls; taking a second runtime lock deadlocks."""
+    _prefer_dm_runtime_app()
+    import inspect
+    import app.routers.turn as turn
+
+    source = inspect.getsource(turn.dm_turn)
+    assert "acquire_character_lock" not in source
+    assert "release_character_lock" not in source
+
+
 def test_rules_client_marks_actions_as_dm_runtime_origin(monkeypatch):
     """DM-runtime calls to rules /actions must not trigger rules-server DM augmentation."""
     _prefer_dm_runtime_app()
