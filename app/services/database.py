@@ -348,6 +348,49 @@ def init_db():
         );
 
         -- =========================================================
+        -- SOCIAL & EXPLORATION DEPTH — per-NPC affinity + milestones
+        -- =========================================================
+
+        -- Track per-NPC interaction history and affinity score
+        CREATE TABLE IF NOT EXISTS character_npc_interactions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            character_id TEXT NOT NULL,
+            npc_id TEXT NOT NULL,
+            interaction_count INTEGER DEFAULT 0,
+            affinity INTEGER DEFAULT 50,  -- 0-100 scale
+            first_interaction_at TEXT,
+            last_interaction_at TEXT,
+            FOREIGN KEY (character_id) REFERENCES characters(id),
+            FOREIGN KEY (npc_id) REFERENCES npcs(id),
+            UNIQUE(character_id, npc_id)
+        );
+
+        -- Track milestone rewards claimed by character
+        CREATE TABLE IF NOT EXISTS character_milestones (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            character_id TEXT NOT NULL,
+            milestone_type TEXT NOT NULL,  -- 'npc_count', 'exploration', 'affinity'
+            threshold INTEGER NOT NULL,
+            claimed_at TEXT NOT NULL,
+            reward_type TEXT NOT NULL,     -- 'item', 'hint', 'flag'
+            reward_data TEXT,              -- JSON: item_id, hint_text, etc.
+            FOREIGN KEY (character_id) REFERENCES characters(id),
+            UNIQUE(character_id, milestone_type, threshold)
+        );
+
+        -- Track exploration loot finds (prevents duplicate unique items)
+        CREATE TABLE IF NOT EXISTS exploration_loot_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            character_id TEXT NOT NULL,
+            location_id TEXT NOT NULL,
+            item_id TEXT NOT NULL,
+            found_at TEXT NOT NULL,
+            FOREIGN KEY (character_id) REFERENCES characters(id),
+            FOREIGN KEY (item_id) REFERENCES items(id),
+            UNIQUE(character_id, item_id)
+        );
+
+        -- =========================================================
         -- PLAYTEST CADENCE (accelerated tick mode)
         -- =========================================================
 
