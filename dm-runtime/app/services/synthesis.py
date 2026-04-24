@@ -129,10 +129,14 @@ async def synthesize_narration(server_result: dict, intent: dict, world_context:
     llm_output = await llm_narrate(server_result, intent, world_context, session_id=session_id)
 
     if llm_output and llm_output.get("scene"):
-        result = _build_from_llm(llm_output, server_result, world_context)
-        if llm_output.get("_hermes_session_id"):
-            result["session_id"] = llm_output["_hermes_session_id"]
-        return result
+        try:
+            result = _build_from_llm(llm_output, server_result, world_context)
+            if llm_output.get("_hermes_session_id"):
+                result["session_id"] = llm_output["_hermes_session_id"]
+            return result
+        except Exception as e:
+            logger.warning("LLM narration build failed, falling back to passthrough: %s", e)
+            return _build_passthrough(server_result, intent, world_context)
     else:
         return _build_passthrough(server_result, intent, world_context)
 
