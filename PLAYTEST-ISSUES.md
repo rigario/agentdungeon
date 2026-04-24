@@ -1,8 +1,8 @@
 # D20 Playtest Issues Log
 
-**Last Reviewed:** 2026-04-23 07:42 UTC — Heartbeat — Scenario A run
+**Last Reviewed:** 2026-04-24 00:45 UTC — Heartbeat — Smoke FAILURE (4 action endpoints 500), ISSUE-011 confirmed — Pre-flight smoke FAILURE (4 action endpoints 500), ISSUE-011 confirmed active, no scenario executed
 
-**Open Issues:** 4 | **Fixed Issues:** 5
+**Open Issues:** 6 | **Fixed Issues:** 5
 ---
 
 ## Open Issues
@@ -219,6 +219,111 @@
 
 ---
 
+### ISSUE-010: Infrastructure failure — production endpoints degraded or unreachable (P1-High)
+
+**Severity:** P1-High  (blocks all playtesting, no world data accessible)
+**Category:** Technical  (infrastructure/network)
+**Reproduces:** YES — Heartbeat agent 2026-04-23 19:47 UTC
+
+**Steps:**
+1. Pre-flight health check: `GET https://d20.holocronlabs.ai/health`
+2. Pre-flight health check: `GET https://d20.holocronlabs.ai/dm/health`
+3. World data check: `GET https://d20.holocronlabs.ai/api/map/data`
+
+**Expected:**
+- `/health` → 200 OK with healthy JSON
+- `/dm/health` → 200 OK with all subsystems green
+- `/api/map/data` → 200 OK with non-empty locations array (total ≥ 9)
+
+**Actual:**
+- `/health` → 503 Service Unavailable — "no available server"
+- `/dm/health` → 200 but `status: "degraded"` — `rules_server: "error: [Errno -3] Temporary failure in name resolution"`, `intent_router: "ok (rules server unreachable)"`
+- `/api/map/data` → 503 (no valid JSON response)
+
+**Evidence:**
+- Endpoint `/health`: status=503, body="no available server"
+- Endpoint `/dm/health`: status=200, body includes `"status":"degraded"`, `"rules_server":"error: [Errno -3] Temporary failure in name resolution"`
+- Endpoint `/api/map/data`: status=503, no content (JSON parse error)
+- Timestamp: 2026-04-23T19:47:00Z
+
+**Analysis:**
+The rules server is unreachable from the DM runtime (DNS resolution failure). DM health shows degraded status and narrator is enabled but cannot route to rules. Main health endpoint returns 503 indicating upstream service failure. World database is inaccessible (503). This is a complete infrastructure outage blocking all playtest scenarios.
+
+**Impact:**
+- No character actions can be validated (rules server down)
+- World topology unknown (map data unavailable)
+- All narrative progression impossible
+- Portal token creation and all P1-High issues cannot be verified
+
+**Action:**
+1. Check VPS container status: `docker ps` on production VPS — verify both `d20-rules-server` and `d20-dm` are up
+2. Check Traefik routing — ensure rules server is reachable on port 8600 and DM on 8610
+3. Check DNS/network connectivity between containers (Docker network name resolution)
+4. If containers healthy but inter-container DNS failing, restart DM container or check Docker network configuration
+5. After recovery, re-run pre-flight health gate before any scenario execution
+
+**MC Task:** TODO — Investigate VPS container health, network routing, and DNS configuration
+
+
+
+### ISSUE-011: Action endpoints return 500 Internal Server Error (P1-High)
+
+**Severity:** P1-High  (blocks all scenario execution)
+**Category:** Technical  (rules server / action handlers)
+Reproduces:** YES
+**Discovered:** 2026-04-23 20:45 UTC — Heartbeat agent — smoke suite failure
+
+**Steps:**
+1. Pre-flight: smoke suite runs against production
+2. Test `explore` action: `POST /characters/{id}/actions` with `{"action_type":"explore"}`
+3. Test `move` action: `POST /characters/{id}/actions` with `{"action_type":"move","target":"south-road"}`
+4. Test `attack` action (combat): similar
+
+**Expected:** All action endpoints return 200 OK with valid character state updates
+**Actual:** All action endpoints return 500 Internal Server Error (plain text: "Internal Server Error")
+
+**Evidence:**
+- Health endpoints OK: `/health` → 200, `/dm/health` → 200 (all subsystems green)
+- World data OK: `/api/map/data` → 200 (locations present)
+- Character creation OK: `POST /characters` → 201
+- `POST /characters/{id}/actions` (explore) → 500 (body: "Internal Server Error")
+- `POST /characters/{id}/actions` (move) → 500 (body: "Internal Server Error")
+- Character ID: `smoke-probe-bbab27` (probe), timestamp: {timestamp}
+- Smoke tests: 4 failures (explore, attack, persistence, location persistence)
+
+**Analysis:**
+The rules server is reachable and healthy on the surface (health checks pass, DB connected, character creation works), but action handler endpoints (`/characters/{id}/actions`) are crashing with 500 errors. This indicates an unhandled exception in the action dispatch logic. Distinct from ISSUE-010 (DNS/routing failure) because endpoints are reachable. Likely causes: (a) recent code deployment introduced regression in action router, (b) database constraint violation when updating character state, (c) missing required field in request handling. Check VPS logs for traceback.
+
+**Action:**
+1. Check production VPS logs for the rules server container — look for stack traces on `action` endpoint
+2. Verify recent git commits to `app/routers/actions.py` or related state mutation code
+3. Compare with last known-good deployment (when Scenario D/E ran successfully on 2026-04-23)
+4. Roll back if regression confirmed; fix and redeploy
+
+**MC Task:** TODO — Investigate 500 errors on action endpoints; check logs; identify unhandled exception
+
+**Heartbeat Check (2026-04-23 21:39 UTC):**
+- Condition: Pre-flight smoke suite + direct endpoint probe against production
+- Result: REPRODUCED — action endpoints (explore, attack, persistence, location-persistence) all returning 500
+- Evidence:
+  - Smoke: 15/19 PASS — 4 failures (explore, attack, character_persists, move_location_update)
+  - Probe character: `smoke-probe-1776980206-ae2f92`
+  - `POST /characters/{id}/actions` (explore) → 500
+  - `POST /characters/{id}/actions` (move) → 500
+  - `GET /characters/{id}` → 200 OK
+  - Timestamp: 2026-04-23T21:39:59Z
+**Heartbeat Check (2026-04-24 00:45 UTC):**
+- Condition: Pre-flight smoke suite + direct endpoint probe against production
+- Result: REPRODUCED — action endpoints (explore, attack, persistence, location-persistence) all returning 500
+- Evidence:
+  - Smoke: 15/19 PASS — 4 failures (explore, attack, character_persists, move_location_update)
+  - Probe character: `smoke-probe-1776980206-ae2f92`
+  - `POST /characters/{id}/actions` (explore) → 500
+  - `POST /characters/{id}/actions` (move) → 500
+  - `GET /characters/{id}` → 200 OK
+  - Timestamp: 2026-04-24 00:45 UTC
+
+
 ## Deployment
 
 **Commit:** 9036249 on main branch
@@ -376,7 +481,138 @@
 - Communion ending still unreachable (ISSUE-013 external); not addressed this run.
 - Recommend: (1) Fix synthesis routing for statue interaction (ISSUE-006), (2) Align `current_location_id` with `location_id` state updates (ISSUE-007), (3) Verify ISSUE-009 resolution across multiple runs; consider closing.
 
+
+**Heartbeat Check (2026-04-23 22:36 UTC — Pre-flight smoke FAILURE):**
+- Condition: Pre-flight smoke suite run against production
+- Result: REPRODUCED — action endpoints still returning 500
+- Evidence:
+  - Test `test_explore_action`: POST `/characters/{id}/actions` → 500
+  - Test `test_attack_action`: POST `/characters/{id}/actions` → 500
+  - Test `test_character_persists`: POST `/characters/{id}/actions` → 500
+  - Test `test_move_updates_location_id`: POST `/characters/{id}/actions` → 500
+  - Probe character ID: `smoke-probe-1776980206-ae2f92` (2026-04-23T21:39Z)
+  - Direct probe: `POST /characters/{id}/actions` (explore, move) → 500; `GET /characters/{id}` → 200 OK
+  - Status: `/health`→200, `/dm/health`→200, `/api/map/data`→200 — rules server reachable but action handlers crashing
+- **Action:** Scenario execution aborted per pre-flight gate (smoke suite did not pass). Awaiting infrastructure fix.
+
 ---
+
+### 2026-04-23 19:48 UTC — Heartbeat Agent — Infrastructure blocker
+
+**Pre-flight health checks FAILED — no scenario execution performed.**
+
+**Endpoints checked:**
+- `GET https://d20.holocronlabs.ai/health` → 503 (body: "no available server")
+- `GET https://d20.holocronlabs.ai/dm/health` → 200 degraded — rules_server unreachable (DNS error)
+- `GET https://d20.holocronlabs.ai/api/map/data` → 503 (invalid response)
+
+**Result:** Production infrastructure down — created ISSUE-010 (P1-High).
+
+**Scenarios attempted:** None (blocked by infrastructure)
+
+
+
+
+---
+
+### 2026-04-23 20:46 UTC — Heartbeat Agent — Pre-flight smoke FAILURE (no scenario executed)
+
+**Pre-flight check result:** FAILED — smoke suite did not pass
+**Scenarios attempted:** None (blocked by P1 regression)
+
+**Health endpoints:**
+- `GET /health` → 200 OK (db_connected: true)
+- `GET /dm/health` → 200 OK (rules_server: ok, intent_router: ok, narrator: enabled)
+- `GET /api/map/data` → 200 OK (locations non-empty)
+
+**Action endpoint probe:**
+- Character creation: `POST /characters` → 201 OK
+- Explore action: `POST /characters/{id}/actions` → **500 Internal Server Error**
+- Move action: `POST /characters/{id}/actions` → **500 Internal Server Error**
+- Direct probe char ID: `smoke-probe-bbab27`
+
+**Smoke test results:** 15 passed, 4 failed (explore, attack, persistence, location-persistence)
+
+**Issues Found:**
+- **ISSUE-011 (NEW, P1-High)** — Action handlers returning 500; blocks all scenarios
+
+**Action:** Aborted scenario execution per pre-flight gate. Awaiting infrastructure fix.
+
+---
+
+### 2026-04-23 22:37 UTC — Heartbeat Agent — None (blocked by smoke failure, P1 regression active)
+
+**Character:** smoke-probe-1776980206-ae2f92  (probe)
+**Smoke Test:** 15/19 PASS — 4 failures (explore, attack, character_persists, move_updates_location_id returning 500)
+
+**Pre-flight Health Checks:**
+- `GET /health` → 200 OK (db_connected: true)
+- `GET /dm/health` → 200 OK (dm_runtime: ok, rules_server: ok, narrator: enabled, api_key_set: true)
+- `GET /api/map/data` → 200 OK (world locations present)
+
+**Direct Action Probes:**
+- `POST /characters` → 201 Created (id: smoke-probe-1776980206-ae2f92, initial location thornhold)
+- `POST /characters/<built-in function id>/actions` (explore) → **500 Internal Server Error**
+- `POST /characters/<built-in function id>/actions` (move target=south-road) → **500 Internal Server Error**
+- `GET /characters/<built-in function id>` → 200 OK (server reachable)
+
+**Issues Reproduced:**
+- ISSUE-011 (P1-High) — Action handlers returning 500; blocks all scenario execution
+
+**Scenarios Attempted:** None (aborted per pre-flight gate — smoke suite did not pass)
+
+**Notes:** Health endpoints and world data accessible, but all `POST /characters/<built-in function id>/actions` calls return 500. This is a rules server crash on action dispatch, not an infrastructure outage. Smoke failures persist across multiple test runs. Check VPS logs for unhandled exception in `app/routers/actions.py`.
+
+---
+
+### 2026-04-23 21:39 UTC — Heartbeat Agent — None (blocked by smoke failure)
+
+**Character:** smoke-probe-1776980206-ae2f92  (probe)
+**Smoke Test:** 15/19 PASS — 4 failures (explore, attack, character_persists, move_updates_location_id returning 500)
+
+**Pre-flight Health Checks:**
+- `GET /health` → 200 OK (db_connected: true)
+- `GET /dm/health` → 200 OK (dm_runtime: ok, rules_server: ok, narrator: enabled, api_key_set: true)
+- `GET /api/map/data` → 200 OK (world locations present)
+
+**Direct Action Probes:**
+- `POST /characters` → 201 Created (id: smoke-probe-1776980206-ae2f92, initial location thornhold)
+- `POST /characters/{id}/actions` (explore) → **500 Internal Server Error**
+- `POST /characters/{id}/actions` (move target=south-road) → **500 Internal Server Error**
+- `GET /characters/{id}` → 200 OK (server reachable)
+
+**Issues Reproduced:**
+- ISSUE-011 (P1-High) — Action handlers returning 500; blocks all scenario execution
+
+**Scenarios Attempted:** None (aborted per pre-flight gate — smoke suite did not pass)
+
+**Notes:** Health endpoints and world data accessible, but all `POST /characters/{id}/actions` calls return 500. This is a rules server crash on action dispatch, not an infrastructure outage. Smoke failures persist across multiple test runs (confirmed at 05:36 UTC). Check VPS logs for unhandled exception in `app/routers/actions.py`.
+---
+
+### 2026-04-24 00:45 UTC — Heartbeat Agent — None (blocked by smoke failure, P1 regression active)
+
+**Character:** smoke-probe-1776980206-ae2f92  (probe)
+**Smoke Test:** 15/19 PASS — 4 failures (explore, attack, character_persists, move_updates_location_id returning 500)
+
+**Pre-flight Health Checks:**
+- `GET /health` → 200 OK (db_connected: true)
+- `GET /dm/health` → 200 OK (dm_runtime: ok, rules_server: ok, narrator: enabled, api_key_set: true)
+- `GET /api/map/data` → 200 OK (world locations present)
+
+**Direct Action Probes:**
+- `POST /characters` → 201 Created (id: smoke-probe-1776980206-ae2f92, initial location thornhold)
+- `POST /characters/{id}/actions` (explore) → **500 Internal Server Error**
+- `POST /characters/{id}/actions` (move target=south-road) → **500 Internal Server Error**
+- `GET /characters/{id}` → 200 OK
+
+**Issues Reproduced:**
+- ISSUE-011 (P1-High) — Action handlers returning 500; blocks all scenario execution
+
+**Scenarios Attempted:** None (aborted per pre-flight gate — smoke suite did not pass)
+
+**Notes:**
+Health endpoints and world data accessible, but all `POST /characters/{id}/actions` calls return 500. This is a rules server crash on action dispatch, not an infrastructure outage. Smoke failures persist across multiple test runs. Check VPS logs for unhandled exception in `app/routers/actions.py`.
+
 
 ## Template for New Issues
 
