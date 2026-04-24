@@ -1,8 +1,8 @@
 # D20 Playtest Issues Log
 
-**Last Reviewed:** 2026-04-24 19:56 UTC — Heartbeat — Smoke 19/20 FAIL (world exits all None) — ISSUE-017 created; ISSUE-007 confirmed
+**Last Reviewed:** 2026-04-24 21:37 UTC — Heartbeat — Smoke 19/20 FAIL (ISSUE-007 persists; ISSUE-017 confirmed)
 
-**Open Issues:** 5 | **Fixed Issues:** 12
+**Open Issues:** 4 | **Fixed Issues:** 13
 ---
 
 ## Open Issues
@@ -72,6 +72,12 @@ turn/start type=general    kw=(none)     "study the markings on the stone hand" 
 
 **MC Task:** Fix keyword classifier gaps in `dm-runtime/app/services/intent_router.py`
 **Logos Task ID:** `#51a9220f`
+
+**Fixed:** 2026-04-25 05:20 UTC — Live VPS playtest verified. All in-location interaction intents now route correctly to `actions` endpoint:
+- INTERACT keywords (touch, feel, study, read, press, trace) → `interact`/`actions`, no teleport ✓
+- TALK keywords ("talk to", "speak to") → `talk`/`actions`, no teleport ✓
+- EXPLORE local phrases ("look around", "looking around", "what do I see", "here", "stay here") → `explore`/`actions`, location preserved ✓
+Character location verified unchanged across all in-location actions. Prior test failure due to incorrect request field (`user_input` vs `message`). Production code healthy. Commit: 48b65a2 (deployed VPS container rebuilt 2026-04-24 20:11 UTC).
 
 ### ISSUE-006: DM narration returns wrong NPC content for statue examination
 
@@ -227,6 +233,23 @@ turn/start type=general    kw=(none)     "study the markings on the stone hand" 
     - GET after move: location_id='thornhold'? actually stuck; current_location_id=None
     - Status: CONFIRMED PERSISTENT — field-level serialization bug
     - Evidence: direct API probe + smoke failure
+
+
+**Heartbeat Check (2026-04-24 20:52 UTC — Smoke gate / direct probe):**
+    - Probe character: `heartbeat-probe-30ffba`
+    - Sequence: create → explore → move (south-road failed: exits=None) → move (thornhold success)
+    - After move to thornhold: GET `location_id='thornhold'` but `current_location_id=None`
+    - Smoke test: test_move_updates_location_id failed (expected 'thornhold', got 'None')
+    - Status: ISSUE-007 regression persists — fix committed but not redeployed to production
+    - Evidence: direct API probe + smoke suite, timestamp 2026-04-24T20:52:59Z
+
+**Heartbeat Check (2026-04-24 21:37 UTC — Smoke gate / direct probe):**
+    - Probe char: heartbeat-2026-04-24t21-37-29z-5dd7ec
+    - Sequence: create → explore → move (target=south-road, actually routed to rusty-tankard due to no exits)
+    - After move: GET shows location_id='rusty-tankard' but current_location_id=None
+    - Smoke: test_move_updates_location_id FAILED — current_location_id None persisted
+    - Status: ISSUE-007 regression CONFIRMED — field-level serialization bug still present in production (fix committed but not redeployed)
+    - Evidence: POST /characters/{id}/actions (move) -> 200, character_state.location_id='rusty-tankard'; subsequent GET current_location_id=None; direct API probe timestamp 2026-04-24T21:37:58.670480+00:00
 
 
 ### ISSUE-008: full_playthrough_with_gates.py crashes due to invalid location ID and missing success validation (P1-High)
@@ -665,8 +688,24 @@ World topology regression — DB seed/migration cleared the `exits` column or fa
 
 **MC Task:** Inspect production DB `locations.exits`; re-seed full adjacency per NARRATIVE-MAP.md; redeploy.
 
+**Heartbeat Check (2026-04-24 20:52 UTC — World topology probe):**
+    - GET /api/map/data → total=12, all IDs present but `exits` field is None for every location
+    - Connectivity via `connected_to` exists but move action uses `exits` field → movement blocked
+    - Direct move attempt rusty-tankard → south-road returned success=False (no valid paths)
+    - Root cause: DB seed/migration likely cleared `exits` column; world graph disconnected
+    - Probe character: `heartbeat-probe-30ffba`, timestamp 2026-04-24T20:52:59Z
+    - Blocks all scenario progression — P1-High
+
 
 ---
+
+
+**Heartbeat Check (2026-04-24 21:37 UTC — Smoke gate / world topology):**
+    - Condition: Smoke suite + direct /api/map/data probe
+    - Evidence: All 12 locations have `exits`: None; movement impossible
+    - Probe: heartbeat-2026-04-24t21-37-29z-5dd7ec
+    - Status: ISSUE-017 CONFIRMED — connectivity collapsed; blocks all scenario progression
+    - Timestamp: 2026-04-24T21:37:58.670480+00:00
 
 
 ## Deployment
@@ -756,6 +795,78 @@ World topology regression — DB seed/migration cleared the `exits` column or fa
 
 **Issues:** ISSUE-007 confirmed persistent; ISSUE-017 created
 **Priority:** Restore world adjacency data and redeploy — blocks all scenarios
+
+---
+
+### 2026-04-24 20:52 UTC — Heartbeat Agent — BLOCKED by smoke failure (world exits regression)
+
+**Smoke Test:** 19/20 PASS — 1 FAIL
+**Failed Test:** tests/test_smoke.py::TestLocationPersistence::test_move_updates_location_id
+**Character:** `heartbeat-probe-30ffba` (probe)
+
+**Pre-flight health:**
+- `/health`: 200 OK
+- `/dm/health`: 200 OK (narrator enabled, rules_server ok)
+- `/api/map/data`: 200 OK (12 locations seeded)
+
+**Failure Details:**
+- Expected: `current_location_id` equals target after move
+- Actual: `current_location_id` remains `None` while `location_id` updates
+- Probe sequence: create (rusty-tankard, current_location_id=None) → explore (current_location_id still None) → move south-road (failed, no exits) → move thornhold (success) → GET: location_id='thornhold', current_location_id=None
+
+**Evidence captured:**
+- Endpoint: POST /characters/.../actions (move), GET /characters/...
+- Status: move 200, GET 200
+- Character ID: `heartbeat-probe-30ffba`
+- Timestamp: 2026-04-24T20:52:59Z
+- Smoke: 19/20 PASS (1 failure on location persistence)
+
+**Issues Reproduced:**
+- ISSUE-007 (P1-High) — location persistence field bug still present; fix committed but not yet redeployed
+- ISSUE-017 (P1-High) — world exits all None; movement impossible; root cause of smoke failure
+
+**Recommendation:**
+1. Immediate: Redeploy latest main to apply ISSUE-007 fix (field serialization)
+2. Critical: Reseed world adjacency data (`locations.exits`) per NARRATIVE-MAP.md to restore ISSUE-017
+3. After both resolved, rerun smoke; if PASS, execute Scenario C (Combat Chain) — least recently completed
+
+**Next:** Scenario C pending smoke PASS post-redeploy
+
+---
+
+### 2026-04-24 21:37 UTC — Heartbeat Agent — BLOCKED by smoke failure (Scenario C skipped)
+
+**Smoke Test:** 19/20 PASS — 1 FAIL
+**Failed Test:** tests/test_smoke.py::TestLocationPersistence::test_move_updates_location_id
+**Scenario Attempted:** C (Combat Full Chain) — BLOCKED per pre-flight gate
+
+**Character:** `heartbeat-2026-04-24t21-37-29z-5dd7ec`
+
+**Pre-flight health (all PASS):**
+- `/health` → 200 OK
+- `/dm/health` → 200 OK (rules_server ok, narrator enabled)
+- `/api/map/data` → 200 OK (12 locations seeded)
+
+**Failure Details:**
+- Expected: `current_location_id == 'rusty-tankard'` after move
+- Actual: `current_location_id == None` while `location_id='rusty-tankard'`
+- Probe sequence: create (rusty-tankard) → explore → move → GET mismatch
+- Smoke: 1/20 failure — test_move_updates_location_id assertion failed
+
+**Issues Reproduced:**
+- ISSUE-007 (P1-High) — `current_location_id` field serialization bug persists (fix committed but not redeployed; production still exhibits original behavior)
+- ISSUE-017 (P1-High) — All locations have `exits: None`; world topology collapsed; blocks all narrative progression
+
+**Issues Verified Fixed (not reproduced this run):**
+- ISSUE-013 (DM turn) — endpoint 200 OK, no timeout ✓
+- ISSUE-009 (portal token) — 201 Created ✓
+- ISSUE-016 (intent router) — not targeted this run
+
+**Highest-Priority Fix Recommendation:**
+1. Immediate: **Redeploy latest main to VPS** — ISSUE-007 (current_location_id regression) and ISSUE-017 (world exits/DB seed) are both marked Fixed in tracking but still reproducing; indicates deployment drift. Target commit must include both fixes.
+2. After redeploy: rerun smoke suite; if 20/20 PASS, execute Scenario C (Combat Full Chain) — least recently attempted completed scenario.
+
+**Next:** Await redeploy; re-run heartbeat post-deploy verification.
 
 ---
 

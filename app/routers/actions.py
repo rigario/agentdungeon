@@ -836,6 +836,17 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
                                     if added:
                                         result["narration"] += f" Found {ki_def['display_name']}."
 
+                        # ---- bd046983: Explicit fallback for key items that may miss auto-match ----
+                        if encounter.get("id") == "enc-hollow-eye-ritual" and not has_key_item(character_id, "kols_journal", conn):
+                            added = add_key_item(character_id, "kols_journal", conn)
+                            if added:
+                                result["narration"] += f" Found {added['display_name']}."
+                        if encounter.get("id") == "enc-miniboss-hollow-eye-lieutenant" and not has_key_item(character_id, "drens_daughter_insignia", conn):
+                            added = add_key_item(character_id, "drens_daughter_insignia", conn)
+                            if added:
+                                result["narration"] += f" Found {added['display_name']}."
+                        # ------------------------------------------------------------------------------
+
                 conn.execute("UPDATE characters SET location_id = ?, hp_current = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
                              (result["new_location"], new_hp, character_id))
                 # Keep sheet_json hit_points.current in sync with hp_current
@@ -1637,10 +1648,33 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
                                 "is fractured — as if something broke through from the other side."
                             ),
                         },
+                        "cave-depths": {
+                            "journal": (
+                                "A leather-bound journal pinned to the cavern wall with a copper dagger. "
+                                "The final entry reads: 'It spoke to me. It was kind.' This could be critical evidence."
+                            ),
+                        },
+                        "moonpetal-glade": {
+                            "standing stone": (
+                                "The monolith thrums with ancient power. At its base, moonpetal flowers glow "
+                                "with a soft, blue-white light. The Green Woman needs these for her ritual."
+                            ),
+                        },
                     }
                     if location_id in interactive_objects:
                         for obj_name, obj_desc in interactive_objects[location_id].items():
                             if obj_name in target_lower or target_lower in obj_name:
+                                # ---- Key item award (bd046983) ----
+                                key_item_name = None
+                                if location_id == "cave-depths" and obj_name == "journal":
+                                    key_item_name = "kols_journal"
+                                elif location_id == "moonpetal-glade" and obj_name == "standing stone":
+                                    key_item_name = "moonpetal"
+                                if key_item_name:
+                                    added = add_key_item(character_id, key_item_name, conn)
+                                    if added:
+                                        obj_desc = f"{obj_desc} You take the {added['display_name']}."
+                                # ------------------------------------
                                 conn2.close()
                                 conn.close()
                                 return {
@@ -2169,6 +2203,20 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
                         if added:
                             narration += f" Found {ki_def['display_name']}."
 
+
+                # ---- bd046983: Explicit key item wiring for quest rewards ----
+                # Ensure moonpetal from quest_moonpetal and drens_daughter_insignia from quest-save-drenna-child
+                # are awarded even if auto-match fails (naming mismatch, etc.), or via alternate path.
+                quest_id_completed_norm = quest_id_completed.replace("-", "_").lower()
+                if quest_id_completed_norm == "quest_moonpetal" and not has_key_item(character_id, "moonpetal", conn):
+                    added_q = add_key_item(character_id, "moonpetal", conn)
+                    if added_q:
+                        narration += f" Found {added_q['display_name']}."
+                elif quest_id_completed_norm == "quest_save_drenna_child" and not has_key_item(character_id, "drens_daughter_insignia", conn):
+                    added_q = add_key_item(character_id, "drens_daughter_insignia", conn)
+                    if added_q:
+                        narration += f" Found {added_q['display_name']}."
+                # ----------------------------------------------------------------
                 return {
                     "success": True,
                     "narration": narration,
