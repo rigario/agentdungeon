@@ -106,6 +106,28 @@ def test_dm_proxy_uses_narrate_endpoint_not_turn(monkeypatch):
     assert saved == [("char-1", "sess-real")]
 
 
+def test_rules_client_marks_actions_as_dm_runtime_origin(monkeypatch):
+    """DM-runtime calls to rules /actions must not trigger rules-server DM augmentation."""
+    _prefer_dm_runtime_app()
+    import app.services.rules_client as rules_client
+
+    seen = {}
+
+    class FakeAsyncClient:
+        async def post(self, url, json=None, headers=None):
+            seen["url"] = url
+            seen["json"] = json
+            seen["headers"] = headers or {}
+            return _FakeResponse({"success": True})
+
+    monkeypatch.setattr(rules_client, "_client", FakeAsyncClient())
+    result = asyncio.run(rules_client.submit_action("char-1", {"action_type": "explore"}))
+
+    assert result == {"success": True}
+    assert seen["url"] == "/characters/char-1/actions"
+    assert seen["headers"]["X-DM-Runtime"] == "1"
+
+
 def test_passthrough_choices_tolerate_string_connections():
     """World-context connections can be ID strings; synthesis must not crash."""
     _prefer_dm_runtime_app()

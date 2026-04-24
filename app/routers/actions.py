@@ -12,7 +12,7 @@ import random
 import sqlite3
 import logging
 from datetime import datetime
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from app.models.schemas import ActionRequest, ActionResponse
 from app.services.database import get_db
 from app.services.srd_reference import get_monsters_by_cr, ability_modifier, get_spells, _spellcasting_ability
@@ -643,7 +643,7 @@ def _resolve_rest(char: dict, rest_type: str, rng: random.Random) -> dict:
 # ---------------------------------------------------------------------------
 
 @router.post("/actions")
-async def submit_action(character_id: str, body: ActionRequest, auth: dict = Depends(get_auth)):
+async def submit_action(character_id: str, body: ActionRequest, request: Request, auth: dict = Depends(get_auth)):
     """Submit an action. Server resolves it against game rules.
 
     Action types:
@@ -700,8 +700,11 @@ async def submit_action(character_id: str, body: ActionRequest, auth: dict = Dep
             return msg
 
         player_message = _player_message()
+        skip_dm_narration = request.headers.get("x-dm-runtime") == "1"
 
         async def _augment_dm(result: dict) -> dict:
+            if skip_dm_narration:
+                return result
             """Proxy result through DM runtime for narrated output."""
             nonlocal dm_session
             try:

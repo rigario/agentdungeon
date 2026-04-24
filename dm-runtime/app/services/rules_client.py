@@ -33,7 +33,11 @@ async def create_character(payload: dict) -> dict:
 
 async def submit_action(character_id: str, payload: dict) -> dict:
     """Submit an action (move, attack, rest, explore, interact, puzzle, cast)."""
-    r = await _client.post(f"/characters/{character_id}/actions", json=payload)
+    r = await _client.post(
+        f"/characters/{character_id}/actions",
+        json=payload,
+        headers={"X-DM-Runtime": "1"},
+    )
     r.raise_for_status()
     return r.json()
 
