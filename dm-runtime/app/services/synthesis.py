@@ -326,10 +326,18 @@ def _extract_choices(server_result: dict, world_context: dict) -> list:
     
     # Non-combat: exploration + dialogue choices
     for conn in world_context.get("connections", []):
+        if isinstance(conn, dict):
+            conn_id = conn.get("id", "")
+            conn_name = conn.get("name", conn_id)
+            conn_description = conn.get("description")
+        else:
+            conn_id = str(conn)
+            conn_name = conn_id
+            conn_description = None
         choices.append({
-            "id": conn.get("id", ""),
-            "label": f"Go to {conn.get('name', conn.get('id', ''))}",
-            "description": conn.get("description"),
+            "id": conn_id,
+            "label": f"Go to {conn_name}",
+            "description": conn_description,
         })
     
     for ask in server_result.get("asks", []):

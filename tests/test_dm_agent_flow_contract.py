@@ -106,6 +106,22 @@ def test_dm_proxy_uses_narrate_endpoint_not_turn(monkeypatch):
     assert saved == [("char-1", "sess-real")]
 
 
+def test_passthrough_choices_tolerate_string_connections():
+    """World-context connections can be ID strings; synthesis must not crash."""
+    _prefer_dm_runtime_app()
+    import app.services.synthesis as synthesis
+
+    response = synthesis._build_passthrough(
+        {"narration": "You look around.", "events": []},
+        {"type": "explore", "details": {}},
+        {"connections": ["thornhold", {"id": "south-road", "name": "South Road"}]},
+    )
+
+    assert response["choices"][0]["id"] == "thornhold"
+    assert response["choices"][0]["label"] == "Go to thornhold"
+    assert response["choices"][1]["id"] == "south-road"
+
+
 def test_combat_events_populate_server_trace_combat_log():
     """Combat events must appear in server_trace.combat_log, not only mechanics."""
     _prefer_dm_runtime_app()
