@@ -1,6 +1,6 @@
 # D20 Playtest Issues Log
 
-**Last Reviewed:** 2026-04-24 05:55 UTC — Heartbeat — Smoke 16/19, DM turn timeout P1, ISSUE-013 created
+**Last Reviewed:** 2026-04-24 07:55 UTC — Heartbeat — Smoke FAILURE (3 failures: test_explore_turn 500, test_move_turn timeout, test_move_updates_location_id current_location_id=None), ISSUE-007/013 confirmed
 
 **Open Issues:** 6 | **Fixed Issues:** 7
 ---
@@ -116,6 +116,12 @@
 - Status: CONFIRMED PERSISTENT — `current_location_id` remains `None` after move/explore while `location_id` updates correctly
 - Evidence: POST /characters/heartbeat-probe-dmtime-8eaf0e/actions (move to south-road) → 200, `character_state.location_id='south-road'`; subsequent GET `current_location_id=None`
 
+
+**Heartbeat Check (2026-04-24 07:55 UTC — Smoke probe):**
+- Condition: Fresh probe character `smoke-probe-20260424-5a6014`; pre-flight smoke + direct action sequence (create, explore, move)
+- Status: CONFIRMED — `current_location_id` remains `None` after explore and move, while `location_id` updates correctly
+- Evidence: POST /characters/{id}/actions (explore) → 200, success=True; POST /characters/{id}/actions (move target=south-road) → 200, `character_state.location_id='rusty-tankard'`; subsequent GET `current_location_id=None`; direct probe char ID `smoke-probe-20260424-5a6014`; timestamp 2026-04-24T07:55:19.144220
+
 ### ISSUE-008: full_playthrough_with_gates.py crashes due to invalid location ID and missing success validation (P1-High)
 
 **Severity:** P1-High  (blocks automated Scenario C/D/E playtest runs)
@@ -192,7 +198,7 @@
 **Heartbeat Check (2026-04-23 07:43 UTC — Scenario A):**
 - Condition: POST `/portal/token` with valid character ID from Scenario A run
 - Status: NOT REPRODUCED — endpoint returns 201 Created with token object (issue appears resolved)
-- Evidence: POST `/portal/token` status=201; response excerpt: `{"id":"...","token":"KPsvB6...","character_id":"hb-scena-1776929801-1b2699-473423"}`; character verified via GET 200
+- Evidence: POST `/portal/token` status=201; response excerpt: `{"id":"...","token": "***","character_id":"hb-scena-1776929801-1b2699-473423"}`; character verified via GET 200
 
 ---
 
@@ -400,6 +406,13 @@ The DM runtime health endpoint responds quickly but the `/dm/turn` synthesis cal
 **MC Task:** TODO — Investigate /dm/turn ReadTimeout; check d20-dm container logs, Kimi API connectivity, Hermes provider routing for profile `d20-dm`.
 ---
 
+
+**Heartbeat Check (2026-04-24 07:55 UTC — Smoke probe):**
+- Condition: Direct `/dm/turn` probes on fresh character after smoke failures
+- Status: CONFIRMED — endpoint exhibits both 500 Internal Server Error and ReadTimeout failures
+- Evidence: First POST `/dm/turn` → 500 (11.8s); three subsequent calls → ReadTimeout (>12s); character ID `smoke-probe-20260424-5a6014`; timestamp 2026-04-24T07:55:19.144220
+
+---
 
 
 ## Deployment
@@ -760,6 +773,84 @@ Health endpoints and world data accessible, but all `POST /characters/{id}/actio
 
 ---
 
+### 2026-04-24 06:38 UTC — Heartbeat Agent — BLOCKED (smoke failure — P1 regressions active)
+
+**Smoke Test:** 16/19 PASS — 3 failures (P1-High blockers active)
+
+**Pre-flight gate:** FAILED — no scenario execution per mandatory rule.
+
+**Infrastructure status:**
+- `/health`: 200 OK — service up, DB connected
+- `/dm/health`: 200 OK — DM runtime registered, rules_server ok, narrator enabled (kimi-for-coding)
+- `/api/map/data`: 200 OK — 12 locations fully seeded (narrative arc complete)
+
+**Active P1 regressions confirmed (smoke failures):**
+1. `test_move_updates_location_id` FAILED — `current_location_id` remains `None` after move (ISSUE-007)
+2. `test_explore_turn` FAILED — `/dm/turn` returns 500 Internal Server Error (ISSUE-011)
+3. `test_move_turn` FAILED — `/dm/turn` returns 500 Internal Server Error (ISSUE-011)
+
+**Direct verification (fresh character):**
+- Character creation: `location_id=rusty-tankard`, `current_location_id=None` ← ISSUE-007 manifest
+- Move action (to south-road): HTTP 200 but `success=False`, location unchanged (still at rusty-tankard)
+- `/dm/turn` with "look around": Request timeout at HTTP layer (>10s, no response received)
+
+**Evidence captured:**
+- Smoke test exit code 1, 3 failed, 16 passed
+- Character ID from fresh probe: `persist-check-a52c5e` (before deletion)
+- Move response: status=200, success=False, character_state.location_id=rusty-tankard, current_location_id=None
+- DM turn: urllib.error.HTTPError/Timeout (exact endpoint `/dm/turn`, Kimi API not responding within 10s)
+- World topology verified: 12 locations including all arc nodes (thornhold, south-road, forest-edge, deep-forest, cave-entrance, cave-depths, etc.)
+
+**Open P1 issues (from PLAYTEST-ISSUES.md header: 6 open):**
+- ISSUE-007: Location persistence regression — CONFIRMED active
+- ISSUE-008: Harness crashes (unrelated to production status)
+- ISSUE-009: Portal token 500 (not in smoke failures — P2/verification needed)
+- ISSUE-010: Infrastructure failure (not triggered — endpoints responding)
+- ISSUE-011: Action endpoints 500 — CONFIRMED active (DM turn crashes)
+- ISSUE-012: Test pollution (fixture scope=session — known smoke suite design issue)
+
+**Root cause analysis:**
+- VPS deployment at commit `9036249` (2026-04-23 09:45 SGT) lags main branch by 8+ commits
+- Main branch contains fixes: e6455bf (restore _extract_trace), 96516ff (NPC scope), 87877cc (choices propagation)
+- DM turn 500 errors align with missing `_extract_trace` NameError in synthesis.py (fixed in e6455bf)
+- `current_location_id` regression (ISSUE-007) present in deployed commit; likely fixed in later commits but unverified
+
+**Recommendation:** URGENT redeploy to VPS at latest main (e6455bf or later) to restore DM turn function and verify location persistence fix.
+
+**Next step after redeploy:** Rerun smoke suite; if PASS, execute Scenario A (least recent successful: Scenario D on 2026-04-23, then blocked runs only)
+
+---
+
+
+### 2026-04-24 07:55 UTC — Heartbeat Agent — BLOCKED (smoke failure — P1 regressions active)
+
+**Smoke Test:** 16/19 PASS — 3 failures
+
+**Pre-flight gate:** FAILED — no scenario execution per mandatory rule.
+
+**Infrastructure health:**
+- `/health`: 200 OK — service up, DB connected
+- `/dm/health`: 200 OK — DM runtime healthy, narrator enabled (kimi-for-coding, api_key_set)
+- `/api/map/data`: 200 OK — 12 locations fully seeded (narrative arc complete)
+
+**Active P1 regressions (smoke failures):**
+1. `test_move_updates_location_id` — `current_location_id=None` after move (ISSUE-007)
+2. `test_explore_turn` — `/dm/turn` returns 500 Internal Server Error (ISSUE-013)
+3. `test_move_turn` — `/dm/turn` ReadTimeout after 12s (ISSUE-013)
+
+**Direct verification (probe `smoke-probe-20260424-5a6014`):**
+- Character creation: `location_id=rusty-tankard`, `current_location_id=None`
+- Explore action: 200 OK, success=True
+- After explore: GET `current_location_id=None` (ISSUE-007 confirmed)
+- Move action (south-road): 200, `success=False` (biome restriction), `current_location_id=None` persists
+- DM turn probes: first → 500 after 11.8s; three subsequent → ReadTimeout (>12s) (ISSUE-013 confirmed)
+
+**Issues confirmed:** ISSUE-007, ISSUE-013
+**Not reproduced:** ISSUE-009 (portal token 201 — resolved)
+
+**Recommendation:** Urgent redeploy to latest main (commit e6455bf or later) to fix DM turn. After redeploy, rerun smoke suite; if PASS, execute Scenario A.
+
+---
 
 ## Template for New Issues
 
