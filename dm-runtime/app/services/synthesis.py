@@ -34,39 +34,82 @@ def _is_combat_response(server_result: dict) -> bool:
     return False
 
 
-def _get_combat_events(server_result: dict) -> list:
+def _stringify_combat_event(event) -> str | None:
+    """Convert combat event objects into stable trace strings.
+
+    Accepts:
+    - dicts with common message keys (description, desc, event, narration, message, text, detail)
+    - dicts with a 'type' field (used for dice_log-style entries)
+    - simple scalar values (str, int, etc.)
+    - objects with __str__ that produce meaningful output
+    """
+    if event is None:
+        return None
+
+    # Dict-based event — try many known keys, fall back to str(dict)
+    if isinstance(event, dict):
+        # Prioritized list of keys that typically hold the event text
+        for key in ("description", "desc", "event", "narration", "message", "text", "detail", "summary"):
+            value = event.get(key)
+            if value:
+                return str(value)
+        # Special case: dice_log-style entry with type + context
+        if event.get("type") == "d20":
+            raw = event.get("raw")
+            total = event.get("total")
+            context = event.get("context", "Roll")
+            if raw is not None and total is not None:
+                return f"{context}: rolled {raw} (total {total})"
+            return str(context)
+        if event.get("type") == "choice":
+            chosen = event.get("chosen") or event.get("decision")
+            if chosen:
+                return f"Chose: {chosen}"
+        # Last resort: stringify the whole dict (guaranteed non-empty)
+        return str(event)
+
+    # Simple scalar (str, int, etc.)
+    if event:
+        return str(event)
+    return None
+
+
+def _get_combat_events(server_result: dict) -> list[str]:
     """Construct a detailed combat log from server_result.
-    
+
     Builds chronological combat narrative from available combat data:
     - combat/start: includes pre-combat enemy attacks + current round summary
     - combat/act: includes round events from this round
     - attack action: includes combat round events nested under combat.events
+    - Prefer explicit combat_log if present AND no structured events found
     """
-    events = []
-    
+    raw_events: list = []
+
     # Pre-combat events (enemies that went before player)
     top_events = server_result.get("events", [])
     if top_events:
-        events.extend(top_events)
-    
-    # If combat/start or combat/act, also include event-like data from combat sub-object
+        raw_events.extend(top_events)
+
+    # Combat sub-object (from attack action or combat/start)
     combat = server_result.get("combat", {})
     if isinstance(combat, dict):
-        # Full combat result from attack action: includes 'events' with round details
         combat_events = combat.get("events", [])
         if combat_events:
-            events.extend(combat_events)
-        # Also include 'narration' as summary event if no explicit events
+            raw_events.extend(combat_events)
         elif combat.get("narration"):
-            events.append(combat["narration"])
-    
-    # For turn/start where combat_log might be already provided as structured data
-    # (contract says ServerTurnResult has combat_log), prefer that if present
-    explicit_log = server_result.get("combat_log", [])
-    if explicit_log and not events:
-        events = explicit_log
-    
-    return events
+            raw_events.append(combat["narration"])
+
+    # Stringify all collected events
+    result = [s for s in (_stringify_combat_event(e) for e in raw_events) if s]
+
+    # Fallback: if we collected zero stringified events but server_result has an
+    # explicit combat_log, use that as the source of truth
+    if not result:
+        explicit_log = server_result.get("combat_log", [])
+        if explicit_log:
+            result = [s for s in (_stringify_combat_event(e) for e in explicit_log) if s]
+
+    return result
 
 
 
