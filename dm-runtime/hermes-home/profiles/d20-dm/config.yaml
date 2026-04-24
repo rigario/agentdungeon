@@ -1,7 +1,7 @@
 model:
   default: kimi-for-coding
   provider: kimi-coding
-  base_url: https://api.kimi.com/coding
+  base_url: https://api.kimi.com/coding/v1
 toolsets:
 - file
 agent:
