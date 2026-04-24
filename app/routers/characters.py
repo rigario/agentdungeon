@@ -280,7 +280,7 @@ def create_character(
     conn.commit()
     conn.close()
 
-    return get_character(char_id)
+    return get_character(char_id, request)
 
 
 @router.get("", response_model=list[CharacterResponse])

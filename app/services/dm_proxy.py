@@ -99,13 +99,9 @@ async def build_world_context(character_id: str) -> Dict[str, Any]:
     ).fetchall()
     encounters = [dict(r) for r in encounter_rows]
 
-    from app.services.atmosphere import get_mark_atmosphere_overlay
-    mark_stage = char.get("mark_of_dreamer_stage", 0)
-    atmosphere = {
-        "mark_stage": mark_stage,
-        "overlay": get_mark_atmosphere_overlay(mark_stage),
-    }
-
+    from app.services.atmosphere import get_atmospheric_description
+    
+    # First: load front progression (needed for portent_index)
     front_rows = conn.execute(
         """
         SELECT f.id, f.name, f.danger_type, f.grim_portents_json, cf.current_portent_index
@@ -125,6 +121,20 @@ async def build_world_context(character_id: str) -> Dict[str, Any]:
         }
         for r in front_rows
     ]
+
+    # Now compute portent_index from loaded front_progression
+    mark_stage = char.get("mark_of_dreamer_stage", 0)
+    portent_index = 0
+    for front in front_progression:
+        if front.get("id") == "dreaming_hunger":
+            portent_index = front.get("current_portent", 0)
+            break
+    game_hour = char.get("game_hour", 8)
+    biome = location.get("biome")
+    atmosphere = {
+        "mark_stage": mark_stage,
+        "overlay": get_atmospheric_description(location["id"], mark_stage, portent_index, game_hour=game_hour, biome=biome),
+    }
 
     quest_rows = conn.execute(
         "SELECT quest_id, quest_title, quest_description, giver_npc_name, status "

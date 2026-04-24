@@ -688,7 +688,7 @@ async def submit_action(character_id: str, body: ActionRequest, auth: dict = Dep
 
         # DM proxy: pre-action context + session
         dm_session = get_dm_session(character_id)
-        world_context = build_world_context(character_id)
+        world_context = await build_world_context(character_id)
 
         def _player_message() -> str:
             msg = str(body.action_type)
