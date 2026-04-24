@@ -77,6 +77,11 @@ KEY_ITEMS = {
         "quest": "kol_backstory",
         "source": "exploration",
         "consumed": False,
+        "set_flag_on_acquire": {
+            "flag": "kol_backstory_known",
+            "value": "1",
+            "source": "journal_acquired"
+        },
         "deeper_lore": "Kol was a cleric of Ilmater who came to investigate the seal's weakening. His journal chronicles his descent — not into madness, but into sympathy. The Hunger did not threaten Kol. It told him its story: how it was sealed not for violence, but for being too honest. It showed the fey who bound it what they refused to see. Kol believed it. The Hunger's true name — whispered only in the final entry — is a word that means 'truth the world is not ready for.'",
         "mark_stage_lore": {
             0: "A water-stained journal. The handwriting grows shakier with each entry. Kol was a careful man losing his certainty.",
@@ -190,6 +195,21 @@ def add_key_item(character_id: str, item_name: str, conn=None) -> dict | None:
         "UPDATE characters SET equipment_json = ? WHERE id = ?",
         (json.dumps(equipment), character_id),
     )
+
+    # Set narrative flag if acquiring this item should gate a story branch
+    flag_cfg = item_def.get("set_flag_on_acquire")
+    if flag_cfg:
+        flag_name = flag_cfg["flag"]
+        flag_value = flag_cfg.get("value", "1")
+        flag_source = flag_cfg.get("source", "key_item")
+        conn.execute(
+            """INSERT INTO narrative_flags (character_id, flag_key, flag_value, source)
+               VALUES (?, ?, ?, ?)
+               ON CONFLICT(character_id, flag_key) DO UPDATE SET
+                   flag_value = excluded.flag_value,
+                   source = excluded.source""",
+            (character_id, flag_name, flag_value, flag_source),
+        )
 
     if own_conn:
         conn.commit()
