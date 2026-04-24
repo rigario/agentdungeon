@@ -838,6 +838,9 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
 
                 conn.execute("UPDATE characters SET location_id = ?, hp_current = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
                              (result["new_location"], new_hp, character_id))
+                # Keep sheet_json hit_points.current in sync with hp_current
+                conn.execute("UPDATE characters SET sheet_json = json_set(sheet_json, '$.hit_points.current', ?) WHERE id = ?",
+                             (new_hp, character_id))
 
                 # ---------------------------------------------------------------
                 # Portent auto-advance — fires on first combat victory in trigger locations
@@ -960,8 +963,15 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
             combat_result = _resolve_combat(char, encounter, rng)
 
             # Update HP
+            new_hp = combat_result["hp_remaining"]
             conn.execute("UPDATE characters SET hp_current = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-                         (combat_result["hp_remaining"], character_id))
+                         (new_hp, character_id))
+            # Keep sheet_json hit_points.current in sync with hp_current
+            conn.execute("UPDATE characters SET sheet_json = json_set(sheet_json, '$.hit_points.current', ?) WHERE id = ?",
+                         (new_hp, character_id))
+            # Keep sheet_json hit_points.current in sync with hp_current
+            conn.execute("UPDATE characters SET sheet_json = json_set(sheet_json, '$.hit_points.current', ?) WHERE id = ?",
+                         (new_hp, character_id))
 
             # Record encounter history (multi-tenancy: track per character)
             encounter_id = encounter.get("id") if isinstance(encounter, dict) and "id" in encounter else None
@@ -1264,6 +1274,9 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
                     "UPDATE characters SET hp_current = ? WHERE id = ?",
                     (new_hp, character_id),
                 )
+                # Keep sheet_json hit_points.current in sync with hp_current
+                conn.execute("UPDATE characters SET sheet_json = json_set(sheet_json, '$.hit_points.current', ?) WHERE id = ?",
+                             (new_hp, character_id))
 
             else:
                 # Utility spell — narrative effect only
@@ -1374,6 +1387,9 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
             # Apply HP restore
             new_hp = min(char["hp_max"], char["hp_current"] + result["hp_restore"])
             conn.execute("UPDATE characters SET hp_current = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                         (new_hp, character_id))
+            # Keep sheet_json hit_points.current in sync with hp_current
+            conn.execute("UPDATE characters SET sheet_json = json_set(sheet_json, '$.hit_points.current', ?) WHERE id = ?",
                          (new_hp, character_id))
 
             # ------------------------------------------------------------------
@@ -1905,6 +1921,9 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
                                         "UPDATE characters SET hp_current = ? WHERE id = ?",
                                         (new_hp, character_id)
                                     )
+                                    # Keep sheet_json hit_points.current in sync with hp_current
+                                    conn.execute("UPDATE characters SET sheet_json = json_set(sheet_json, '$.hit_points.current', ?) WHERE id = ?",
+                                                 (new_hp, character_id))
                                 conn.execute(
                                     """INSERT INTO narrative_flags (character_id, flag_key, flag_value, source)
                                        VALUES (?, 'bone_gallery_failed', '1', 'puzzle')""",
@@ -1925,6 +1944,9 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
                                     "UPDATE characters SET hp_current = ? WHERE id = ?",
                                     (new_hp, character_id)
                                 )
+                                # Keep sheet_json hit_points.current in sync with hp_current
+                                conn.execute("UPDATE characters SET sheet_json = json_set(sheet_json, '$.hit_points.current', ?) WHERE id = ?",
+                                             (new_hp, character_id))
                                 conn.execute(
                                     """INSERT INTO narrative_flags (character_id, flag_key, flag_value, source)
                                        VALUES (?, 'bone_gallery_poisoned', '1', 'puzzle')""",
