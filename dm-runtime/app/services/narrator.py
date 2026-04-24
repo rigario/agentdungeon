@@ -180,9 +180,11 @@ def _validate_scope(llm_output: dict, world_context: dict) -> bool:
     # Validate NPC lines
     for line in llm_output.get("npc_lines", []):
         speaker = line.get("speaker", "").lower()
-        if speaker and allowed_npcs and speaker not in allowed_npcs:
-            logger.warning(f"Scope violation: NPC speaker '{speaker}' not in world_context (allowed: {allowed_npcs})")
-            return False
+        if speaker and allowed_npcs:
+            # Allow if speaker exactly matches, or if any allowed name is a substring of speaker (e.g., "aldric" matches "aldric the innkeeper")
+            if not any(speaker in allowed_name or allowed_name in speaker for allowed_name in allowed_npcs):
+                logger.warning(f"Scope violation: NPC speaker '{speaker}' not in world_context (allowed: {allowed_npcs})")
+                return False
 
     # Extract allowed location names
     allowed_locations = set()
