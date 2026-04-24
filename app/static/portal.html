@@ -275,6 +275,60 @@
   .card-full { grid-column: 1 / -1; }
 
   .empty-state { color: var(--text-muted); font-size: 0.9rem; font-style: italic; }
+
+  /* World Map */
+  .world-map-svg {
+    width: 100%;
+    height: auto;
+    max-height: 280px;
+    display: block;
+    margin: 0.5rem 0 0;
+  }
+  .map-edge {
+    stroke: var(--border-subtle);
+    stroke-width: 2;
+    fill: none;
+    stroke-dasharray: 6 3;
+  }
+  circle.loc-current {
+    fill: var(--accent-gold);
+    stroke: #fff;
+    stroke-width: 2;
+    filter: drop-shadow(0 0 8px var(--accent-gold));
+  }
+  circle.loc-visited {
+    fill: var(--accent-blue);
+    stroke: var(--accent-blue);
+    stroke-width: 1;
+    opacity: 0.8;
+  }
+  circle.loc-unknown {
+    fill: var(--border);
+    stroke: var(--text-muted);
+    stroke-width: 1;
+    opacity: 0.4;
+  }
+  .map-legend {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .loc-current-legend { background: var(--accent-gold); }
+  .loc-visited-legend { background: var(--accent-blue); }
+  .loc-unknown-legend { background: var(--border); }
 </style>
 </head>
 <body>
@@ -446,12 +500,82 @@ function renderPortal(data) {
             <span class="inv-meta">${i.item_type || ''}</span>
           </div>
         </div>
-      `).join('') : '<div class="empty-state">Backpack empty</div>'}
+      `).join('') : '<div class="empty-state">Backpack empty</div>
+    <!-- World Map -->
+    <div class="card">
+      <div class="card-title"><span class="icon">🗺️</span> World Map</div>
+      ${renderWorldMap(data.map)}
+    </div>'}
     </div>
   </div>`;
 
   document.getElementById('app').innerHTML = html;
   document.title = `${c.name || 'Portal'} — The Dreaming Hunger`;
+}
+
+
+function renderWorldMap(mapData) {
+  const locations = mapData.locations || [];
+  const visited = new Set(mapData.visited_locations || []);
+  const edges = mapData.traveled_edges || [];
+  const currentId = mapData.current_location_id;
+  
+  if (!locations.length) return '<div class="empty-state">World map data unavailable</div>';
+  
+  // Simple radial layout for up to ~12 locations
+  const center = { x: 200, y: 200 };
+  const radius = 140;
+  
+  // Assign positions: current at center, others around perimeter
+  const pos = {};
+  const others = locations.filter(l => l.id !== currentId);
+  const angleStep = (2 * Math.PI) / Math.max(others.length || 1, 1);
+  
+  // Current at center
+  if (currentId) {
+    pos[currentId] = { ...center, isCurrent: true };
+  }
+  
+  // Others around perimeter
+  others.forEach((loc, i) => {
+    const angle = i * angleStep - Math.PI/2;
+    pos[loc.id] = {
+      x: center.x + radius * Math.cos(angle),
+      y: center.y + radius * Math.sin(angle),
+      isCurrent: false
+    };
+  });
+  
+  // Build SVG
+  let svg = `<svg viewBox="0 0 400 400" class="world-map-svg">`;
+  
+  // Edges
+  edges.forEach(([from, to]) => {
+    const a = pos[from], b = pos[to];
+    if (a && b) {
+      svg += `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" class="map-edge"/>`;    }
+  });
+  
+  // Locations
+  locations.forEach(loc => {
+    const p = pos[loc.id];
+    if (!p) return;
+    const cls = loc.id === currentId ? 'loc-current' : (visited.has(loc.id) ? 'loc-visited' : 'loc-unknown');
+    const r = loc.id === currentId ? 12 : 8;
+    svg += `<circle cx="${p.x}" cy="${p.y}" r="${r}" class="${cls}" data-id="${loc.id}"/>`;
+  });
+  
+  svg += `</svg>`;
+  
+  // Legend
+  const legend = `
+    <div class="map-legend">
+      <span class="legend-item"><span class="legend-dot loc-current-legend"></span> You are here</span>
+      <span class="legend-item"><span class="legend-dot loc-visited-legend"></span> Visited</span>
+      <span class="legend-item"><span class="legend-dot loc-unknown-legend"></span> Undiscovered</span>
+    </div>`;
+  
+  return svg + legend;
 }
 
 function renderError(err) {
