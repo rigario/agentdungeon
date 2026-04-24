@@ -177,3 +177,120 @@ def test_combat_events_populate_server_trace_combat_log():
         "Goblin hits you for 5 damage!",
         "You fall before you can act.",
     ]
+
+
+def test_synthesize_narration_llm_path_returns_server_trace():
+    """synthesize_narration must include server_trace when using LLM narrator path."""
+    _prefer_dm_runtime_app()
+    import importlib
+    import app.services.synthesis as synthesis
+    import app.services.narrator as narrator
+
+    # Build minimal server_result
+    server_result = {
+        "success": True,
+        "narration": "You explore the forest.",
+        "events": [{"desc": "You find a path."}],
+        "character_state": {"hp": {"current": 10, "max": 12}},
+    }
+    intent = {"type": "explore", "details": {}}
+    world_context = {"connections": [{"id": "path", "name": "Forest Path"}]}
+
+    # --- Case 1: LLM narrator succeeds ---
+    fake_llm = {
+        "scene": "The forest is quiet.",
+        "npc_lines": [],
+        "tone": "neutral",
+    }
+
+    original_narrate = narrator.narrate
+
+    async def fake_narrate(*args, **kwargs):
+        return fake_llm
+
+    # Temporarily replace narrator.narrate
+    import types
+    saved = narrator.narrate
+    narrator.narrate = fake_narrate
+
+    try:
+        # Need to reload synthesis to pick up any module-level changes? No, just call
+        result = asyncio.run(
+            synthesis.synthesize_narration(server_result, intent, world_context, session_id="sess-123")
+        )
+
+        assert "server_trace" in result, "synthesize_narration response missing server_trace key"
+        st = result["server_trace"]
+        assert isinstance(st, dict), "server_trace must be a dict"
+        assert "turn_id" in st
+        assert "combat_log" in st
+        # LLM path should still include server trace
+        assert st.get("raw_server_response_keys")  # should populate keys from server_result
+    finally:
+        narrator.narrate = saved
+
+
+def test_synthesize_narration_passthrough_path_returns_server_trace():
+    """synthesize_narration must include server_trace when falling back to passthrough."""
+    _prefer_dm_runtime_app()
+    import importlib
+    import app.services.synthesis as synthesis
+    import app.services.narrator as narrator
+
+    server_result = {
+        "success": True,
+        "narration": "Server narrates directly.",
+        "events": [{"desc": "Event from server"}],
+        "character_state": {"hp": {"current": 10, "max": 12}},
+    }
+    intent = {"type": "explore", "details": {}}
+    world_context = {"connections": [{"id": "clear", "name": "Clearing"}]}
+
+    # --- Case 2: LLM narrator unavailable / empty output -> passthrough ---
+    async def fake_narrate_none(*args, **kwargs):
+        return None
+
+    saved = narrator.narrate
+    narrator.narrate = fake_narrate_none
+
+    try:
+        result = asyncio.run(
+            synthesis.synthesize_narration(server_result, intent, world_context)
+        )
+
+        assert "server_trace" in result, "synthesize_narration passthrough response missing server_trace key"
+        st = result["server_trace"]
+        assert isinstance(st, dict)
+        assert "turn_id" in st
+        assert "combat_log" in st
+        # server_endpoint_called may be empty string (filled by caller), but present
+        assert "raw_server_response_keys" in st
+    finally:
+        narrator.narrate = saved
+
+
+def test_extract_trace_returns_expected_schema():
+    """_extract_trace must return a well-formed dict (regression: was missing causing NameError)."""
+    _prefer_dm_runtime_app()
+    import app.services.synthesis as synthesis
+
+    server_result = {
+        "turn_id": "turn-abc123",
+        "decision_point": "explore",
+        "available_actions": ["explore", "rest"],
+        "events": [{"desc": "Encounter"}],
+        # combat_log fill-in is tested separately in test_dm_runtime_synthesis.py
+    }
+
+    trace = synthesis._extract_trace(server_result)
+
+    assert trace["turn_id"] == "turn-abc123"
+    assert trace["decision_point"] == "explore"
+    assert trace["available_actions"] == ["explore", "rest"]
+    # Combat events from `events` get extracted via _get_combat_events
+    assert isinstance(trace["combat_log"], list)
+    assert len(trace["combat_log"]) > 0  # at least one event stringified
+    # intent_used and server_endpoint_called are filled by caller — they can be None/empty
+    assert "intent_used" in trace
+    assert "server_endpoint_called" in trace
+    assert trace["raw_server_response_keys"] == list(server_result.keys())
