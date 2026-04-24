@@ -652,6 +652,7 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
     - rest: short or long rest (recovers HP)
     - interact: interact with NPC or object at current location
     - explore: search current location for loot or info
+    - look: glance around the current location without time/encounter cost
     """
     require_character_ownership(character_id, auth)
     lock_token = await acquire_character_lock(character_id, timeout=25)
@@ -1505,6 +1506,75 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
                 "time_info": time_info,
             })
 
+        elif body.action_type == "look":
+            # Glance around current location — scene refresh, no roll, no travel
+            # Gather location description
+            narration = f"You look around {location['name']}."
+            loc_desc = location.get("description")
+            if loc_desc:
+                narration += f" {loc_desc}"
+
+            # List visible exits (connected locations)
+            connections = json.loads(location.get("connected_to", "[]") or "[]")
+            if connections:
+                exit_names = []
+                # Bulk fetch all destination locations in one query
+                dest_placeholders = ",".join("?" * len(connections))
+                dest_rows = conn.execute(
+                    f"SELECT id, name FROM locations WHERE id IN ({dest_placeholders})",
+                    tuple(connections)
+                ).fetchall()
+                dest_map = {row["id"]: row["name"] for row in dest_rows}
+                for loc_id in connections:
+                    name = dest_map.get(loc_id, loc_id)
+                    exit_names.append(f"{name} ({loc_id})")
+                narration += f" Exits: {', '.join(exit_names)}."
+            else:
+                narration += " There are no obvious exits."
+
+            # List non-enemy NPCs present
+            npc_rows = conn.execute(
+                "SELECT name FROM npcs WHERE current_location_id = ? AND is_enemy = 0",
+                (location_id,)
+            ).fetchall()
+            npc_names = [row["name"] for row in npc_rows]
+            if npc_names:
+                narration += f" People here: {', '.join(npc_names)}."
+
+            # Notable interactive objects
+            interactive_objects = {
+                "thornhold": {
+                    "statue": "You approach the weathered stone hand in the town square. It points northeast, half-sunk into cobblestones. The hand's fingers are carved with the same seal sigil you've seen elsewhere — three concentric rings, the outermost broken. Moss grows between the cracks.",
+                    "seal marker": "The seal marker stands in the central square — a weathered stone hand reaching skyward. The symbols on its palm match those in the cave. One of the rings in the concentric pattern is fractured — as if something broke through from the other side."
+                },
+            }
+            found_objects = []
+            if location_id in interactive_objects:
+                for obj_name in interactive_objects[location_id]:
+                    found_objects.append(obj_name)
+            if found_objects:
+                narration += f" You notice: {', '.join(found_objects)}."
+
+            # Log the look event
+            _log_event(conn, character_id, "look", location_id, narration, {"scope": "current_location"})
+
+            # Minimal time cost (5 minutes for a glance)
+            time_info = advance_time(character_id, get_action_time_cost("look"), conn)
+
+            conn.commit()
+            conn.close()
+
+            return await _augment_dm({
+                "success": True,
+                "narration": narration,
+                "events": [{"type": "look", "description": narration}],
+                "character_state": {
+                    "hp": {"current": char["hp_current"], "max": char["hp_max"]},
+                    "location_id": char["location_id"],
+                },
+                "time_info": time_info,
+            })
+
         elif body.action_type == "interact":
             # Look for NPCs at current location
             conn2 = get_db()
@@ -2131,7 +2201,7 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
 
         else:
             conn.close()
-            raise HTTPException(400, f"Unknown action type: {body.action_type}. Valid: move, attack, cast, rest, explore, interact, puzzle, quest")
+            raise HTTPException(400, f"Unknown action type: {body.action_type}. Valid: move, attack, cast, rest, explore, interact, look, puzzle, quest")
 
     finally:
 

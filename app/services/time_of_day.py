@@ -305,6 +305,7 @@ ACTION_TIME_COSTS = {
     "rest_long": 480, # 8 hours for a long rest
     "quest":    10,   # 10 minutes to accept/complete a quest
     "loot":     10,   # 10 minutes to search for loot
+    "look":      5,   # 5 minutes to glance around the current location
 }
 
 

@@ -1,8 +1,8 @@
 # D20 Playtest Issues Log
 
-**Last Reviewed:** 2026-04-24 16:20 UTC — Alpha playtest — DM narrative continuity bug confirmed and replicated; ISSUE-016 created
+**Last Reviewed:** 2026-04-24 17:43 UTC — Heartbeat — Smoke 18/19 PASS (1 FAIL) — ISSUE-007 regression confirmed; deployment lag suspected
 
-**Open Issues:** 5 | **Fixed Issues:** 11
+**Open Issues:** 4 | **Fixed Issues:** 12
 ---
 
 ## Open Issues
@@ -71,6 +71,7 @@ turn/start type=general    kw=(none)     "study the markings on the stone hand" 
 ```
 
 **MC Task:** Fix keyword classifier gaps in `dm-runtime/app/services/intent_router.py`
+**Logos Task ID:** `#51a9220f`
 
 ### ISSUE-006: DM narration returns wrong NPC content for statue examination
 
@@ -208,6 +209,16 @@ turn/start type=general    kw=(none)     "study the markings on the stone hand" 
     - Evidence: char heartbeat-b-...; move to forest-edge triggered combat_defeat; subsequent GET HP 12/12; POST actions 403 deceased
 
 **Fixed:** 2026-04-24 — Heartbeat verification — current_location_id field persists correctly; original location persistence issue resolved. Desync tracked separately.
+
+**Heartbeat Check (2026-04-24 17:43 UTC — Smoke gate regression — current_location_id None):**
+    - Probe char: smoke-reconfirm-20260425-e4ea47
+    - Move: rusty-tankard → thornhold (POST /actions move) → 200, success=True
+    - GET after move: location_id='thornhold' ✓, current_location_id=None ✗
+    - Event log: ['character_created', 'move'] — 'move' event present ✓ (ISSUE-014 fix confirmed deployed)
+    - Failure: test_move_updates_location_id asserts current_location_id == 'thornhold' → None
+    - Status: ISSUE-007 regression — field-level serialization bug re-appears
+    - Evidence: direct API probe, confirmed production 2026-04-25T01:42Z
+
 
 ### ISSUE-008: full_playthrough_with_gates.py crashes due to invalid location ID and missing success validation (P1-High)
 
@@ -569,12 +580,23 @@ The DM runtime health endpoint responds quickly but the `/dm/turn` synthesis cal
 **Analysis:** Move action handler not emitting move events to event log despite state updates. Breaks test_move_updates_location_id and audit trail.
 
 **MC Task:** Ensure move handler emits and commits move events.
+**Logos Task ID:** `#11c52fe1`
 
 **Fixed:** 2026-04-24 — Heartbeat agent (alpha). Two corrections in `app/routers/actions.py`:
 1. `_resolve_move()` line 541: event type changed from `"travel"` to `"move"` to align with action naming.
 2. Move event logging (line 904-906): now uses `ev.get("location_id", result["new_location"])` so move events are recorded at destination rather than source. Previously used pre-move `location_id` (source), causing event location mismatch.
 Event log now correctly records move events with proper type and destination location. Fix verified by code inspection; smoke test `test_move_updates_location_id` expects `event_type=="move"` with `location_id == target_location` and will pass once server redeployed.
 
+
+
+**Heartbeat Check (2026-04-24 16:41 UTC — Smoke probe pre-flight):**
+    - Smoke suite FAILED: test_move_updates_location_id — "No move event found in log for target 'thornhold'"
+    - Probe character: smoke-probe-22d427e0-b84876
+    - Move POST → 200, success=True; location_id=thornhold, current_location_id=thornhold
+    - Event log types: ['character_created', 'travel'] — NO 'move' events present
+    - Production still emits 'travel' not 'move'; ISSUE-014 fix not yet deployed
+    - Fix committed (event type correction) but redeploy needed per issue body
+    
 
 ---
 
@@ -602,6 +624,7 @@ Event log now correctly records move events with proper type and destination loc
 **Analysis:** Read model out of sync with event-sourced truth. Projection not updated after combat_defeat or stale replica.
 
 **MC Task:** Investigate projection refresh; verify event listener updates character; check cache invalidation.
+**Logos Task ID:** `#4edcb2ca`
 
 ---
 
@@ -641,6 +664,47 @@ Event log now correctly records move events with proper type and destination loc
 - `current_location_id` now correctly syncs with `location_id` — ISSUE-007 FIXED in deployed VPS
 - DM agent is alive and producing good prose; the teleportation bug is purely in the intent router classifier, not the synthesis layer
 - Replication script is self-contained and can be re-run to verify fix
+
+### 2026-04-24 16:41 UTC — Heartbeat Agent — BLOCKED by smoke failure (Scenario D skipped)
+
+**Smoke Suite:** 18/19 PASS — 1 FAIL
+**Failed Test:** tests/test_smoke.py::TestLocationPersistence::test_move_updates_location_id
+**Failure:** AssertionError: No move event found in log for target 'thornhold' — event log shows only ['character_created', 'travel']
+**Probe Character:** smoke-probe-22d427e0-b84876
+**Health Checks:** /health 200 | /dm/health 200 | /api/map/data total=12 (all required locations present)
+**Probe Results:**
+  - Move action POST → 200, success=True (location_id updated to thornhold)
+  - GET character → location_id=thornhold, current_location_id=thornhold (location persistence FIXED)
+  - Event log: ['character_created', 'travel'] — no 'move' event type recorded
+
+**Scenario Attempted:** None — pre-flight gate blocks execution when smoke fails
+**Open Issues Impacted:** ISSUE-014 (event log regression — fix committed but not yet redeployed)
+**Priority:** P1-High — redeploy to apply ISSUE-014 fix (change event type 'travel' → 'move'), then rerun smoke
+**Fix Reference:** ISSUE-014 body: "event type changed from 'travel' to 'move'... will pass once server redeployed"
+
+### 2026-04-24 17:43 UTC — Heartbeat Agent — BLOCKED by smoke failure (Scenario E skipped)
+
+**Smoke Test:** 18/19 PASS — 1 FAIL
+**Scenario Attempted:** E (Portal / Ending Access) — BLOCKED
+**Character Probes:** smoke-reconfirm-20260425-e4ea47
+
+**Pre-flight health:**
+- /health: 200 OK
+- /dm/health: 200 OK (narrator enabled)
+- /api/map/data: 200 OK (total locations present)
+
+**Failure Details:**
+- Failed test: TestLocationPersistence::test_move_updates_location_id
+- Failure: current_location_id mismatch — expected 'thornhold', got 'None'
+- Reproduction: Confirmed via direct API probe (move → GET shows current_location_id=None)
+
+**Issues Reproduced:** ISSUE-007 (current_location_id regression — P1-High)
+**Issues Verified Fixed:** ISSUE-014 (event log now emits 'move' events ✓)
+
+**Open Issues Impacted:** ISSUE-007 (regression), ISSUE-016 (unverified, not targeted this run)
+**Priority:** P1-High — current_location_id field serialization bug blocks location persistence; all scenario progress dependent on state visibility
+
+**Next:** Re-run Scenario E after ISSUE-007 resolved; redeployment likely required
 
 ---
 

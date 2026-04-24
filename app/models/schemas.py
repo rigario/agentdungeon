@@ -164,7 +164,7 @@ class CharacterUpdate(BaseModel):
 # --- Action Models ---
 
 class ActionRequest(BaseModel):
-    action_type: str = Field(..., description="move, attack, cast, interact, rest, explore, puzzle, quest")
+    action_type: str = Field(..., description="move, attack, cast, rest, explore, interact, look, puzzle, quest")
     target: Optional[str] = Field(None, description="target entity or location ID")
     details: Optional[dict] = Field(None, description="extra action parameters")
 

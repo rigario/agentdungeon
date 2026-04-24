@@ -219,6 +219,21 @@ class TestExploration:
         data = r.json()
         # Should have resolution or events
         assert "resolution" in data or "events" in data
+    @skip_no_seed
+    def test_look_action(self, rules, character):
+        """Look around current location — scene refresh without travel or roll."""
+        r = rules.post(f"/characters/{character}/actions", json={
+            "action_type": "look",
+        })
+        assert r.status_code == 200
+        data = r.json()
+        assert data.get("success") is True
+        assert "narration" in data
+        # Location unchanged
+        assert data["character_state"]["location_id"] is not None
+        # Events should include a look entry
+        assert any(e.get("type") == "look" for e in data.get("events", []))
+
 
 
 # ---------------------------------------------------------------------------
