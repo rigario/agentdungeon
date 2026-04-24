@@ -1,8 +1,8 @@
 # D20 Playtest Issues Log
 
-**Last Reviewed:** 2026-04-24 17:43 UTC — Heartbeat — Smoke 18/19 PASS (1 FAIL) — ISSUE-007 regression confirmed; deployment lag suspected
+**Last Reviewed:** 2026-04-24 19:56 UTC — Heartbeat — Smoke 19/20 FAIL (world exits all None) — ISSUE-017 created; ISSUE-007 confirmed
 
-**Open Issues:** 4 | **Fixed Issues:** 12
+**Open Issues:** 5 | **Fixed Issues:** 12
 ---
 
 ## Open Issues
@@ -218,6 +218,15 @@ turn/start type=general    kw=(none)     "study the markings on the stone hand" 
     - Failure: test_move_updates_location_id asserts current_location_id == 'thornhold' → None
     - Status: ISSUE-007 regression — field-level serialization bug re-appears
     - Evidence: direct API probe, confirmed production 2026-04-25T01:42Z
+
+
+**Heartbeat Check (2026-04-24 19:56 UTC — Smoke gate — world exits all None):**
+    - World: all 12 locations exits=None — movement impossible
+    - Probe char: smokeprobe-168e9be5
+    - Move POST → 200 success, but location never updates (no exits)
+    - GET after move: location_id='thornhold'? actually stuck; current_location_id=None
+    - Status: CONFIRMED PERSISTENT — field-level serialization bug
+    - Evidence: direct API probe + smoke failure
 
 
 ### ISSUE-008: full_playthrough_with_gates.py crashes due to invalid location ID and missing success validation (P1-High)
@@ -626,6 +635,37 @@ Event log now correctly records move events with proper type and destination loc
 **MC Task:** Investigate projection refresh; verify event listener updates character; check cache invalidation.
 **Logos Task ID:** `#4edcb2ca`
 
+### ISSUE-017: World graph regression — all locations have exits: None, movement impossible (P1-High)
+
+**Severity:** P1-High  (blocks ALL narrative progression, movement, exploration, combat, quests)
+**Category:** Technical  (world topology / DB seed)
+**Reproduces:** YES — every probe character
+**Discovered:** 2026-04-24 19:56 UTC — Heartbeat agent, smoke gate
+
+**Steps:**
+1. Smoke: test_move_updates_location_id fails — current_location_id=None
+2. Probe char created at rusty-tankard
+3. GET /api/map/data → total=12, all IDs present
+4. Every location's `exits` field → None
+5. explore → `available_paths: []`
+6. Move cannot route — zero connectivity
+
+**Expected:** Fully connected world graph; explore lists paths.
+**Actual:** All 12 locations isolated; no edges anywhere.
+
+**Evidence:**
+- `/api/map/data`: 200, IDs correct
+- `exits` all None
+- Probe: smokeprobe-168e9be5-916d70
+- explore: no paths
+- Smoke test: location persistence fails
+
+**Analysis:**
+World topology regression — DB seed/migration cleared the `exits` column or failed to populate adjacency. Without edges, narrative progression impossible. Supersedes ISSUE-007.
+
+**MC Task:** Inspect production DB `locations.exits`; re-seed full adjacency per NARRATIVE-MAP.md; redeploy.
+
+
 ---
 
 
@@ -705,6 +745,17 @@ Event log now correctly records move events with proper type and destination loc
 **Priority:** P1-High — current_location_id field serialization bug blocks location persistence; all scenario progress dependent on state visibility
 
 **Next:** Re-run Scenario E after ISSUE-007 resolved; redeployment likely required
+
+---
+
+### 2026-04-24 19:56 UTC — Heartbeat Agent — BLOCKED by smoke gate (world connectivity collapsed)
+
+**Smoke:** 19/20 FAIL — test_move_updates_location_id (current_location_id None)
+**Probe:** smokeprobe-168e9be5-916d70
+**Critical:** All 12 locations have exits: None — world connectivity collapsed
+
+**Issues:** ISSUE-007 confirmed persistent; ISSUE-017 created
+**Priority:** Restore world adjacency data and redeploy — blocks all scenarios
 
 ---
 
