@@ -309,7 +309,10 @@ def _extract_choices(server_result: dict, world_context: dict) -> list:
     """Extract player choices from server data."""
     choices = []
 
-    # Defensive: world_context may be None if called from a non-normalized path
+    # If the server returned explicit choices (e.g., from actions endpoint), use them directly
+    if server_result.get("choices"):
+        return server_result["choices"]
+
     world_context = world_context or {}
 
     # COMBAT: Return only combat action choices — no movement or exploration
@@ -323,7 +326,7 @@ def _extract_choices(server_result: dict, world_context: dict) -> list:
         ]
         choices.extend(combat_choices)
         return choices
-    
+
     # Non-combat: exploration + dialogue choices
     for conn in world_context.get("connections", []):
         if isinstance(conn, dict):
@@ -339,7 +342,7 @@ def _extract_choices(server_result: dict, world_context: dict) -> list:
             "label": f"Go to {conn_name}",
             "description": conn_description,
         })
-    
+
     for ask in server_result.get("asks", []):
         if ask.get("options"):
             for option in ask.get("options", []):
@@ -356,24 +359,3 @@ def _extract_choices(server_result: dict, world_context: dict) -> list:
                 "description": ask.get("description"),
             })
     return choices
-
-
-def _extract_trace(server_result: dict) -> dict:
-    """Extract server trace for debugging."""
-    trace = {
-        "turn_id": server_result.get("turn_id"),
-        "decision_point": server_result.get("decision_point"),
-        "available_actions": server_result.get("available_actions", []),
-        "intent_used": None,  # Filled by caller
-        "server_endpoint_called": "",  # Filled by caller
-        "raw_server_response_keys": list(server_result.keys()),
-    }
-    
-    # Include combat_log if present
-    combat_events = _get_combat_events(server_result)
-    if combat_events:
-        trace["combat_log"] = combat_events
-    else:
-        trace["combat_log"] = []
-    
-    return trace
