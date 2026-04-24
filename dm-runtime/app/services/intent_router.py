@@ -145,14 +145,22 @@ _INTENT_PATTERNS: list[tuple[IntentType, str, list[str]]] = [
     (IntentType.COMBAT, "attack", ["attack", "fight", "hit ", "strike", "swing at", "shoot"]),
     (IntentType.CAST, "cast", ["cast ", "use spell", "cast spell"]),
     (IntentType.REST, "rest", ["rest", "sleep", "camp", "long rest", "short rest", "take a rest"]),
-    (IntentType.LOOK, "look", ["look", "look at", "glance", "scan", "observe", "survey"]),
-    (IntentType.MOVE, "move", ["go to", "travel to", "walk to", "head to", "move to", "visit", "enter ", "return to", "go back"]),
+    # EXPLORE keywords — MUST come before LOOK and INTERACT
+    (IntentType.EXPLORE, "explore", ["explore", "look around", "looking around", "look closer", "what do i see", "examine the area", "current location", "this room", "here", "without leaving", "stay here", "search", "investigate", "scout", "check around"]),
+    # TALK before INTERACT (clean separation)
     (IntentType.TALK, "interact", ["talk to", "speak to", "speak with", "ask ", "tell ", "say to", "chat with", "conversation with", "greet"]),
+    # PUZZLE before INTERACT (avoid OVERLAP "use item"/"use the" vs "pick up")
     (IntentType.PUZZLE, "puzzle", ["solve", "puzzle", "place the", "put the", "use item", "use the"]),
+    # QUEST BEFORE INTERACT — "take quest" must not be shadowed by INTERACT's generic "take "
     (IntentType.QUEST, "quest", ["accept quest", "take quest", "complete quest", "finish quest", "turn in quest", "turn in the quest", "quest log", "view quest", "check quest"]),
-    (IntentType.EXPLORE, "explore", ["explore", "look around", "look closer", "what do i see", "examine the area", "current location", "this room", "here", "without leaving", "stay here", "search", "investigate", "scout", "check around"]),
+    # INTERACT before LOOK to catch "look at X" and "examine X"
     (IntentType.INTERACT, "interact", ["interact with", "examine", "inspect", "look at", "pick up", "grab", "take ", "open ", "touch", "feel", "study", "read", "press", "trace"]),
+    # Generic LOOK LAST among look-adjacent verbs — only catches truly generic look words
+    (IntentType.LOOK, "look", ["glance", "scan", "observe", "survey"]),
+    (IntentType.MOVE, "move", ["go to", "travel to", "walk to", "head to", "move to", "visit", "enter ", "return to", "go back"]),
 ]
+
+
 
 # Broad intent patterns → turn/start (async simulation)
 _BROAD_PATTERNS = [

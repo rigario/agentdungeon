@@ -368,3 +368,219 @@ class TestMoveActionCrashRegression:
         assert result[0]["id"] == "continue"
 
 
+# =============================================================================
+# LOOK / Local EXPLORE Regression Tests (task 444e6315)
+# =============================================================================
+
+class TestLookRegression:
+    """Regression tests for LOOK and local EXPLORE contract (task 444e6315).
+    
+    Validates that stay-put local action grammar routes correctly and
+    does not produce travel, turn-start, or false combat indicators.
+    """
+
+    def _classify(self, msg: str):
+        from app.services.intent_router import classify_intent
+        return classify_intent(msg)
+
+    @pytest.mark.parametrize("msg,expected_type", [
+        # Case 1: "I stay here and explore the room more carefully" → EXPLORE (local)
+        ("I stay here and explore the room more carefully", IntentType.EXPLORE),
+        # Case 2: "I keep looking around this place for clues" → EXPLORE (local)  
+        ("I keep looking around this place for clues", IntentType.EXPLORE),
+        # Case 3: "I search the current location without leaving" → EXPLORE (local)
+        ("I search the current location without leaving", IntentType.EXPLORE),
+        # Case 4: "I examine the area I am currently in" → LOOK (local, no travel)
+        ("I examine the area I am currently in", IntentType.LOOK),
+        # Also: "what do I see" should stay-put (local EXPLORE)
+        ("what do I see", IntentType.EXPLORE),
+    ])
+    def test_stay_put_local_messages_route_to_actions(self, msg, expected_type):
+        """Local look/explore messages must route to ACTIONS endpoint, not TURN.
+        
+        The intent router must recognize stay-put grammar (wall/current_location
+        /without leaving) and classify as LOOK/EXPLORE rather than MOVE or TURN.
+        """
+        from app.contract import RoutingPolicy, ServerEndpoint
+        intent = self._classify(msg)
+        assert intent.type == expected_type, f"Expected {expected_type}, got {intent.type}"
+        endpoint = RoutingPolicy.get_endpoint(intent.type)
+        assert endpoint == ServerEndpoint.ACTIONS,             f"Local action '{msg}' should route to ACTIONS, not {endpoint}"
+
+    @pytest.mark.parametrize("msg", [
+        "glance about",
+        "scan the area",
+        "observe the surroundings",
+        "survey the room",
+        " glance ",  # generic look verb
+    ])
+    def test_basic_look_routes_to_actions_endpoint(self, msg):
+        """Generic LOOK intents must route to actions endpoint."""
+        from app.contract import RoutingPolicy, ServerEndpoint
+        intent = self._classify(msg)
+        assert intent.type == IntentType.LOOK
+        assert RoutingPolicy.get_endpoint(intent.type) == ServerEndpoint.ACTIONS
+
+    def test_noncombat_local_intent_not_marked_as_combat(self):
+        """Case 5: Non-combat local actions must NOT be flagged as combat.
+        
+        False combat detection would emit combat choices for a local look/explore.
+        """
+        from app.services.synthesis import _is_combat_response
+        
+        # Non-combat EXPLORE result: narration + events, NO combat keys
+        noncombat_result = {
+            "narration": "You search the area carefully.",
+            "events": [{"type": "explore", "location_id": "cave-mouth"}],
+        }
+        assert _is_combat_response(noncombat_result) is False,             "Non-combat action with no combat keys should not be flagged as combat"
+        
+        # Combat EXPLORE result: has combat_id
+        combat_result = {
+            "narration": "Goblin ambushes you!",
+            "combat_id": "abc123",
+            "enemies": [{"id": "goblin-1"}],
+        }
+        assert _is_combat_response(combat_result) is True,             "Result with combat_id should be flagged as combat"
+
+    def test_local_look_preserves_character_location(self):
+        """Case 3: Local look/search must preserve current location (no travel).
+        
+        Location_id/current_location_id from world_context should remain unchanged
+        after a LOOK action (no location transition occurs).
+        """
+        from app.services.synthesis import _build_passthrough
+        
+        # Pre-action state: character at forest-edge
+        original_location = "forest-edge"
+        world_context = {
+            "location": {"id": original_location, "name": "Forest Edge"},
+            "character": {"location_id": original_location},
+        }
+        
+        # Server returns LOOK result (no location change)
+        server_result = {
+            "narration": "You examine the forest edge carefully.",
+            "events": [{"type": "look", "location_id": original_location}],
+            "character_state": {"location_id": original_location},
+            "world_context": world_context,
+        }
+        
+        intent = self._classify("look around")
+        result = _build_passthrough(server_result, intent, world_context)
+        
+        # Location preserved — character still at original location
+        returned_loc = result.get("character_state", {}).get("location_id")
+        assert returned_loc == original_location,             f"LOOK action should not change location; expected {original_location}, got {returned_loc}"
+
+
+# =============================================================================
+# LOOK / Local EXPLORE Regression Tests (task 444e6315)
+# =============================================================================
+
+class TestLookRegression:
+    """Regression tests for LOOK and local EXPLORE contract (task 444e6315).
+    
+    Validates that stay-put local action grammar routes correctly and
+    does not produce travel, turn-start, or false combat indicators.
+    """
+
+    def _classify(self, msg: str):
+        from app.services.intent_router import classify_intent
+        return classify_intent(msg)
+
+    @pytest.mark.parametrize("msg,expected_type", [
+        # Case 1: "I stay here and explore the room more carefully" → EXPLORE (routes to actions)
+        ("I stay here and explore the room more carefully", IntentType.EXPLORE),
+        # Case 1b: "I keep looking around this place for clues" → EXPLORE (local; 
+        #  NOTE: currently routes to GENERAL due to missing "looking around" pattern —
+        #  this is a known gap in _INTENT_PATTERNS that needs the gerund form added)
+        ("I keep looking around this place for clues", IntentType.EXPLORE),
+        # Case 2: "I search the current location without leaving" → EXPLORE (local)
+        ("I search the current location without leaving", IntentType.EXPLORE),
+        # Case 4: "I examine the area I am currently in" → EXPLORE (local, not INTERACT/NPC-targeting)
+        ("I examine the area I am currently in", IntentType.EXPLORE),
+        # Also: "what do I see" should stay-put (local EXPLORE)
+        ("what do I see", IntentType.EXPLORE),
+    ])
+    def test_stay_put_local_messages_route_to_actions(self, msg, expected_type):
+        """Local look/explore messages must route to ACTIONS endpoint, not TURN.
+        
+        The intent router must recognize stay-put grammar (wall/current_location
+        /without leaving) and classify as LOOK/EXPLORE rather than MOVE or TURN.
+        Expected types may differ from actual — failing cases document open guild gaps.
+        """
+        from app.contract import RoutingPolicy, ServerEndpoint
+        intent = self._classify(msg)
+        assert intent.type == expected_type, f"Expected {expected_type}, got {intent.type}"
+        endpoint = RoutingPolicy.get_endpoint(intent.type)
+        assert endpoint == ServerEndpoint.ACTIONS,             f"Local action '{msg}' should route to ACTIONS, not {endpoint}"
+
+    @pytest.mark.parametrize("msg", [
+        "glance about",
+        "scan the area",
+        "observe the surroundings",
+        "survey the room",
+        " glance ",  # generic look verb
+    ])
+    def test_basic_look_routes_to_actions_endpoint(self, msg):
+        """Generic LOOK intents must stay local (not travel) and route to actions."""
+        from app.contract import RoutingPolicy, ServerEndpoint
+        intent = self._classify(msg)
+        assert intent.type == IntentType.LOOK
+        assert RoutingPolicy.get_endpoint(intent.type) == ServerEndpoint.ACTIONS
+
+    def test_noncombat_local_intent_not_marked_as_combat(self):
+        """Case 5: Non-combat local actions must NOT be flagged as combat.
+        
+        False combat detection would emit combat choices for a local look/explore,
+        breaking the contract. This tests the _is_combat_response gate.
+        """
+        from app.services.synthesis import _is_combat_response
+        
+        # Non-combat EXPLORE result: narration + events, NO combat keys
+        noncombat_result = {
+            "narration": "You search the area carefully.",
+            "events": [{"type": "explore", "location_id": "cave-mouth"}],
+            "character_state": {"hp_current": 10, "hp_max": 10},
+            # No combat_id, no enemies, no round, no combat_log
+        }
+        assert _is_combat_response(noncombat_result) is False,             "Non-combat action should not be flagged as combat"
+        
+        # Combat EXPLORE result: has combat_id
+        combat_result = {
+            "narration": "Goblin ambushes you!",
+            "combat_id": "abc123",
+            "enemies": [{"id": "goblin-1"}],
+            "character_state": {"hp_current": 10},
+        }
+        assert _is_combat_response(combat_result) is True,             "Result with combat_id should be flagged as combat"
+
+    def test_local_look_preserves_character_location(self):
+        """Case 3: Local look/search must preserve current location (no travel).
+        
+        Location_id/current_location_id from world_context should remain unchanged
+        after a LOOK action (no location transition occurs).
+        """
+        from app.services.synthesis import _build_passthrough
+        
+        original_location = "forest-edge"
+        world_context = {
+            "location": {"id": original_location, "name": "Forest Edge"},
+            "character": {"location_id": original_location},
+        }
+        
+        server_result = {
+            "narration": "You examine the forest edge carefully.",
+            "events": [{"type": "look", "location_id": original_location}],
+            "character_state": {"location_id": original_location},
+            "world_context": world_context,
+        }
+        
+        intent = self._classify("look around")
+        result = _build_passthrough(server_result, intent, world_context)
+        
+        # Location preserved — mechanics.location field
+        returned_loc = result.get("mechanics", {}).get("location")
+        assert returned_loc == original_location,             f"LOOK action should not change location; expected {original_location}, got {returned_loc}"
+
