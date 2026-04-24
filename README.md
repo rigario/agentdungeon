@@ -8,21 +8,27 @@ A D&D 5E SRD 5.2 game system where AI agents play characters and a DM agent narr
 
 ## Architecture
 
-```
-Player Agent (player's agent)          DM Agent (our VPS, storyteller)
-─────────                               ────────
-Creates character ──────────────────→ Narrates arrival
-Makes level-up choices               "You awaken in Thornhold..."
-Submits actions                      Voices NPCs
-                                      Presents choices
+The live system is a three-service Docker stack on the VPS. The DM is not a laptop/global Hermes profile; it is a Hermes agent colocated inside the `d20-dm-runtime` container with isolated `HERMES_HOME=/root/.hermes`.
 
-Server (our VPS, referee)
-─────────
-Validates all 5E mechanical rules
-Stores portable character sheets
-Manages world state and combat
-Returns world_context to DM agent
 ```
+Player / Player Agent
+        |
+        v
+https://d20.holocronlabs.ai  (Traefik / Coolify)
+        |
+        +--> d20-rules-server  :8600  # authoritative rules, state, rolls, world_context
+        |
+        +--> d20-dm-runtime    :8610  # FastAPI DM runtime + Hermes d20-dm profile
+                    |
+                    +--> hermes chat -Q --profile d20-dm
+                         HERMES_HOME=/root/.hermes inside container only
+        |
+        +--> d20-redis               # request locking/cache support
+```
+
+Canonical docs:
+- `DM-RUNTIME-ARCHITECTURE.md` — authority boundaries and DM/rules flow
+- `DEPLOYMENT.md` — cron-safe deploy/verification workflow
 
 ## Three Entities
 
@@ -122,21 +128,22 @@ All content stays fully licensed and attributed.
 - [ ] Unified progression rewards across all execution paths
 - [ ] SRD feat definitions and validation
 - [ ] Spell list validation on level-up
-- [ ] Standalone DM runtime implementation (server-side DM context exists; separate storyteller runtime does not)
+- [x] Standalone DM runtime deployed as `d20-dm-runtime` with Hermes `d20-dm` profile in-container
 
 ## DM Runtime Status
 
 Current reality:
-- The server already produces DM-facing material through `turn_results`: `narrative`, `asks`, `world_context`, `decision_log`, and `combat_log`.
-- The server also enforces a `scope_contract` inside `world_context` so the future DM runtime cannot invent off-contract entities.
-- There is **not yet** a separate DM runtime/service that accepts player input, routes to the correct server API, maintains scene continuity, and returns the final narrated payload.
+- `d20-dm-runtime` is live on the VPS and exposed through the public rules domain under `/dm/*`.
+- The runtime accepts player natural language at `POST /dm/turn`, classifies intent, calls the rules server, and synthesizes the final narrated payload.
+- Narration uses the in-container Hermes profile `d20-dm`; valid responses include a Hermes `session_id`.
+- Rules-server augmentation must use `/dm/narrate` for already-resolved mechanics. It must not call `/dm/turn`, which is the public orchestrator.
 
-Target split:
+Target split remains:
 - **Server** — authoritative rules, state, rolls, fronts, flags, and `world_context`
 - **DM Runtime** — narration, NPC voice, pacing, choice framing, session continuity
 - **Player Agent/Human** — intent + approvals
 
-See `DM-RUNTIME-ARCHITECTURE.md` for the current-vs-target gap and proposed implementation path.
+For deploys and cron verification, use `scripts/deploy_dm_runtime.sh` and `DEPLOYMENT.md`.
 
 **Phase 2 — Async Narrative Crossovers** (planned)
 - Shared world map with multiple characters

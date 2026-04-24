@@ -14,23 +14,23 @@ This keeps the game deterministic and testable while still feeling like a real D
 ## Current State
 
 What exists today:
-- The FastAPI server simulates turns, actions, combat, fronts, flags, and atmosphere
-- The turn engine returns a structured payload containing:
-  - narrative
-  - asks
-  - world_context
-  - decision_point
-  - dice_log
-  - decision_log
-  - combat_log
-- `world_context` is already a bounded DM-facing context object with a scope contract
-- `narrative_introspect` endpoints provide debugging/audit views of story state
+- `d20-rules-server` simulates turns, actions, combat, fronts, flags, and atmosphere.
+- `d20-dm-runtime` is a separate FastAPI service running in Docker on the VPS.
+- `POST /dm/turn` accepts player natural language, classifies intent, calls the rules server, and synthesizes the final player-facing DM payload.
+- `POST /dm/narrate` accepts already-resolved mechanics/world context and narrates without re-entering rules resolution.
+- The live DM narrator is a Hermes agent **inside** the `d20-dm-runtime` container:
+  - `HERMES_HOME=/root/.hermes`
+  - profile: `/root/.hermes/profiles/d20-dm`
+  - command: `hermes chat -q ... -Q --profile d20-dm`
+- The turn engine returns structured data containing `narrative`, `asks`, `world_context`, `decision_point`, `dice_log`, `decision_log`, and `combat_log`.
+- `world_context` is a bounded DM-facing context object with a scope contract.
+- Deployment verification is scripted in `scripts/deploy_dm_runtime.sh` and documented in `DEPLOYMENT.md`.
 
-What does NOT exist yet:
-- A standalone DM runtime process or service
-- A player-facing DM session loop
-- A session-memory layer for scenes, NPC continuity, and async recap/resume
-- A Hermes/Kimi-powered storyteller wrapper that consumes server payloads and returns final narration + choices
+What must remain true:
+- The laptop/global Hermes profile `~/.hermes/profiles/d20-dm` must not be created or used.
+- Repo path `dm-runtime/hermes-home/profiles/d20-dm/` is a Docker build/source artifact only.
+- Host-side DM proxy containers and port `8611` are obsolete and should not be resurrected.
+- Health is not sufficient proof; actual `/dm/turn` must pass with a non-empty Hermes `session_id`.
 
 ## Target System Split
 
@@ -51,16 +51,21 @@ Responsibilities:
 
 ### 2. DM Runtime
 
-A separate Hermes-based runtime, ideally pinned to Kimi 2.5 for hackathon/demo value.
+A separate FastAPI service plus in-container Hermes agent. It runs as `d20-dm-runtime` on the VPS, colocated with the rules server in Docker for isolation.
 
 Responsibilities:
+- Accept public player natural language at `/dm/turn`
 - Translate player intent into server calls
 - Route intent to the right server API (`turn`, `actions`, `combat`)
-- Synthesize server output into rich narration
+- Accept already-resolved mechanics at `/dm/narrate` for rules-server augmentation without recursion
+- Synthesize server output into rich narration through Hermes `d20-dm`
 - Voice NPCs using server-provided personality/dialogue/context
 - Present options/choices clearly
-- Maintain scene/session continuity
+- Maintain scene/session continuity via Hermes session IDs
 - Generate async recaps when turns happen off-session
+
+Runtime invariant:
+- Hermes lives only inside the `d20-dm-runtime` container with isolated `HERMES_HOME=/root/.hermes`.
 
 ### 3. Player Interface
 
@@ -71,6 +76,35 @@ Responsibilities:
 - Show narrated responses
 - Surface approval moments
 - Resume sessions
+
+
+## Production Deployment Invariant
+
+Live production stack:
+
+```text
+Public player / portal
+  -> Traefik HTTPS: https://d20.holocronlabs.ai
+  -> Docker Compose on VPS: /home/admin/apps/d20
+     - d20-rules-server  (:8600, authoritative rules/state)
+     - d20-dm-runtime    (:8610, DM FastAPI + Hermes agent)
+     - d20-redis         (lock/cache support)
+```
+
+Canonical deploy/verify command for DM-runtime-only changes:
+
+```bash
+cd /home/rigario/Projects/rigario-d20
+scripts/deploy_dm_runtime.sh
+```
+
+For verification without changing deployment:
+
+```bash
+VERIFY_ONLY=1 scripts/deploy_dm_runtime.sh
+```
+
+A deploy is only complete when `scripts/validate_actual_dm_agent_turn.py --base https://d20.holocronlabs.ai --max-turn-seconds 90` passes after rebuild/recreate.
 
 ## Authority Boundaries
 

@@ -1,0 +1,30 @@
+[
+  {
+    "action": "I swallow the statue whole.",
+    "status": 200,
+    "scene_preview": "You consider trying to 'I swallow the statue whole.', but even you realize that's not possible.",
+    "is_refusal": false,
+    "is_movement": false
+  },
+  {
+    "action": "I fly to the moon unaided.",
+    "status": 200,
+    "scene_preview": "You consider trying to 'I fly to the moon unaided.', but even you realize that's not possible.",
+    "is_refusal": false,
+    "is_movement": false
+  },
+  {
+    "action": "I teleport directly to the cave-depths.",
+    "status": 200,
+    "scene_preview": "You consider trying to 'I teleport directly to the cave-depths.', but even you realize that's not possible.",
+    "is_refusal": false,
+    "is_movement": false
+  },
+  {
+    "action": "I punch the horizon until it bleeds.",
+    "status": 200,
+    "scene_preview": "You stand in the Deep Whisperwood, the canopy choking out the sky above. Strange fungi pulse with sickly light on rotting logs, their glow intensifying toward the cave mouth. The trail is barely a whi",
+    "is_refusal": false,
+    "is_movement": false
+  }
+]

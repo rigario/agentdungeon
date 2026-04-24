@@ -1,8 +1,8 @@
 # D20 Playtest Issues Log
 
-**Last Reviewed:** 2026-04-24 15:52 UTC — Heartbeat — Smoke PASS (18/19) — Updated: 006/007/012/013 Fixed; new 014/015 created
+**Last Reviewed:** 2026-04-24 06:38 UTC — Heartbeat — Smoke FAILURE (3 action endpoints 500), ISSUE-011 confirmed active — P1 regressions blocking
 
-**Open Issues:** 4 | **Fixed Issues:** 11
+**Open Issues:** 7 | **Fixed Issues:** 6
 ---
 
 ## Open Issues
@@ -62,13 +62,6 @@
 - Status: CONFIRMED — DM returned Marta the Merchant dialogue (wrong NPC)
 - Evidence: `/dm/turn` status=200, char ID `hb-scena-1776929801-1b2699-473423`, target="statue carefully", narration.scene="You approach Marta the Merchant (merchant). Looking to buy or sell?"
 
-
-**Heartbeat Check (2026-04-24 15:40 UTC — Scenario B statue examination):**
-    - DM turn 'examine the statue' returned correct statue description (stone hand, seal sigil)
-    - No wrong NPC returned; character ID: heartbeat-b-20260424-153730-38eb89; /dm/turn 200
-
-**Fixed:** 2026-04-24 — Heartbeat verification — DM statue-examination now returns correct narration; synthesis routing corrected.
-
 ### ISSUE-007: Location persistence regression after move action (P1-High)
 
 **Severity:** P1-High  (blocks world model, quest/NPC access)
@@ -122,27 +115,6 @@
 - Condition: Pre-flight smoke + direct action probe; DM turn hangs
 - Status: CONFIRMED PERSISTENT — `current_location_id` remains `None` after move/explore while `location_id` updates correctly
 - Evidence: POST /characters/heartbeat-probe-dmtime-8eaf0e/actions (move to south-road) → 200, `character_state.location_id='south-road'`; subsequent GET `current_location_id=None`
-
-
-**Heartbeat Check (2026-04-24 07:55 UTC — Smoke probe):**
-- Condition: Fresh probe character `smoke-probe-20260424-5a6014`; pre-flight smoke + direct action sequence (create, explore, move)
-- Status: CONFIRMED — `current_location_id` remains `None` after explore and move, while `location_id` updates correctly
-- Evidence: POST /characters/{id}/actions (explore) → 200, success=True; POST /characters/{id}/actions (move target=south-road) → 200, `character_state.location_id='rusty-tankard'`; subsequent GET `current_location_id=None`; direct probe char ID `smoke-probe-20260424-5a6014`; timestamp 2026-04-24T07:55:19.144220
-
-**Heartbeat Check (2026-04-24 14:42 UTC — location persistence):**
-    - Condition: Fresh char create → GET, POST move, GET
-    - Status: CONFIRMED — `location_id` updates, `current_location_id` remains `None`
-    - Evidence: char `smoke-probe-dm-1777041765`; POST move returned `character_state.location_id='rusty-tankard'`; subsequent GET → `current_location_id=None`; field-level serialization bug persists
-
-
-
-**Heartbeat Check (2026-04-24 15:40 UTC — Scenario B move persistence):**
-    - Multiple moves confirmed; current_location_id properly populated (not None) ✓
-    - Original field bug RESOLVED
-    - New finding: State desync — event_log shows combat_defeat but GET returns HP 12/12; action handler rejects as deceased while GET shows alive; event log missing move events (0 recorded)
-    - Evidence: char heartbeat-b-...; move to forest-edge triggered combat_defeat; subsequent GET HP 12/12; POST actions 403 deceased
-
-**Fixed:** 2026-04-24 — Heartbeat verification — current_location_id field persists correctly; original location persistence issue resolved. Desync tracked separately.
 
 ### ISSUE-008: full_playthrough_with_gates.py crashes due to invalid location ID and missing success validation (P1-High)
 
@@ -257,14 +229,6 @@
 
 ---
 
-
-**Heartbeat Check (2026-04-24 15:40 UTC — Scenario B absurd action test):**
-    - Tested 4 absurd intents via /dm/turn: 'swallow statue', 'fly to moon', 'teleport', 'punch horizon'
-    - First 3 refused correctly; 'punch horizon' misrouted to forest exploration narration
-    - Narration: 'You stand in the Deep Whisperwood...' — movement triggered despite absurdity
-    - Evidence: char heartbeat-b-20260424-153730-38eb89; endpoint /dm/turn status 200
-    - Status: Guardrail incomplete — surreal physical actions bypass detection
-
 ### ISSUE-010: Infrastructure failure — production endpoints degraded or unreachable (P1-High)
 
 **Severity:** P1-High  (blocks all playtesting, no world data accessible)
@@ -310,12 +274,6 @@ The rules server is unreachable from the DM runtime (DNS resolution failure). DM
 
 **MC Task:** TODO — Investigate VPS container health, network routing, and DNS configuration
 
-
-
-**Heartbeat Check (2026-04-24 14:42 UTC — infrastructure):**
-    - Condition: Pre-flight health gate on production
-    - Status: NOT REPRODUCED — endpoints healthy
-    - Evidence: `/health` 200; `/dm/health` 200 (rules_server ok, dm_runtime ok, narrator enabled); `/api/map/data` 200 (locations present); no DNS errors; previous 2026-04-23 outage resolved
 
 
 ### ISSUE-011: Action endpoints return 500 Internal Server Error (P1-High)
@@ -412,17 +370,7 @@ The character fixture in `tests/test_smoke.py` is defined with `scope="session"`
 - Smoke: 16/19 PASS — 3 failures (test_explore_turn, test_move_turn — ReadTimeout on /dm/turn; test_move_updates_location_id — current_location_id=None P1)
 - TestDMTurn failures: httpx.ReadTimeout (>8s) — DM endpoint hanging, not slow
 - TestLocationPersistence failure: assertion `current_location_id=='thornhold'` got None — confirms ISSUE-007
-- Root cause remains: fixture scope='session' shared across state-mutating tests; DM turn timeout new blocker
-**Heartbeat Check (2026-04-24 15:40 UTC — Smoke test analysis):**
-    - Smoke: 18/19 PASS; only test_move_updates_location_id fails (event log assertion)
-    - DM turn tests PASS — timeouts resolved
-    - No HP-threshold failures; fixture scope contamination RESOLVED
-    - Remaining blocker: event_log not recording move events (see ISSUE-014)
-    - Assessment: Session-scoped fixture issue (ISSUE-012) fixed.
-
-**Fixed:** 2026-04-24 — Heartbeat verification — test fixture scope corrected; pre-flight smoke gate cleared.
-
-### ISSUE-013: DM turn endpoint hangs / ReadTimeout (P1-High)
+- Root cause remains: fixture scope='session' shared across state-mutating tests; DM turn timeout new blocker### ISSUE-013: DM turn endpoint hangs / ReadTimeout (P1-High)
 
 **Severity:** P1-High  (blocks all scenarios requiring DM narration)
 **Category:** Technical  (DM runtime / API gateway)
@@ -452,87 +400,6 @@ The DM runtime health endpoint responds quickly but the `/dm/turn` synthesis cal
 **MC Task:** TODO — Investigate /dm/turn ReadTimeout; check d20-dm container logs, Kimi API connectivity, Hermes provider routing for profile `d20-dm`.
 ---
 
-
-**Heartbeat Check (2026-04-24 07:55 UTC — Smoke probe):**
-- Condition: Direct `/dm/turn` probes on fresh character after smoke failures
-- Status: CONFIRMED — endpoint exhibits both 500 Internal Server Error and ReadTimeout failures
-- Evidence: First POST `/dm/turn` → 500 (11.8s); three subsequent calls → ReadTimeout (>12s); character ID `smoke-probe-20260424-5a6014`; timestamp 2026-04-24T07:55:19.144220
-
----
-
-
-**Heartbeat Check (2026-04-24 14:42 UTC — /dm/turn probe):**
-    - Condition: Direct POST `/dm/turn` "I look around." on fresh character
-    - Status: CONFIRMED — endpoint returns 500 Internal Server Error
-    - Evidence: char ID `smoke-probe-dm-1777041765`; endpoint `/dm/turn` status=500; response: "Internal Server Error"; `/dm/health` 200 healthy but `/dm/turn` fails; smoke: test_explore_turn and test_move_turn both 500
-
-
-**Heartbeat Check (2026-04-24 14:42 UTC — test pollution):**
-    - Condition: Smoke test `test_move_updates_location_id` fails 202 (HP 16.7% < 25% threshold)
-    - Status: CONFIRMED — session-scoped character fixture shared across state-mutating tests
-    - Evidence: fixture scope="session" (should be "function"); HP bleed from earlier combat test; P1-High testing blocker
-
-
-**Heartbeat Check (2026-04-24 15:40 UTC — DM turn endpoint recovery):**
-    - Direct /dm/turn probe: status 200, narration received, no timeout
-    - Smoke: test_explore_turn and test_move_turn PASS
-    - DM runtime responding; Kimi API connectivity restored
-    - Evidence: char heartbeat-b-20260424-153730-38eb89; /dm/turn 200 OK
-
-**Fixed:** 2026-04-24 — Heartbeat verification — /dm/turn ReadTimeout/500 resolved; endpoint healthy.
-
-### ISSUE-014: Event log does not record move/combat events (P1-High)
-
-**Severity:** P1-High  (blocks verification, breaks audit trail)
-**Category:** Technical  (event sourcing)
-**Reproduces:** YES — Heartbeat 2026-04-24
-
-**Steps:**
-1. Create character; perform successful move actions (2+ moves)
-2. Perform explore that triggers combat
-3. GET `/characters/{id}/event-log`
-
-**Expected:** Event log contains `move` events; combat events present
-**Actual:** Event log only `character_created` and `explore`; zero `move` events; combat events present but `move` missing
-
-**Evidence:**
-- Char: heartbeat-b-20260424-153730-38eb89
-- Moves: thornhold→forest-edge, forest-edge→deep-forest, deep-forest→cave-entrance (all 200)
-- Event log types: character_created, explore, travel×2, combat_start, combat_round×3, combat_defeat — NO `move`
-- GET /event-log 200; timestamp 2026-04-24T15:41Z
-
-**Analysis:** Move action handler not emitting move events to event log despite state updates. Breaks test_move_updates_location_id and audit trail.
-
-**MC Task:** Ensure move handler emits and commits move events.
-
----
-
-### ISSUE-015: Character state desynchronization — combat_defeat recorded but GET shows alive (P1-High)
-
-**Severity:** P1-High  (invalid state prevents further actions)
-**Category:** Persistence  (read model)
-**Reproduces:** YES — Heartbeat 2026-04-24
-
-**Steps:**
-1. Character moves to forest-edge (combat encounter triggered)
-2. combat_defeat event in event_log
-3. GET `/characters/{id}` returns HP 12/12, no conditions
-4. Explore/move returns 403 'character_deceased'
-
-**Expected:** Character sheet should reflect defeat
-**Actual:** Event log says dead; GET shows alive 12/12; action handler blocks; state irreconcilable
-
-**Evidence:**
-- Char: heartbeat-b-20260424-153730-38eb89
-- Event log last: combat_defeat (2026-04-24T15:41:15)
-- GET: hit_points.current=12, conditions={}, location_id=forest-edge
-- Action POST → 403 character_deceased
-
-**Analysis:** Read model out of sync with event-sourced truth. Projection not updated after combat_defeat or stale replica.
-
-**MC Task:** Investigate projection refresh; verify event listener updates character; check cache invalidation.
-
----
 
 
 ## Deployment
@@ -942,95 +809,15 @@ Health endpoints and world data accessible, but all `POST /characters/{id}/actio
 ---
 
 
-### 2026-04-24 07:55 UTC — Heartbeat Agent — BLOCKED (smoke failure — P1 regressions active)
-
-**Smoke Test:** 16/19 PASS — 3 failures
-
-**Pre-flight gate:** FAILED — no scenario execution per mandatory rule.
-
-**Infrastructure health:**
-- `/health`: 200 OK — service up, DB connected
-- `/dm/health`: 200 OK — DM runtime healthy, narrator enabled (kimi-for-coding, api_key_set)
-- `/api/map/data`: 200 OK — 12 locations fully seeded (narrative arc complete)
-
-**Active P1 regressions (smoke failures):**
-1. `test_move_updates_location_id` — `current_location_id=None` after move (ISSUE-007)
-2. `test_explore_turn` — `/dm/turn` returns 500 Internal Server Error (ISSUE-013)
-3. `test_move_turn` — `/dm/turn` ReadTimeout after 12s (ISSUE-013)
-
-**Direct verification (probe `smoke-probe-20260424-5a6014`):**
-- Character creation: `location_id=rusty-tankard`, `current_location_id=None`
-- Explore action: 200 OK, success=True
-- After explore: GET `current_location_id=None` (ISSUE-007 confirmed)
-- Move action (south-road): 200, `success=False` (biome restriction), `current_location_id=None` persists
-- DM turn probes: first → 500 after 11.8s; three subsequent → ReadTimeout (>12s) (ISSUE-013 confirmed)
-
-**Issues confirmed:** ISSUE-007, ISSUE-013
-**Not reproduced:** ISSUE-009 (portal token 201 — resolved)
-
-**Recommendation:** Urgent redeploy to latest main (commit e6455bf or later) to fix DM turn. After redeploy, rerun smoke suite; if PASS, execute Scenario A.
-
----
-
-### 2026-04-24 14:42 UTC — Heartbeat Agent — BLOCKED by smoke failure (Scenario C skipped)
-
-**Smoke Test:** 16/19 PASS — 3 failures
-**Scenario Attempted:** C — SKIPPED (pre-flight gate)
-**Character ID:** `smoke-probe-dm-1777041765`
-
-**Health Gate (all PASS):** `/health` 200, `/dm/health` 200, `/api/map/data` 200
-
-**Smoke Failures:**
-- `test_explore_turn` → 500
-- `test_move_turn` → 500
-- `test_move_updates_location_id` → 202 (HP 16.7% < 25%) — test pollution
-
-**Updates:** ISSUE-013 (DM 500) confirmed; ISSUE-010 (DNS) not reproduced; ISSUE-007 (location field) confirmed; ISSUE-012 (test pollution) confirmed
-
-**Top Fix:** Deploy latest main to VPS (deployment drift triad). If DM 500 persists after redeploy, investigate d20-dm container logs, Kimi API connectivity, Hermes gateway (`d20-dm` profile).
-
-### 2026-04-24 15:52 UTC — Heartbeat Agent — Scenario B (Absurd Actions)
-
-**Smoke Test:** 18/19 PASS (1 failure: test_move_updates_location_id — event log missing move events)
-
-**Scenarios Attempted:** B — COMPLETED (direct API bypass; harness ISSUE-008 unneeded)
-
-**Character ID:** `heartbeat-b-20260424-153730-38eb89`
-
-**Evidence Summary:**
-- DM statue examine: correct narration; ISSUE-006 resolved ✓
-- Move persistence: current_location_id populated; field bug resolved ✓
-- Absurd actions: 'punch horizon' misrouted to exploration — ISSUE-005 regression
-- Event log: 0 move events → new ISSUE-014
-- State desync: combat_defeat event present but GET shows alive → new ISSUE-015
-- Portal token: 201 OK (ISSUE-009 resolved)
-- DM turn: 200 OK (ISSUE-013 resolved)
-
-**Issues Updated:**
-- ISSUE-005: appended regression evidence
-- ISSUE-006: marked Fixed
-- ISSUE-007: marked Fixed; desync separate
-- ISSUE-012: marked Fixed
-- ISSUE-013: marked Fixed
-- New: ISSUE-014, ISSUE-015
-
-**Top Fix Priority:**
-1. Event log emission for move actions (ISSUE-014)
-2. State read model reconciliation after combat (ISSUE-015)
-3. Strengthen absurd action guardrail (ISSUE-005 regression)
-
-**Next:** Re-run Scenario C after event log fix to verify combat chain and flag progression.
-
----
 ## Template for New Issues
 
 > **Category:** Combat | Narrative | Technical | UX
 > **Reproduces:** YES / NO / PARTIAL
->
+> 
 > **Steps:** 1. ... 2. ...
 > **Expected:** ...
 > **Actual:** ...
->
+> 
 > **Evidence:**
 > - Endpoint: ...
 > - Status: ...

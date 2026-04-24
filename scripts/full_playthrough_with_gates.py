@@ -15,6 +15,7 @@ import time
 import uuid
 import os
 from datetime import datetime
+from pathlib import Path
 from typing import Optional, Dict, Any, List
 
 # ---------------------------------------------------------------------------
@@ -23,6 +24,7 @@ from typing import Optional, Dict, Any, List
 RULES_URL = os.environ.get("D20_RULES_URL", "http://localhost:8600")
 DM_URL = os.environ.get("DM_URL", "http://localhost:8610")
 TIMEOUT = 30.0
+PLAYTEST_RUNS_DIR = Path(os.environ.get("PLAYTEST_RUNS_DIR", "playtest-runs"))
 
 # ---------------------------------------------------------------------------
 # State
@@ -35,6 +37,18 @@ class PlaythroughState:
         self.human_gates = []
         self.flags = {}
         self.location_id = None
+        self.dm_turns = []
+        self.dm_turn_counter = 0
+        self.run_started = datetime.utcnow()
+        self.artifact_dir = None
+
+    def prepare_artifacts(self):
+        if self.artifact_dir is not None:
+            return
+        safe_char = self.char_id or "pending-character"
+        stamp = self.run_started.strftime("%Y%m%dT%H%M%SZ")
+        self.artifact_dir = PLAYTEST_RUNS_DIR / f"{stamp}-{safe_char}"
+        self.artifact_dir.mkdir(parents=True, exist_ok=True)
 
     def log(self, msg: str, kind: str = "info", data = None):
         entry = {
@@ -46,6 +60,71 @@ class PlaythroughState:
             entry["data"] = data if isinstance(data, (dict, list)) else str(data)
         self.transcript.append(entry)
         print(f"[{kind.upper()}] {msg}")
+
+    def dm_turn(self, client: httpx.Client, message: str, label: str = None, session_id: str = None) -> Dict:
+        """Call /dm/turn and retain the full DM response for prose review."""
+        self.prepare_artifacts()
+        self.dm_turn_counter += 1
+        turn_number = self.dm_turn_counter
+        requested_at = datetime.utcnow().isoformat()
+        location_before = self.location_id
+        response = do_dm_turn(client, self.char_id, message, session_id=session_id)
+        logged_at = datetime.utcnow().isoformat()
+        narration = response.get("narration") or {}
+        scene = narration.get("scene", "") if isinstance(narration, dict) else str(narration)
+        npc_lines = narration.get("npc_lines", []) if isinstance(narration, dict) else []
+        choices = response.get("choices") or []
+        mechanics = response.get("mechanics") or {}
+        server_trace = response.get("server_trace") or {}
+        entry = {
+            "turn_number": turn_number,
+            "anchor": f"turn-{turn_number:03d}",
+            "label": label,
+            "requested_at": requested_at,
+            "logged_at": logged_at,
+            "character_id": self.char_id,
+            "location_before": location_before,
+            "message": message,
+            "status": 200,
+            "session_id": response.get("session_id"),
+            "server_endpoint_called": server_trace.get("server_endpoint_called"),
+            "narration_scene": scene,
+            "npc_lines": npc_lines,
+            "choices": choices,
+            "mechanics": mechanics,
+            "server_trace": server_trace,
+            "raw_response": response,
+        }
+        self.dm_turns.append(entry)
+        self.transcript.append({
+            "timestamp": logged_at,
+            "kind": "dm_turn",
+            "message": message,
+            "data": {
+                "turn_number": turn_number,
+                "label": label,
+                "session_id": response.get("session_id"),
+                "server_endpoint_called": server_trace.get("server_endpoint_called"),
+                "full_response_logged": True,
+                "prose_log_anchor": f"turn-{turn_number:03d}",
+            },
+        })
+        print(f"[DM_TURN] turn-{turn_number:03d} {label or ''} session={response.get('session_id')}")
+        return response
+
+    def write_artifacts(self, report: Dict):
+        self.prepare_artifacts()
+        transcript_path = self.artifact_dir / "transcript.json"
+        prose_path = self.artifact_dir / "dm-prose.md"
+        report["artifact_paths"] = {
+            "transcript_json": str(transcript_path),
+            "dm_prose_markdown": str(prose_path),
+        }
+        with transcript_path.open("w") as f:
+            json.dump(report, f, indent=2)
+        with prose_path.open("w") as f:
+            f.write(render_dm_prose_markdown(self))
+        return transcript_path, prose_path
 
     def gate(self, title: str, description: str, options: List[str], context: Dict = None):
         self.log(f"[GATE] {title} — {description}", "human_gate")
@@ -64,6 +143,74 @@ class PlaythroughState:
         print(f"  Options: {', '.join(options)}")
         print(f"{'='*60}\n")
         return gate_entry
+
+def render_dm_prose_markdown(state: PlaythroughState) -> str:
+    lines = []
+    lines.append(f"# D20 DM Prose Log — {state.char_name}")
+    lines.append("")
+    lines.append(f"- Character ID: `{state.char_id}`")
+    lines.append(f"- Started: {state.run_started.isoformat()}Z")
+    lines.append(f"- Rules URL: {RULES_URL}")
+    lines.append(f"- DM URL: {DM_URL}")
+    lines.append("")
+    lines.append("This file intentionally preserves the full DM prose with no truncation for narrative review.")
+    lines.append("")
+    for turn in state.dm_turns:
+        lines.append(f"## Turn {turn['turn_number']:03d} — {turn['logged_at']}")
+        lines.append("")
+        if turn.get("label"):
+            lines.append(f"**Label:** {turn['label']}")
+        lines.append(f"**Tester message:** {turn['message']}")
+        lines.append(f"**Status:** {turn['status']}")
+        lines.append(f"**Session:** {turn.get('session_id')}")
+        lines.append(f"**Location before:** {turn.get('location_before')}")
+        lines.append(f"**Endpoint called:** {turn.get('server_endpoint_called')}")
+        lines.append("")
+        lines.append("### DM scene")
+        lines.append("")
+        scene = turn.get("narration_scene") or ""
+        lines.append(scene)
+        lines.append("")
+        lines.append("### NPC lines")
+        lines.append("")
+        npc_lines = turn.get("npc_lines") or []
+        if npc_lines:
+            for npc in npc_lines:
+                if isinstance(npc, dict):
+                    speaker = npc.get("speaker") or "Unknown"
+                    text = npc.get("text") or ""
+                    lines.append(f"- **{speaker}:** {text}")
+                else:
+                    lines.append(f"- {npc}")
+        else:
+            lines.append("- None")
+        lines.append("")
+        lines.append("### Choices")
+        lines.append("")
+        choices = turn.get("choices") or []
+        if choices:
+            for idx, choice in enumerate(choices, start=1):
+                if isinstance(choice, dict):
+                    label = choice.get("label") or choice.get("id") or str(choice)
+                    lines.append(f"{idx}. {label}")
+                else:
+                    lines.append(f"{idx}. {choice}")
+        else:
+            lines.append("- None")
+        lines.append("")
+        lines.append("### Mechanics summary")
+        lines.append("")
+        lines.append("```json")
+        lines.append(json.dumps(turn.get("mechanics") or {}, indent=2, sort_keys=True))
+        lines.append("```")
+        lines.append("")
+        lines.append("### Server trace")
+        lines.append("")
+        lines.append("```json")
+        lines.append(json.dumps(turn.get("server_trace") or {}, indent=2, sort_keys=True))
+        lines.append("```")
+        lines.append("")
+    return "\n".join(lines) + "\n"
 
 # ---------------------------------------------------------------------------
 # API helpers
@@ -128,8 +275,9 @@ def phase_thornhold_explore(client: httpx.Client, state: PlaythroughState):
     else:
         state.log(" Flag NOT set — unexpected", "warning")
 
-    dm_resp = do_dm_turn(client, state.char_id,
-        "I examine the statue in Thornhold's square. What detail do I notice?")
+    dm_resp = state.dm_turn(client,
+        "I examine the statue in Thornhold's square. What detail do I notice?",
+        label="statue examination")
     scene = dm_resp.get("narration", {}).get("scene", "")
     state.log(f"DM: {scene[:300]}", "dm")
 
@@ -143,7 +291,7 @@ def phase_antechamber_puzzle(client: httpx.Client, state: PlaythroughState):
         else:
             state.log(f"Move to cave-entrance failed: {result.get('narration','')[:200]}", "warning")
             # Use DM turn to navigate instead
-            dm_resp = do_dm_turn(client, state.char_id, "I head toward the cave entrance.")
+            dm_resp = state.dm_turn(client, "I head toward the cave entrance.", label="navigate to cave entrance")
             scene = dm_resp.get("narration", {}).get("scene", "")
             state.log(f"DM: {scene[:200]}")
             # Refresh character state
@@ -151,7 +299,7 @@ def phase_antechamber_puzzle(client: httpx.Client, state: PlaythroughState):
             state.location_id = char_data.get("location_id")
     except Exception as e:
         state.log(f"Direct move blocked: {e}", "warning")
-        dm_resp = do_dm_turn(client, state.char_id, "I head toward the cave entrance.")
+        dm_resp = state.dm_turn(client, "I head toward the cave entrance.", label="navigate to cave entrance")
         scene = dm_resp.get("narration", {}).get("scene", "")
         state.log(f"DM: {scene[:200]}")
 
@@ -167,8 +315,9 @@ def phase_antechamber_puzzle(client: httpx.Client, state: PlaythroughState):
         state.human_gates[-1]["decision"] = "1"
         state.log("Auto-selected option 1")
 
-    dm_resp = do_dm_turn(client, state.char_id,
-        "I align the fingers: star up, crescent left, hand right, matching the constellation.")
+    dm_resp = state.dm_turn(client,
+        "I align the fingers: star up, crescent left, hand right, matching the constellation.",
+        label="antechamber puzzle solution")
     state.log(f"Puzzle result: {dm_resp.get('narration',{}).get('scene','')[:300]}", "result")
 
     flags = get_flags(client, state.char_id)
@@ -184,7 +333,7 @@ def phase_south_road_wolves(client: httpx.Client, state: PlaythroughState):
         state.location_id = "south-road"
     else:
         state.log(f"Move to south-road failed: {result.get('narration','')[:200]}", "warning")
-        dm_resp = do_dm_turn(client, state.char_id, "I travel the south road toward the forest.")
+        dm_resp = state.dm_turn(client, "I travel the south road toward the forest.", label="travel south road")
         scene = dm_resp.get("narration", {}).get("scene", "")
         state.log(f"DM narration: {scene[:200]}")
         char_data = get_character(client, state.char_id)
@@ -196,7 +345,7 @@ def phase_south_road_wolves(client: httpx.Client, state: PlaythroughState):
 
     # Combat via DM
     state.log("Combat: fighting wolves")
-    dm_resp = do_dm_turn(client, state.char_id, "I attack the wolves with my longsword.")
+    dm_resp = state.dm_turn(client, "I attack the wolves with my longsword.", label="wolf combat")
     scene = dm_resp.get("narration", {}).get("scene", "")
     state.log(f"Combat result: {scene[:300]}", "combat")
 
@@ -208,13 +357,14 @@ def phase_sister_drenna_quest(client: httpx.Client, state: PlaythroughState):
         state.location_id = "crossroads"
     else:
         state.log(f"Move to crossroads failed: {result.get('narration','')[:200]}", "warning")
-        dm_resp = do_dm_turn(client, state.char_id, "I make my way to the crossroads.")
+        dm_resp = state.dm_turn(client, "I make my way to the crossroads.", label="travel crossroads")
         char_data = get_character(client, state.char_id)
         state.location_id = char_data.get("location_id")
 
     state.log("Talk to Sister Drenna")
-    dm_resp = do_dm_turn(client, state.char_id,
-        "I approach Sister Drenna. 'Sister, I need to speak with you about the Hollow Eye.'")
+    dm_resp = state.dm_turn(client,
+        "I approach Sister Drenna. 'Sister, I need to speak with you about the Hollow Eye.'",
+        label="sister drenna dialogue")
     scene = dm_resp.get("narration", {}).get("scene", "")
     state.log(f"Drenna: {scene[:400]}", "dialogue")
 
@@ -247,19 +397,20 @@ def phase_kol_encounter(client: httpx.Client, state: PlaythroughState):
             state.location_id = "cave-depths"
         else:
             state.log(f"Move to cave-depths failed: {result.get('narration','')[:200]}", "warning")
-            dm_resp = do_dm_turn(client, state.char_id, "I venture deeper into the cave system.")
+            dm_resp = state.dm_turn(client, "I venture deeper into the cave system.", label="travel cave depths")
             char_data = get_character(client, state.char_id)
             state.location_id = char_data.get("location_id")
     except Exception as e:
-        dm_resp = do_dm_turn(client, state.char_id, "I venture deeper into the cave system.")
+        dm_resp = state.dm_turn(client, "I venture deeper into the cave system.", label="travel cave depths")
 
     state.log("Searching for Kol")
     explore = do_action(client, state.char_id, "explore")
     state.log(f"Found: {explore.get('narration','')[:200]}")
 
     state.log("Confronting Kol")
-    dm_resp = do_dm_turn(client, state.char_id,
-        "I face Brother Kol at the ritual site. 'The sacrifices end now.'")
+    dm_resp = state.dm_turn(client,
+        "I face Brother Kol at the ritual site. 'The sacrifices end now.'",
+        label="brother kol confrontation")
     scene = dm_resp.get("narration", {}).get("scene", "")
     state.log(f"Kol confrontation: {scene[:400]}", "dialogue")
 
@@ -281,7 +432,7 @@ def phase_kol_encounter(client: httpx.Client, state: PlaythroughState):
     }
     decision = state.human_gates[-1].get("decision", "1")
     message = choice_map.get(decision, "I act according to my judgment.")
-    dm_resp = do_dm_turn(client, state.char_id, message)
+    dm_resp = state.dm_turn(client, message, label="final choice outcome")
     state.log(f"Outcome: {dm_resp.get('narration',{}).get('scene','')[:300]}", "outcome")
 
 def phase_final_summary(client: httpx.Client, state: PlaythroughState):
@@ -324,31 +475,43 @@ def main():
             print(f"Health check failed: {e}")
             return
 
-        # Execute
-        phase_create_character(client, state)
-        phase_thornhold_explore(client, state)
-        phase_antechamber_puzzle(client, state)
-        phase_south_road_wolves(client, state)
-        phase_sister_drenna_quest(client, state)
-        phase_kol_encounter(client, state)
-        phase_final_summary(client, state)
-
-        # Save report
-        report = {
-            "playthrough_id": str(uuid.uuid4()),
-            "character_name": state.char_name,
-            "character_id": state.char_id,
-            "timestamp": datetime.utcnow().isoformat(),
-            "transcript": state.transcript,
-            "human_gates": state.human_gates,
-            "final_flags": state.flags,
-        }
-        outfile = f"playthrough_{state.char_id}.json"
-        with open(outfile, "w") as f:
-            json.dump(report, f, indent=2)
-        print(f"\nReport saved: {outfile}")
-        print(f"Human gates: {len(state.human_gates)}")
-        print("=== COMPLETE ===")
+        run_error = None
+        try:
+            # Execute
+            phase_create_character(client, state)
+            phase_thornhold_explore(client, state)
+            phase_antechamber_puzzle(client, state)
+            phase_south_road_wolves(client, state)
+            phase_sister_drenna_quest(client, state)
+            phase_kol_encounter(client, state)
+            phase_final_summary(client, state)
+        except Exception as exc:
+            run_error = repr(exc)
+            state.log(f"Playthrough aborted: {run_error}", "error")
+        finally:
+            # Always save structured transcript + full DM prose log, even on failure.
+            report = {
+                "playthrough_id": str(uuid.uuid4()),
+                "character_name": state.char_name,
+                "character_id": state.char_id,
+                "timestamp": datetime.utcnow().isoformat(),
+                "rules_url": RULES_URL,
+                "dm_url": DM_URL,
+                "run_error": run_error,
+                "transcript": state.transcript,
+                "dm_turns": state.dm_turns,
+                "human_gates": state.human_gates,
+                "final_flags": state.flags,
+            }
+            transcript_path, prose_path = state.write_artifacts(report)
+            print(f"\nTranscript saved: {transcript_path}")
+            print(f"DM prose saved:   {prose_path}")
+            print(f"Human gates: {len(state.human_gates)}")
+            print(f"DM turns logged: {len(state.dm_turns)}")
+            if run_error:
+                print(f"RUN ERROR: {run_error}")
+                raise SystemExit(1)
+            print("=== COMPLETE ===")
 
 if __name__ == "__main__":
     main()

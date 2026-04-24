@@ -1,0 +1,10 @@
+{
+  "move1_status": 200,
+  "move1_response_location": "deep-forest",
+  "get1_location_id": "deep-forest",
+  "get1_current_location_id": "deep-forest",
+  "move2_status": 200,
+  "move2_response_location": "deep-forest",
+  "get2_location_id": "deep-forest",
+  "get2_current_location_id": "deep-forest"
+}

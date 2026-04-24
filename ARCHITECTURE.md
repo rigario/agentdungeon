@@ -3,29 +3,36 @@
 ## System Overview
 
 Current implementation status:
-- **Server/referee is real and running** — rules, state, combat, turn simulation, fronts, flags, and `world_context` are implemented.
-- **DM-compatible payloads are real and running** — the turn engine already returns `narrative`, `asks`, `world_context`, `decision_log`, and `combat_log`.
-- **Standalone DM runtime is NOT yet built** — there is no separate service/process in this repo that accepts player input, calls the correct server routes, maintains scene/session continuity, and returns the final narrated payload.
+- **Server/referee is real and running** — rules, state, combat, turn simulation, fronts, flags, and `world_context` are implemented in `d20-rules-server`.
+- **DM runtime is real and running** — `d20-dm-runtime` accepts `/dm/turn`, routes to the rules server, and invokes Hermes narration in-container.
+- **Hermes `d20-dm` profile is container-only** — live profile is `/root/.hermes/profiles/d20-dm` inside the VPS `d20-dm-runtime` container. Do not create/use laptop `~/.hermes/profiles/d20-dm`.
 
-See `DM-RUNTIME-ARCHITECTURE.md` for the implementation-facing target design.
+See `DM-RUNTIME-ARCHITECTURE.md` for authority boundaries and `DEPLOYMENT.md` for cron-safe deploy/verification.
 
 Three independent entities that never mix responsibilities:
 
 ```
-┌─────────────────┐     ┌──────────────────────────────────┐
-│  Player Agent   │     │         DM Agent (VPS)           │
-│  (player's)     │────→│  Narrates world, runs NPCs       │
-│                 │←────│  Presents choices, describes      │
-└─────────────────┘     └───────────┬──────────────────────┘
-                                    │ calls server API
-                                    ▼
-                    ┌──────────────────────────────────┐
-                    │         Server (VPS)              │
-                    │  Validates all mechanical rules   │
-                    │  Stores portable character sheets │
-                    │  Manages world state and combat   │
-                    │  Returns world_context to DM      │
-                    └──────────────────────────────────┘
+┌─────────────────┐
+│ Player / Agent  │
+└────────┬────────┘
+         │ HTTPS: d20.holocronlabs.ai
+         ▼
+┌─────────────────────────────────────────────────────┐
+│ VPS Docker Compose project: /home/admin/apps/d20    │
+│                                                     │
+│  d20-rules-server (:8600)                           │
+│    - validates rules, rolls, state, world_context   │
+│                                                     │
+│  d20-dm-runtime (:8610)                             │
+│    - /dm/turn public player-input orchestrator      │
+│    - /dm/narrate narrate-only internal endpoint     │
+│    - Hermes agent inside container only             │
+│      HERMES_HOME=/root/.hermes                      │
+│      profile=/root/.hermes/profiles/d20-dm          │
+│                                                     │
+│  d20-redis                                          │
+│    - lock/cache support                             │
+└─────────────────────────────────────────────────────┘
 ```
 
 ## Entity Responsibilities

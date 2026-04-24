@@ -3,17 +3,17 @@ title: D20 Playtest Runbook
 project: rigario-d20-agent-rpg
 type: runbook
 status: active
-last_updated: 2026-04-22
+last_updated: 2026-04-24
 maintainer: Alpha
 tags: [playtest, agentic, dm-runtime, human-agentic-loop]
 ---
 
 # D20 Playtest Runbook — "The Dreaming Hunger"
 
-**Project:** Rigario D20 Agent RPG  
-**Status:** Pre-Phase 1 (Internal Alpha)  
-**Last Updated:** 2026-04-22  
-**Maintainer:** Alpha (Hermes Agent)  
+**Project:** Rigario D20 Agent RPG
+**Status:** Pre-Phase 1 (Internal Alpha)
+**Last Updated:** 2026-04-24
+**Maintainer:** Alpha (Hermes Agent)
 **Attached To:** `rigario-d20-agent-rpg` Mission Control project
 
 ---
@@ -27,35 +27,23 @@ Validate the **human-agentic play loop**:
 - **Regular summaries** from DM to human
 - **Checkpoint gating** at major decisions (quests, combat tactics, moral choices, endings)
 
-### Current State (2026-04-22 — Post-HB209 Verification)
+### Current State (2026-04-24 — Post-DM Runtime Deploy Fix)
 
-**Execution Path Status** (all green):
-- ✅ e754c915 — Hermes DM profile on Kimi Turbo + wrapper service
-- ✅ cbd65d2a — End-to-end DM path for playtest
-- ✅ d572bb09 — Antechamber puzzle write path (depends on statue flag)
-- ✅ f829f9d4 — Internal playtest gate (209 tests pass)
+**Execution Path Status:**
+- ✅ `d20-rules-server` healthy on VPS (`/health` → 200)
+- ✅ `d20-dm-runtime` healthy on VPS (`/dm/health` → 200)
+- ✅ Hermes `d20-dm` profile runs **inside** `d20-dm-runtime` with `HERMES_HOME=/root/.hermes`
+- ✅ Actual `/dm/turn` validator passes with a real Hermes `session_id` and non-empty narration
+- ✅ P0 `42e2b04e` `/dm/turn` 500 from missing `_extract_trace` fixed, rebuilt, and marked Done
 
-**Infrastructure:**
-- ✅ All services deployed: rules-server (:8600), dm-runtime (:8610), redis, Traefik
-- ✅ Production live: https://d20.holocronlabs.ai (HTTPS, Let's Encrypt)
-- ✅ `/dm/turn` endpoint working with **Kimi Turbo k2.5** narration (~1s latency)
-- ✅ Character creation, exploration, direct actions functional
-- ✅ All 3 endings reachable (Reseal, Merge, Communion)
-- ✅ 209 unit + integration tests passing across dm-runtime and rules-server
+**Architecture reminder:**
+- Laptop/global `~/.hermes/profiles/d20-dm` is invalid. The live DM belongs only in the VPS Docker container.
+- Rules server augmentation uses `/dm/narrate`; public player natural-language turns use `/dm/turn`.
+- Deploy/verify via `scripts/deploy_dm_runtime.sh` and `DEPLOYMENT.md`.
 
-**Issues Resolved (since 2026-04-21 playtest):**
-- ✅ `thornhold_statue_observed` flag now sets correctly on Thornhold explore — **test_statue_flag.py PASS** (commit eb0a854)
-- ✅ `/dm/turn` 404 routing → fixed (Traefik path-based routing)
-- ✅ DM timeout (45s+) → fixed (8s timeout, connection pooling, ~347ms avg)
-- ✅ Point buy rejects >15 before racial → enforced (returns 400)
-
-**Remaining Blockers:**
-- ❌ **Combat choices array always empty** — DM `/dm/turn` responses have `choices: []` during combat (task a9f3b53e, P1-High)
-- ❌ **Combat damage not applied** — HP unchanged after enemy attacks (data seeding gap, not code logic)
-- ⚠️ **Move action returns 404** — `POST /actions` with `action_type='move'` not recognized; workaround: use `explore` (task 4df7c9f6, P2-Medium)
-- ⚠️ **Absurd action routing** — DM misroutes impossible actions (e.g., "swallow statue") to movement instead of narrating refusal (task d8435ba1, P2-Medium)
-
-**Playtest Readiness:** **MINOR BLOCKERS** — core loop works (create → explore → interact → combat → death). Combat needs choices/damage fix for full engagement.
+**Remaining readiness work:**
+- Run/close internal VPS playtest gate (`b34d8525`) now that `/dm/turn` is fixed.
+- Continue P1/P2 narrative branch hardening and external playtest review.
 
 ---
 
@@ -255,7 +243,7 @@ D20_COMBAT=0 python3 scripts/agentic_harness.py
 
 ### Mission Control Project
 
-**Project ID:** `rigario-d20-agent-rpg`  
+**Project ID:** `rigario-d20-agent-rpg`
 **URL:** `http://100.98.80.95:8500/project/rigario-d20-agent-rpg`
 
 **Active Tasks:**

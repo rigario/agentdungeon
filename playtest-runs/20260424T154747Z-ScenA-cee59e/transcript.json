@@ -1,0 +1,471 @@
+{
+  "timestamp": "20260424T154747Z",
+  "character": {
+    "name": "ScenA-cee59e",
+    "id": "scena-cee59e-aa877f",
+    "class": "Fighter",
+    "race": "Human"
+  },
+  "scenario": "A",
+  "base_urls": {
+    "rules": "https://d20.holocronlabs.ai",
+    "dm": "https://d20.holocronlabs.ai"
+  },
+  "artifact_paths": {
+    "transcript_json": "playtest-runs/20260424T154747Z-ScenA-cee59e/transcript.json",
+    "dm_prose_markdown": "playtest-runs/20260424T154747Z-ScenA-cee59e/dm-prose.md"
+  },
+  "transcript": [
+    {
+      "step": "create",
+      "status": 201,
+      "id": "scena-cee59e-aa877f",
+      "location": "rusty-tankard"
+    },
+    {
+      "step": "move_to_thornhold",
+      "status": 200,
+      "success": true,
+      "location": "thornhold"
+    },
+    {
+      "step": "explore_thornhold",
+      "status": 200,
+      "narration": "You search Thornhold but find nothing of value. You glance at the statue in the town square but can't quite make out what it's pointing at."
+    },
+    {
+      "step": "flags_after_explore",
+      "flags": {
+        "thornhold_statue_observed": "1"
+      }
+    },
+    {
+      "step": "dm_turn_1",
+      "status": 200,
+      "label": "look around thornhold",
+      "session_id": "20260424_154757_2437a9"
+    },
+    {
+      "step": "dm_turn_2",
+      "status": 200,
+      "label": "examine statue",
+      "session_id": "20260424_154757_2437a9"
+    },
+    {
+      "step": "dm_turn_3",
+      "status": 200,
+      "label": "inspect seal markings",
+      "session_id": "20260424_154757_2437a9"
+    },
+    {
+      "step": "final_state",
+      "location": "deep-forest",
+      "flags": {
+        "thornhold_statue_observed": "1"
+      }
+    }
+  ],
+  "final_flags": {
+    "thornhold_statue_observed": "1"
+  },
+  "dm_turns": [
+    {
+      "turn": 1,
+      "label": "look around thornhold",
+      "status": 200,
+      "session_id": "20260424_154757_2437a9",
+      "trace": "actions",
+      "scene": "The afternoon sun filters through a canvas awning, casting warm amber stripes across a weathered wooden cart. Marta the Merchant stands behind it, her calloused hands resting on the edge as she watches you approach. The cart creaks slightly in a passing breeze, laden with cloth-wrapped bundles and the faint metallic gleam of tools beneath oilcloth. A tethered goat chews lazily at a patch of weeds nearby, its bell clinking in a slow rhythm. The air smells of dried herbs, old leather, and the faint sweetness of preserved fruit from a jar half-buried among her wares.",
+      "npc_lines": [
+        {
+          "speaker": "Marta the Merchant",
+          "text": "Looking to buy or sell? I've got fair prices.",
+          "tone": "friendly"
+        }
+      ],
+      "choices": [
+        {
+          "id": "attack",
+          "label": "Attack",
+          "description": "Attack an enemy"
+        },
+        {
+          "id": "flee",
+          "label": "Flee",
+          "description": "Attempt to escape combat"
+        },
+        {
+          "id": "cast",
+          "label": "Cast Spell",
+          "description": "Cast a spell"
+        },
+        {
+          "id": "use_item",
+          "label": "Use Item",
+          "description": "Use a consumable"
+        },
+        {
+          "id": "defend",
+          "label": "Defend",
+          "description": "Take defensive stance (disadvantage on attacks against you)"
+        }
+      ],
+      "raw": {
+        "narration": {
+          "scene": "The afternoon sun filters through a canvas awning, casting warm amber stripes across a weathered wooden cart. Marta the Merchant stands behind it, her calloused hands resting on the edge as she watches you approach. The cart creaks slightly in a passing breeze, laden with cloth-wrapped bundles and the faint metallic gleam of tools beneath oilcloth. A tethered goat chews lazily at a patch of weeds nearby, its bell clinking in a slow rhythm. The air smells of dried herbs, old leather, and the faint sweetness of preserved fruit from a jar half-buried among her wares.",
+          "npc_lines": [
+            {
+              "speaker": "Marta the Merchant",
+              "text": "Looking to buy or sell? I've got fair prices.",
+              "tone": "friendly"
+            }
+          ],
+          "tone": "neutral"
+        },
+        "mechanics": {
+          "what_happened": [],
+          "hp": {
+            "current": 12,
+            "max": 12
+          },
+          "xp": null,
+          "location": "thornhold",
+          "loot": null
+        },
+        "choices": [
+          {
+            "id": "attack",
+            "label": "Attack",
+            "description": "Attack an enemy"
+          },
+          {
+            "id": "flee",
+            "label": "Flee",
+            "description": "Attempt to escape combat"
+          },
+          {
+            "id": "cast",
+            "label": "Cast Spell",
+            "description": "Cast a spell"
+          },
+          {
+            "id": "use_item",
+            "label": "Use Item",
+            "description": "Use a consumable"
+          },
+          {
+            "id": "defend",
+            "label": "Defend",
+            "description": "Take defensive stance (disadvantage on attacks against you)"
+          }
+        ],
+        "server_trace": {
+          "turn_id": null,
+          "decision_point": null,
+          "available_actions": [],
+          "combat_log": [
+            "{'type': 'npc_interaction', 'npc': 'Marta the Merchant', 'dialogue': \"Looking to buy or sell? I've got fair prices.\"}"
+          ],
+          "intent_used": {
+            "type": "talk",
+            "target": "me about this place",
+            "details": {
+              "action_type": "interact",
+              "target": "me about this place",
+              "_original_msg": "I look around Thornhold's town square. Tell me about this place."
+            },
+            "server_endpoint": "actions"
+          },
+          "server_endpoint_called": "actions",
+          "raw_server_response_keys": [
+            "success",
+            "narration",
+            "events",
+            "character_state",
+            "npc",
+            "time_info"
+          ]
+        },
+        "session_id": "20260424_154757_2437a9"
+      }
+    },
+    {
+      "turn": 2,
+      "label": "examine statue",
+      "status": 200,
+      "session_id": "20260424_154757_2437a9",
+      "trace": "turn/start",
+      "scene": "You push through a tangle of briar and low-hanging branches into a clearing at the forest's edge. The oaks here are ancient, their trunks wider than a wagon, their roots knuckling up through the leaf-litter like half-buried bones. The birdsong that greeted you on the road has faltered into uneasy silence \u2014 broken only by sudden, frantic bursts of chirping that cut off as sharply as they began. You notice circles scratched into the bark of the nearest trees, shallow but deliberate, the wood beneath pale and fresh. Broken branches litter the ground, all angled toward a dark maw in the hillside \u2014 a cave mouth half-choked with ferns. No squirrels chatter. No insects drone. Even the wind seems to avoid this place.",
+      "npc_lines": [],
+      "choices": [
+        {
+          "id": "thornhold",
+          "label": "Go to Thornhold",
+          "description": "A small walled town at the edge of the Whisperwood. Stone buildings, a central market square, and an inn called The Rusty Tankard. At the square's center stands a weathered stone hand reaching toward the sky \u2014 the seal marker. Most residents treat it as an old curiosity. The town guard keeps order but the walls are old and few. The mood is uneasy."
+        },
+        {
+          "id": "deep-forest",
+          "label": "Go to Deep Whisperwood",
+          "description": "The canopy closes overhead, blocking most light. Strange fungi glow on rotting logs \u2014 brighter near the cave. The trail is barely visible. Something large has been through recently. Broken branches, claw marks on bark. The bones of something large lie at the base of a great oak, picked clean. The Green Woman's hollow tree is somewhere in this area \u2014 if you know how to find it."
+        },
+        {
+          "id": "explore",
+          "label": "Explore",
+          "description": "You've reached Whisperwood Edge for the first time. The southern fringe of the Whisperwood. Tall oaks and thick undergrowth. Birdsong has become irregular \u2014 long silences punctuated by sudden chorus, then silence again. The trees nearest the road are marked with scratched circles. Something has been through here recently \u2014 broken branches point toward the cave. Animals do not linger here."
+        },
+        {
+          "id": "move_on",
+          "label": "Move On",
+          "description": "You've reached Whisperwood Edge for the first time. The southern fringe of the Whisperwood. Tall oaks and thick undergrowth. Birdsong has become irregular \u2014 long silences punctuated by sudden chorus, then silence again. The trees nearest the road are marked with scratched circles. Something has been through here recently \u2014 broken branches point toward the cave. Animals do not linger here."
+        }
+      ],
+      "raw": {
+        "narration": {
+          "scene": "You push through a tangle of briar and low-hanging branches into a clearing at the forest's edge. The oaks here are ancient, their trunks wider than a wagon, their roots knuckling up through the leaf-litter like half-buried bones. The birdsong that greeted you on the road has faltered into uneasy silence \u2014 broken only by sudden, frantic bursts of chirping that cut off as sharply as they began. You notice circles scratched into the bark of the nearest trees, shallow but deliberate, the wood beneath pale and fresh. Broken branches litter the ground, all angled toward a dark maw in the hillside \u2014 a cave mouth half-choked with ferns. No squirrels chatter. No insects drone. Even the wind seems to avoid this place.",
+          "npc_lines": [],
+          "tone": "ominous"
+        },
+        "mechanics": {
+          "what_happened": [
+            "Traveled to Whisperwood Edge.",
+            "First visit to Whisperwood Edge!",
+            "Choose exploration direction from thornhold: chose forest-edge"
+          ],
+          "hp": {
+            "current": 12,
+            "max": 12
+          },
+          "xp": null,
+          "location": "forest-edge",
+          "loot": null
+        },
+        "choices": [
+          {
+            "id": "thornhold",
+            "label": "Go to Thornhold",
+            "description": "A small walled town at the edge of the Whisperwood. Stone buildings, a central market square, and an inn called The Rusty Tankard. At the square's center stands a weathered stone hand reaching toward the sky \u2014 the seal marker. Most residents treat it as an old curiosity. The town guard keeps order but the walls are old and few. The mood is uneasy."
+          },
+          {
+            "id": "deep-forest",
+            "label": "Go to Deep Whisperwood",
+            "description": "The canopy closes overhead, blocking most light. Strange fungi glow on rotting logs \u2014 brighter near the cave. The trail is barely visible. Something large has been through recently. Broken branches, claw marks on bark. The bones of something large lie at the base of a great oak, picked clean. The Green Woman's hollow tree is somewhere in this area \u2014 if you know how to find it."
+          },
+          {
+            "id": "explore",
+            "label": "Explore",
+            "description": "You've reached Whisperwood Edge for the first time. The southern fringe of the Whisperwood. Tall oaks and thick undergrowth. Birdsong has become irregular \u2014 long silences punctuated by sudden chorus, then silence again. The trees nearest the road are marked with scratched circles. Something has been through here recently \u2014 broken branches point toward the cave. Animals do not linger here."
+          },
+          {
+            "id": "move_on",
+            "label": "Move On",
+            "description": "You've reached Whisperwood Edge for the first time. The southern fringe of the Whisperwood. Tall oaks and thick undergrowth. Birdsong has become irregular \u2014 long silences punctuated by sudden chorus, then silence again. The trees nearest the road are marked with scratched circles. Something has been through here recently \u2014 broken branches point toward the cave. Animals do not linger here."
+          }
+        ],
+        "server_trace": {
+          "turn_id": "7a82f9905d88",
+          "decision_point": {
+            "type": "new_location",
+            "description": "You've reached Whisperwood Edge for the first time. The southern fringe of the Whisperwood. Tall oaks and thick undergrowth. Birdsong has become irregular \u2014 long silences punctuated by sudden chorus, then silence again. The trees nearest the road are marked with scratched circles. Something has been through here recently \u2014 broken branches point toward the cave. Animals do not linger here.",
+            "location": "forest-edge",
+            "hostility": 3,
+            "recommended_level": 1
+          },
+          "available_actions": [
+            "move",
+            "attack",
+            "rest",
+            "explore",
+            "interact",
+            "puzzle"
+          ],
+          "combat_log": [
+            "Traveled to Whisperwood Edge.",
+            "First visit to Whisperwood Edge!"
+          ],
+          "intent_used": {
+            "type": "general",
+            "target": null,
+            "details": {
+              "intent": "I approach the old stone statue at the center of the square. What do I notice?",
+              "_original_msg": "I approach the old stone statue at the center of the square. What do I notice?"
+            },
+            "server_endpoint": "turn"
+          },
+          "server_endpoint_called": "turn/start",
+          "raw_server_response_keys": [
+            "turn_id",
+            "status",
+            "dice_log",
+            "decision_log",
+            "combat_log",
+            "rng_seed",
+            "events",
+            "narrative",
+            "asks",
+            "hp_start",
+            "hp_end",
+            "hp_max",
+            "gold_start",
+            "gold_end",
+            "xp_start",
+            "xp_end",
+            "locations_visited",
+            "current_location",
+            "encounters_fought",
+            "in_game_time_passed",
+            "decision_point",
+            "world_context",
+            "spell_context",
+            "available_actions",
+            "remaining_d20_pool"
+          ]
+        },
+        "session_id": "20260424_154757_2437a9"
+      }
+    },
+    {
+      "turn": 3,
+      "label": "inspect seal markings",
+      "status": 200,
+      "session_id": "20260424_154757_2437a9",
+      "trace": "turn/start",
+      "scene": "You press deeper into the Whisperwood, and the canopy swallows the sky. What little light filters through is green and sickly, casting everything in shades of moss and shadow. Rotting logs bristle with fungi that glow in pale blues and violets \u2014 the luminescence intensifies as you near the cave's direction, as if the very decay is drawn toward it. The trail has all but vanished beneath a carpet of fallen leaves and creeping vine. You stop at the base of a massive oak, its roots coiled around the sun-bleached bones of some large beast \u2014 deer, perhaps, or something bigger. The skeleton has been picked entirely clean, not a scrap of sinew remaining. Claw marks rake the bark above, deep and fresh. The hollow tree is here, somewhere \u2014 but the forest offers no sign, only watchful silence.",
+      "npc_lines": [],
+      "choices": [
+        {
+          "id": "forest-edge",
+          "label": "Go to Whisperwood Edge",
+          "description": "The southern fringe of the Whisperwood. Tall oaks and thick undergrowth. Birdsong has become irregular \u2014 long silences punctuated by sudden chorus, then silence again. The trees nearest the road are marked with scratched circles. Something has been through here recently \u2014 broken branches point toward the cave. Animals do not linger here."
+        },
+        {
+          "id": "cave-entrance",
+          "label": "Go to Whisperwood Cave",
+          "description": "A dark opening in a moss-covered hillside, half-hidden by ferns. Cold air flows out from within \u2014 too cold for the season. Bones are scattered near the entrance. Not all are animal. The walls near the entrance are carved with repeated sigils \u2014 Hollow Eye ritual marks. The cave forks within 20 feet: left leads to the upper caverns, right descends toward the depths where the seal stone sits."
+        },
+        {
+          "id": "moonpetal-glade",
+          "label": "Go to The Moonpetal Glade",
+          "description": "A ring of standing stones, each taller than a man, arranged in a perfect circle around a central monolith twice the height of the others. The monolith is covered in the same carved symbols as the seal chamber \u2014 but these are worn smooth by centuries of rain. At its base, moonpetal flowers grow in clusters: pale blue-white, faintly luminous, swaying without wind. The air smells of ozone and honey. The Green Woman told you: 'Pick three. Only three. The stone remembers greed.'"
+        },
+        {
+          "id": "explore",
+          "label": "Explore",
+          "description": "You've reached Deep Whisperwood for the first time. The canopy closes overhead, blocking most light. Strange fungi glow on rotting logs \u2014 brighter near the cave. The trail is barely visible. Something large has been through recently. Broken branches, claw marks on bark. The bones of something large lie at the base of a great oak, picked clean. The Green Woman's hollow tree is somewhere in this area \u2014 if you know how to find it."
+        },
+        {
+          "id": "move_on",
+          "label": "Move On",
+          "description": "You've reached Deep Whisperwood for the first time. The canopy closes overhead, blocking most light. Strange fungi glow on rotting logs \u2014 brighter near the cave. The trail is barely visible. Something large has been through recently. Broken branches, claw marks on bark. The bones of something large lie at the base of a great oak, picked clean. The Green Woman's hollow tree is somewhere in this area \u2014 if you know how to find it."
+        }
+      ],
+      "raw": {
+        "narration": {
+          "scene": "You press deeper into the Whisperwood, and the canopy swallows the sky. What little light filters through is green and sickly, casting everything in shades of moss and shadow. Rotting logs bristle with fungi that glow in pale blues and violets \u2014 the luminescence intensifies as you near the cave's direction, as if the very decay is drawn toward it. The trail has all but vanished beneath a carpet of fallen leaves and creeping vine. You stop at the base of a massive oak, its roots coiled around the sun-bleached bones of some large beast \u2014 deer, perhaps, or something bigger. The skeleton has been picked entirely clean, not a scrap of sinew remaining. Claw marks rake the bark above, deep and fresh. The hollow tree is here, somewhere \u2014 but the forest offers no sign, only watchful silence.",
+          "npc_lines": [],
+          "tone": "ominous"
+        },
+        "mechanics": {
+          "what_happened": [
+            "Traveled to Deep Whisperwood.",
+            "First visit to Deep Whisperwood!",
+            "Choose exploration direction from forest-edge: chose deep-forest"
+          ],
+          "hp": {
+            "current": 12,
+            "max": 12
+          },
+          "xp": null,
+          "location": "deep-forest",
+          "loot": null
+        },
+        "choices": [
+          {
+            "id": "forest-edge",
+            "label": "Go to Whisperwood Edge",
+            "description": "The southern fringe of the Whisperwood. Tall oaks and thick undergrowth. Birdsong has become irregular \u2014 long silences punctuated by sudden chorus, then silence again. The trees nearest the road are marked with scratched circles. Something has been through here recently \u2014 broken branches point toward the cave. Animals do not linger here."
+          },
+          {
+            "id": "cave-entrance",
+            "label": "Go to Whisperwood Cave",
+            "description": "A dark opening in a moss-covered hillside, half-hidden by ferns. Cold air flows out from within \u2014 too cold for the season. Bones are scattered near the entrance. Not all are animal. The walls near the entrance are carved with repeated sigils \u2014 Hollow Eye ritual marks. The cave forks within 20 feet: left leads to the upper caverns, right descends toward the depths where the seal stone sits."
+          },
+          {
+            "id": "moonpetal-glade",
+            "label": "Go to The Moonpetal Glade",
+            "description": "A ring of standing stones, each taller than a man, arranged in a perfect circle around a central monolith twice the height of the others. The monolith is covered in the same carved symbols as the seal chamber \u2014 but these are worn smooth by centuries of rain. At its base, moonpetal flowers grow in clusters: pale blue-white, faintly luminous, swaying without wind. The air smells of ozone and honey. The Green Woman told you: 'Pick three. Only three. The stone remembers greed.'"
+          },
+          {
+            "id": "explore",
+            "label": "Explore",
+            "description": "You've reached Deep Whisperwood for the first time. The canopy closes overhead, blocking most light. Strange fungi glow on rotting logs \u2014 brighter near the cave. The trail is barely visible. Something large has been through recently. Broken branches, claw marks on bark. The bones of something large lie at the base of a great oak, picked clean. The Green Woman's hollow tree is somewhere in this area \u2014 if you know how to find it."
+          },
+          {
+            "id": "move_on",
+            "label": "Move On",
+            "description": "You've reached Deep Whisperwood for the first time. The canopy closes overhead, blocking most light. Strange fungi glow on rotting logs \u2014 brighter near the cave. The trail is barely visible. Something large has been through recently. Broken branches, claw marks on bark. The bones of something large lie at the base of a great oak, picked clean. The Green Woman's hollow tree is somewhere in this area \u2014 if you know how to find it."
+          }
+        ],
+        "server_trace": {
+          "turn_id": "903d2413cdab",
+          "decision_point": {
+            "type": "new_location",
+            "description": "You've reached Deep Whisperwood for the first time. The canopy closes overhead, blocking most light. Strange fungi glow on rotting logs \u2014 brighter near the cave. The trail is barely visible. Something large has been through recently. Broken branches, claw marks on bark. The bones of something large lie at the base of a great oak, picked clean. The Green Woman's hollow tree is somewhere in this area \u2014 if you know how to find it.",
+            "location": "deep-forest",
+            "hostility": 4,
+            "recommended_level": 1
+          },
+          "available_actions": [
+            "move",
+            "attack",
+            "rest",
+            "explore",
+            "interact",
+            "puzzle"
+          ],
+          "combat_log": [
+            "Traveled to Deep Whisperwood.",
+            "First visit to Deep Whisperwood!"
+          ],
+          "intent_used": {
+            "type": "general",
+            "target": null,
+            "details": {
+              "intent": "I run my hand over the stone hand. Is there a seal marking? Any sigils?",
+              "_original_msg": "I run my hand over the stone hand. Is there a seal marking? Any sigils?"
+            },
+            "server_endpoint": "turn"
+          },
+          "server_endpoint_called": "turn/start",
+          "raw_server_response_keys": [
+            "turn_id",
+            "status",
+            "dice_log",
+            "decision_log",
+            "combat_log",
+            "rng_seed",
+            "events",
+            "narrative",
+            "asks",
+            "hp_start",
+            "hp_end",
+            "hp_max",
+            "gold_start",
+            "gold_end",
+            "xp_start",
+            "xp_end",
+            "locations_visited",
+            "current_location",
+            "encounters_fought",
+            "in_game_time_passed",
+            "decision_point",
+            "world_context",
+            "spell_context",
+            "available_actions",
+            "remaining_d20_pool"
+          ]
+        },
+        "session_id": "20260424_154757_2437a9"
+      }
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "explore_status": 200,
+  "flags": {
+    "thornhold_statue_observed": "1"
+  },
+  "dm_status": 200,
+  "dm_narration": "You approach the weathered stone hand in the town square. It juts from the cobblestones at an angle, as if reaching upward from some buried giant. The fingers point northeast, toward the Thornwood's edge. Moss clings to the knuckles, and the carved seal sigil \u2014 three concentric rings, the outermost broken \u2014 is worn smooth by centuries of wind and rain. Water pools in the palm from last night's storm. The square around you stands empty. Somewhere, a dog barks once and falls silent.",
+  "dm_npc_lines": []
+}

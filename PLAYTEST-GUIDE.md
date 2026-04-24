@@ -1,9 +1,9 @@
 # D20 Playtest Guide — "The Dreaming Hunger"
 
-**Project:** Rigario D20 Agent RPG  
-**Status:** Active Playtest  
-**Last Updated:** 2026-04-23  
-**Maintainer:** Hermes Agent (heartbeat)  
+**Project:** Rigario D20 Agent RPG
+**Status:** Active Playtest
+**Last Updated:** 2026-04-24
+**Maintainer:** Hermes Agent (heartbeat)
 **Source Docs:** PLAYTEST-RUNBOOK.md, PLAYTEST-PLAN.md, NARRATIVE-MAP.md
 
 ---
@@ -99,11 +99,44 @@ The Front advances as you defeat encounters in key locations. Each victory trigg
 
 ## 5. How to Playtest
 
+### Primary Testing Mode — DM-Agent First
+
+All playtests now target the **live DM agent path** first. The testing agent should behave like a player: send natural-language intent to `POST /dm/turn`, evaluate the DM's narration/choices, and only use direct rules endpoints as diagnostic controls.
+
+Required order for every narrative beat:
+1. **DM path first:** `POST /dm/turn` with the player's intent.
+2. **Full prose capture:** write the complete DM response to a durable transcript file before summarizing or truncating anything.
+3. **State verification:** call rules endpoints (`GET /characters/{id}`, `GET /narrative/flags/{id}`, combat endpoints) to verify the DM narration matches authoritative state.
+4. **Direct action fallback only for diagnosis:** if `/dm/turn` fails or misroutes, call `POST /characters/{id}/actions` with the equivalent structured action to isolate whether the bug is in DM routing/synthesis or the rules layer.
+
+Do **not** treat a direct action success as playtest success unless the DM-agent path also works. The product experience is the DM agent.
+
+### Mandatory DM Prose Logging
+
+The testing agent must fully log what the DM agent says into a reviewable file for narrative/prose review.
+
+Required files per run:
+- Machine-readable full transcript: `playtest-runs/<timestamp>-<character_id>/transcript.json`
+- Human-readable prose log: `playtest-runs/<timestamp>-<character_id>/dm-prose.md`
+
+`dm-prose.md` must include, for every `/dm/turn`:
+- Turn number and timestamp
+- Character ID and current location when known
+- Exact player/tester message sent to the DM
+- HTTP status and Hermes `session_id`
+- Full `narration.scene` text with **no truncation**
+- Full `narration.npc_lines` text with speaker names
+- Full visible `choices` labels
+- Relevant mechanics summary and `server_trace.server_endpoint_called`
+- Any mismatch notes from the verifier
+
+Short excerpts may go in `PLAYTEST-ISSUES.md`, but prose review requires the full `dm-prose.md` file.
+
 ### Prerequisites
 
 - Production endpoints: `https://d20.holocronlabs.ai` (rules: :8600, DM: :8610)
 - Test character: fresh character per scenario (avoid cross-contamination)
-- Playtest harness: `scripts/full_playthrough_with_gates.py` (recommended)
+- Playtest harness: `scripts/full_playthrough_with_gates.py` (recommended; writes full DM prose logs)
 - Session report: always append to `PLAYTEST-ISSUES.md`
 
 ### Character Build Recommendations
@@ -116,40 +149,46 @@ For consistent combat testing:
 
 ### Five Test Scenarios
 
-Each scenario exercises a different narrative/mechanical path:
+Each scenario exercises a different narrative/mechanical path. In every scenario, the testing agent must drive the beat through `/dm/turn` first and then verify state mechanically.
 
 **Scenario A — Character Creation + First Steps**
-- Create character → explore Thornhold → examine statue
-- Verify: `thornhold_statue_observed` flag set, DM narration references statue
+- Create character → ask DM to look around Thornhold → ask DM to examine the statue
+- Verify: `thornhold_statue_observed` flag set, DM narration references statue, `dm-prose.md` contains full opening and statue prose
+- Direct action fallback: `explore` only if DM path fails or needs isolation
 - Gate: Statue acknowledgment
 
 **Scenario B — Absurd/AI Stress Test**
-- Test DM intent classifier with impossible actions: "I swallow the statue", "I fly to the moon"
-- Verify: DM refuses gracefully, doesn't misroute as movement
+- Send impossible DM-agent intents: "I swallow the statue", "I fly to the moon"
+- Verify: DM refuses gracefully, asks for clarification or constrains action, and does not misroute as movement
+- Log full refusal prose in `dm-prose.md` for tone review
 - Gate: None (observation only)
 
 **Scenario C — Combat Full Chain**
-- Move to south-road → trigger wolf encounter → complete combat round
-- Verify: `choices` array populated, HP damage tracked, combat log updated
+- Use DM-agent natural language to travel toward danger, trigger encounter, and choose combat tactics
+- Verify: `choices` array populated, HP damage tracked, combat log updated, DM combat prose is legible and tactically actionable
+- Direct combat endpoints only diagnose failures after DM path evidence is captured
 - Gate: Combat tactic choice (Attack/Flee/Cast/Defend)
 
 **Scenario D — NPC Quest Chain**
-- Travel to crossroads/south-road → find Sister Drenna → accept quest → find Brother Kol → learn backstory
-- Verify: `kol_backstory_known` flag set after dialogue chain
+- Use DM-agent dialogue to find Sister Drenna, accept quest, find Brother Kol, and learn backstory
+- Verify: `kol_backstory_known` flag set after dialogue chain and DM prose preserves NPC voice/continuity
+- Direct quest/action endpoints only diagnose missing flags after DM dialogue is logged
 - Gate: Quest acceptance (Accept/Refuse/Arrest), Kol fate choice (Fight/Persuade/Commune)
 
 **Scenario E — Portal / Ending Access**
-- Reach cave-depths → trigger climax → attempt portal token generation
-- Verify: POST `/portal/token` returns 201 with token, GET `/portal/{token}/state/view` renders sheet
+- Use DM-agent narration to reach cave-depths and trigger climax/ending choice
+- Verify: POST `/portal/token` returns 201 with token, GET `/portal/{token}/state/view` renders sheet, ending prose is fully captured
 - Gate: Ending choice (Reseal/Merge/Commune)
 
 **Rotation order for unattended runs:** A → B → C → D → E → (repeat)
 
 ## 6. What to Capture — Session Log Template
 
+Every run must produce both a structured transcript and a prose review file.
+
 ```json
 {
-  "timestamp": "2026-04-23T10:30:00Z",
+  "timestamp": "2026-04-24T10:30:00Z",
   "character": {
     "name": "Playtest-XYZ",
     "id": "char-uuid",
@@ -160,11 +199,24 @@ Each scenario exercises a different narrative/mechanical path:
     "rules": "https://d20.holocronlabs.ai",
     "dm": "https://d20.holocronlabs.ai"
   },
-  "smoke_test": "16/17 PASS",
+  "artifact_paths": {
+    "transcript_json": "playtest-runs/20260424T103000Z-char-uuid/transcript.json",
+    "dm_prose_markdown": "playtest-runs/20260424T103000Z-char-uuid/dm-prose.md"
+  },
+  "smoke_test": "17/17 PASS",
   "transcript": [
     {"kind": "create", "endpoint": "/characters", "status": 201, "evidence": "..."},
-    {"kind": "dm_turn", "endpoint": "/dm/turn", "status": 200, "choices": ["Attack",...]},
-    {"kind": "action", "endpoint": "/combat/act", "status": 200, "hp_before": 8, "hp_after": 0}
+    {
+      "kind": "dm_turn",
+      "endpoint": "/dm/turn",
+      "status": 200,
+      "turn_number": 1,
+      "message": "I look around Thornhold.",
+      "session_id": "20260424_...",
+      "full_response_logged": true,
+      "prose_log_anchor": "turn-001"
+    },
+    {"kind": "verify_state", "endpoint": "/characters/{id}", "status": 200, "location_id": "thornhold"}
   ],
   "final_flags": {
     "thornhold_statue_observed": "1",
@@ -173,6 +225,32 @@ Each scenario exercises a different narrative/mechanical path:
   "reproduced_issues": ["ISSUE-001", "ISSUE-003"],
   "notes": "Combat choices worked; Kol geography blocked"
 }
+```
+
+`dm-prose.md` should be readable by Rigario without opening JSON. Example turn block:
+
+```markdown
+## Turn 001 — 2026-04-24T10:30:00Z
+
+**Tester message:** I look around Thornhold.
+**Status:** 200
+**Session:** 20260424_...
+**Location before:** thornhold
+**Endpoint called:** actions
+
+### DM scene
+<full narration.scene, untruncated>
+
+### NPC lines
+- **Aldric:** <full line>
+
+### Choices
+1. <full visible label>
+2. <full visible label>
+
+### Verifier notes
+- State check: location_id=thornhold
+- Mismatch: none
 ```
 
 ## 7. How to Report Issues
@@ -194,9 +272,11 @@ Each scenario exercises a different narrative/mechanical path:
 
 **Evidence requirements:**
 - Endpoint + HTTP status
-- One line of response excerpt
+- One line of response excerpt in `PLAYTEST-ISSUES.md`
 - Character ID + scenario
 - Timestamp
+- Path to full prose log (`dm-prose.md`) whenever a DM narrative issue or prose-quality finding is reported
+- For DM issues: include the exact turn number from `dm-prose.md`, not just a summary
 
 ### Issue Type Cheat Sheet
 
@@ -249,7 +329,7 @@ Each scenario exercises a different narrative/mechanical path:
 ## Appendix: Links
 
 - Source runbook: `PLAYTEST-RUNBOOK.md`
-- Test scenarios: `PLAYTEST-PLAN.md` (detailed)  
+- Test scenarios: `PLAYTEST-PLAN.md` (detailed)
 - Narrative structure: `NARRATIVE-MAP.md`
 - Architecture: `ARCHITECTURE.md` + `DM-RUNTIME-ARCHITECTURE.md`
 - Issues log: `PLAYTEST-ISSUES.md` (append session reports here)
