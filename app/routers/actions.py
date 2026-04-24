@@ -569,7 +569,7 @@ def _resolve_rest(char: dict, rest_type: str, rng: random.Random) -> dict:
     """Resolve a short or long rest.
     
     Marked characters (mark_of_dreamer_stage >= 1) must pass a WIS save on long rest
-    or gain no HP recovery. DC scales with mark stage: 10/12/14.
+    or gain no HP recovery. DC scales with mark stage: 10/14/16.
     
     Marked characters also receive dream narration from the atmosphere engine,
     which provides narrative context about the Hunger's influence.
@@ -584,7 +584,7 @@ def _resolve_rest(char: dict, rest_type: str, rng: random.Random) -> dict:
         if mark_stage >= 1:
             wis_score = json.loads(char.get("ability_scores_json", "{}")).get("wis", 10)
             wis_mod = (wis_score - 10) // 2
-            dc_by_stage = {1: 10, 2: 12, 3: 14}
+            dc_by_stage = {1: 10, 2: 14, 3: 16}
             dc = dc_by_stage.get(mark_stage, 14)
             roll = _roll_d20(rng) + wis_mod
             passed = roll >= dc
@@ -1402,6 +1402,24 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
             # Keep sheet_json hit_points.current in sync with hp_current
             conn.execute("UPDATE characters SET sheet_json = json_set(sheet_json, '$.hit_points.current', ?) WHERE id = ?",
                          (new_hp, character_id))
+
+            # Mark exhaustion condition (stage 3 failed WIS long-rest save — task 5c1ea500)
+            mark_save_info = result.get("mark_save")
+            if rest_type == "long" and mark_save_info and not mark_save_info.get("passed") and mark_save_info.get("stage") == 3:
+                conditions_raw = char.get("conditions_json", "{}") or "{}"
+                conditions = json.loads(conditions_raw)
+                conditions["exhaustion"] = {
+                    "source": "mark_of_dreamer_stage_3",
+                    "level": 1,
+                    "description": "Exhaustion from failed WIS save (DC 16) at mark stage 3",
+                    "active": True,
+                }
+                conn.execute(
+                    "UPDATE characters SET conditions_json = ? WHERE id = ?",
+                    (json.dumps(conditions), character_id)
+                )
+                result["narration"] += "\n\nThe strain of the dreams leaves you exhausted (exhaustion level 1)."
+                result["events"].append({"type": "condition_applied", "condition": "exhaustion", "level": 1})
 
             # ------------------------------------------------------------------
             # Suppression countdown — ticks on long rest
