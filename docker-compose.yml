@@ -13,6 +13,7 @@ services:
       - 'D20_PORT=8600'
       - 'D20_HOST=0.0.0.0'
       - 'D20_RNG_SEED=rigario-d20'
+      - 'REDIS_URL=redis://d20-redis:6379/0'
     networks:
       - d20-net
       - coolify
@@ -54,13 +55,13 @@ services:
       - 'DM_RULES_SERVER_URL=http://d20-rules-server:8600'
       - 'DM_REDIS_URL=redis://d20-redis:6379/0'
       - 'DM_NARRATOR_ENABLED=true'
-      - 'DM_NARRATOR_MODEL=kimi-k2.5'
+      - 'DM_NARRATOR_MODEL=kimi-for-coding'
       - 'DM_HERMES_MODE=hermes'
       - 'DM_HERMES_PROFILE=d20-dm'
       - 'HERMES_HOME=/root/.hermes'
       - 'KIMI_API_KEY=${KIMI_API_KEY:-}'
-      - 'KIMI_BASE_URL=${KIMI_BASE_URL:-https://api.kimi.com/coding/v1}'
-      - 'DM_FIRE_PASS_API_KEY=${FIRE_PASS_API_KEY:-}'
+      - 'KIMI_BASE_URL=https://api.kimi.com/coding'
+      - 'DM_FIRE_PASS_API_KEY=${DM_FIRE_PASS_API_KEY:-}'
     networks:
       - d20-net
       - coolify

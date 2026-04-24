@@ -73,6 +73,7 @@ async def dm_turn(body: dict):
                 turn_id=narrated["server_trace"].get("turn_id"),
                 decision_point=narrated["server_trace"].get("decision_point"),
                 available_actions=narrated["server_trace"].get("available_actions", []),
+                combat_log=narrated["server_trace"].get("combat_log", []),
                 intent_used=intent_dict,
                 server_endpoint_called=result.endpoint_called,
                 raw_server_response_keys=list(result.raw_response.keys()),
@@ -81,6 +82,55 @@ async def dm_turn(body: dict):
         )
     finally:
         await release_character_lock(character_id, lock_token)
+
+
+@router.post("/narrate", response_model=DMResponse)
+async def dm_narrate(body: dict):
+    """Narrate an already-resolved rules-server result.
+
+    This endpoint is intentionally narrate-only. It does not acquire the
+    character action lock, classify into another rules action, or call the
+    rules server. It is safe for the rules server to call from /actions after
+    mechanics have already been resolved.
+    """
+    character_id = body.get("character_id")
+    if not character_id:
+        raise HTTPException(status_code=400, detail="character_id is required")
+
+    resolved_result = body.get("resolved_result") or body.get("server_result")
+    if not isinstance(resolved_result, dict):
+        raise HTTPException(status_code=400, detail="resolved_result is required")
+
+    message = body.get("player_message") or body.get("message", "")
+    session_id = body.get("session_id")
+    world_context = body.get("world_context") or {}
+
+    intent = classify_intent(message)
+    intent_dict = {
+        "type": intent.type.value,
+        "target": intent.target,
+        "details": intent.details,
+        "server_endpoint": intent.server_endpoint.value,
+    }
+
+    narrated = await synthesize_narration(resolved_result, intent_dict, world_context, session_id=session_id)
+    resolved_session_id = narrated.get("session_id") or session_id
+
+    return DMResponse(
+        narration=NarrationPayload(**narrated["narration"]),
+        mechanics=MechanicsPayload(**narrated["mechanics"]),
+        choices=[ChoiceOption(**c) for c in narrated["choices"]],
+        server_trace=ServerTrace(
+            turn_id=narrated["server_trace"].get("turn_id"),
+            decision_point=narrated["server_trace"].get("decision_point"),
+            available_actions=narrated["server_trace"].get("available_actions", []),
+            combat_log=narrated["server_trace"].get("combat_log", []),
+            intent_used=intent_dict,
+            server_endpoint_called="narrate",
+            raw_server_response_keys=list(resolved_result.keys()),
+        ),
+        session_id=resolved_session_id,
+    )
 
 
 @router.get("/health")

@@ -24,12 +24,16 @@ from app.config import KIMI_BASE_URL as DEFAULT_KIMI_BASE_URL
 
 logger = logging.getLogger(__name__)
 
-DM_HERMES_MODE = os.environ.get("DM_HERMES_MODE", "direct").lower()
+DM_HERMES_MODE = os.environ.get("DM_HERMES_MODE", "hermes").lower()
 DM_HERMES_PROFILE = os.environ.get("DM_HERMES_PROFILE", "d20-dm")
 HERMES_HOME = os.environ.get("HERMES_HOME", str(Path.home() / ".hermes"))
-KIMI_API_KEY = os.environ.get("KIMI_API_KEY", "") or os.environ.get("DM_FIRE_PASS_API_KEY", "")
+KIMI_API_KEY = (
+    os.environ.get("KIMI_API_KEY", "")
+    or os.environ.get("DM_FIRE_PASS_API_KEY", "")
+    or os.environ.get("FIRE_PASS_API_KEY", "")
+)
 KIMI_BASE_URL = os.environ.get("KIMI_BASE_URL", DEFAULT_KIMI_BASE_URL)
-DM_NARRATOR_MODEL = os.environ.get("DM_NARRATOR_MODEL", "kimi-k2.5")
+DM_NARRATOR_MODEL = os.environ.get("DM_NARRATOR_MODEL", "kimi-for-coding")
 DM_NARRATOR_TIMEOUT = int(os.environ.get("DM_NARRATOR_TIMEOUT", "60"))
 DM_NARRATOR_MAX_TOKENS = int(os.environ.get("DM_NARRATOR_MAX_TOKENS", "1200"))
 
@@ -285,5 +289,6 @@ async def narrate(
         result = await narrate_via_hermes(system_prompt, user_prompt, session_id=session_id)
         if result:
             return result
-        logger.info("Hermes mode failed, falling back to direct")
+        logger.warning("Hermes mode failed; direct fallback disabled for actual DM-agent flow")
+        return None
     return await narrate_via_direct(system_prompt, user_prompt, temperature)

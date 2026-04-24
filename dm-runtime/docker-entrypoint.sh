@@ -23,8 +23,12 @@ def copy_missing(src_dir: Path, dst_dir: Path):
             target.mkdir(parents=True, exist_ok=True)
             copy_missing(item, target)
         else:
-            if not target.exists():
-                shutil.copy2(item, target)
+            # Keep secrets/env files that may be provisioned by the deployment,
+            # but refresh profile/config/prompt files on every container start so
+            # stale named volumes cannot preserve broken DM profile settings.
+            if item.name == ".env" and target.exists():
+                continue
+            shutil.copy2(item, target)
 
 copy_missing(src, dst)
 PY

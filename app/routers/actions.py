@@ -705,9 +705,10 @@ async def submit_action(character_id: str, body: ActionRequest, auth: dict = Dep
             """Proxy result through DM runtime for narrated output."""
             nonlocal dm_session
             try:
-                dm_resp = await get_dm_proxy().turn(
+                dm_resp = await get_dm_proxy().narrate(
                     character_id=character_id,
                     world_context=world_context,
+                    resolved_result=result,
                     player_message=player_message,
                     session_id=dm_session,
                 )

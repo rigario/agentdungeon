@@ -7,9 +7,9 @@ produces narrated prose and player-facing choices.
 
 Flow:
   1. Rules-server compiles world_context via build_world_context()
-  2. Rules-server retrieves existing dm_session (if any)
-  3. Rules-server POST /dm/turn to d20-dm-runtime with context + session_id
-  4. DM runtime returns DMResponse (narration + mechanics + choices)
+  2. Rules-server resolves mechanics locally (single source of truth)
+  3. Rules-server POST /dm/narrate to d20-dm-runtime with resolved_result + context
+  4. DM runtime narrates only; it does not re-enter rules action routing
   5. Rules-server merges DM narration into the action response
   6. Rules-server saves new dm_session_id for continuity
 
@@ -117,7 +117,7 @@ async def build_world_context(character_id: str) -> Dict[str, Any]:
             "name": r["name"],
             "danger_type": r["danger_type"],
             "current_portent": r["current_portent_index"],
-            "grim_portents": json.loads(r.get("grim_portents_json", "[]")),
+            "grim_portents": json.loads(r["grim_portents_json"] or "[]"),
         }
         for r in front_rows
     ]
@@ -261,6 +261,52 @@ class DMProxyClient:
             raise
         except Exception as e:
             logger.error(f"DM proxy error: {e}")
+            raise
+
+    async def narrate(
+        self,
+        character_id: str,
+        world_context: Dict[str, Any],
+        resolved_result: Dict[str, Any],
+        player_message: str,
+        session_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Narrate an already-resolved rules result without re-entering /dm/turn.
+
+        This endpoint is safe to call from rules-server action handlers because it
+        does not ask the DM runtime to route or execute another rules action.
+        """
+        client = await self._get_client()
+        payload = {
+            "character_id": character_id,
+            "world_context": world_context,
+            "resolved_result": resolved_result,
+            "player_message": player_message,
+        }
+        if session_id:
+            payload["session_id"] = session_id
+
+        url = f"{self.base_url}/dm/narrate"
+        logger.info(f"DM proxy narrate → {url} (char={character_id}, sess={session_id or 'new'})")
+
+        try:
+            resp = await client.post(url, json=payload)
+            resp.raise_for_status()
+            data = resp.json()
+
+            new_sid = data.get("session_id")
+            if new_sid and new_sid != session_id:
+                save_dm_session(character_id, new_sid)
+            elif session_id:
+                save_dm_session(character_id, session_id)
+
+            return data
+        except httpx.HTTPStatusError as e:
+            body = e.response.text[:300] if e.response else ""
+            logger.error(f"DM proxy narrate HTTP {e.response.status_code}: {body}")
+            raise
+        except Exception as e:
+            logger.error(f"DM proxy narrate error: {e}")
             raise
 
 
