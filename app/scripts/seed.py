@@ -1396,7 +1396,7 @@ NPCS = [
         "notes": "Brother Kol is the final boss encounter of the cult arc. He should not be killed on sight — the agent should have the option to engage with his philosophy. The moral complexity is: he's wrong, but he's not lying about his experience. If the player learns his backstory (via Drenna), they can recruit him as an ally for the Communion ending.",
                 "current_location_id": "cave-depths",
                 "default_location_id": "cave-depths",
-                "movement_rules_json": '{"can_visit": ["cave-depths", "seal-chamber"], "schedule": "static", "triggers": [{"flag": "seal_keys_placed", "target": "seal-chamber", "description": "Brother Kol moves to the Seal Chamber for the final ritual"}]}',
+                "movement_rules_json": '{"can_visit": ["cave-depths", "seal-chamber", "moonpetal-glade"], "schedule": "static", "triggers": [{"flag": "kol_backstory_known", "target": "moonpetal-glade", "description": "Kol appears at Moonpetal Glade seeking the marked one"}, {"flag": "seal_keys_placed", "target": "seal-chamber", "description": "Brother Kol moves to the Seal Chamber for the final ritual"}]}',
     },
     {
         "id": "npc-sister-drenna",
