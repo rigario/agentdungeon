@@ -130,10 +130,9 @@ class Intent:
     details: dict = field(default_factory=dict)
     confidence: float = 0.0
 
-    @property
-    def server_endpoint(self) -> ServerEndpoint:
-        return RoutingPolicy.get_endpoint(self.type)
-
+MONSTER_STATS: dict[str, dict] = {
+    "cultist":      {"type": "Cultist",        "hp": 9,  "ac": 12, "attack_bonus": 3, "damage": "1d6+1", "initiative_mod": 1},
+}
 
 # Keyword groups with priority ordering (first match wins)
 _INTENT_PATTERNS: list[tuple[IntentType, str, list[str]]] = [
@@ -155,12 +154,25 @@ _BROAD_PATTERNS = [
     r"^\s*(find .*|go .*|do .*)until\s+",
 ]
 
+def _extract_error_status(e: Exception) -> int:
+    """Extract HTTP status code from an exception, defaulting to 502."""
+    # httpx.HTTPStatusError stores status in e.response.status_code
+    if hasattr(e, 'response') and hasattr(e.response, 'status_code'):
+        return e.response.status_code
+    if hasattr(e, 'status_code'):
+        return e.status_code
+    return 502
+
 # Absurd / physically impossible action patterns → refusal
 _ABSURD_PATTERNS = [
     r'\b(swallow|eat|devour|consume)\b.*\b(statue|moon|sun|cloud|tree|building|mountain)\b',
     r'\b(fly|teleport|time.?travel|breathe underwater|walk through walls)\b',
     r'\b(punch|kick|attack|fight)\b.*\b(sun|moon|cloud|sky|ground|earth|gravity)\b',
     r'\b(lift|carry|throw)\b.*\b(mountain|castle|building|ocean)\b',
+    # Meta-actions targeting the DM should be refused gracefully
+    r'\b(attack|fight|hit|strike|target)\b.*\b(dm\b|the dm\b|dungeon master\b)',
+    r'\b(cast|use)\b.*\bat\b.*\b(dm\b|the dm\b|dungeon master\b)',
+    r'\b(kill|defeat|damage)\b.*\b(dm\b|the dm\b)',
 ]
 
 
@@ -362,7 +374,7 @@ class IntentRouter:
             return RouterResult(
                 success=False,
                 error=f"Rules server error: {str(e)}",
-                error_status=502,
+                error_status=_extract_error_status(e),
                 raw_response={"error": str(e)},
             )
 
@@ -420,7 +432,7 @@ class IntentRouter:
                 success=False,
                 endpoint_called="actions",
                 error=str(e),
-                error_status=getattr(e, "status_code", 502) if hasattr(e, "status_code") else 502,
+                error_status=_extract_error_status(e),
                 raw_response={"error": str(e)},
             )
 
@@ -481,7 +493,7 @@ class IntentRouter:
                 success=False,
                 endpoint_called="turn/start",
                 error=str(e),
-                error_status=getattr(e, "status_code", 502) if hasattr(e, "status_code") else 502,
+                error_status=_extract_error_status(e),
                 raw_response={"error": str(e)},
             )
 
@@ -618,7 +630,7 @@ class IntentRouter:
                 success=False,
                 endpoint_called="combat/start",
                 error=str(e),
-                error_status=getattr(e, "status_code", 502) if hasattr(e, "status_code") else 502,
+                error_status=_extract_error_status(e),
                 raw_response={"error": str(e)},
             )
 
@@ -671,6 +683,6 @@ class IntentRouter:
                 success=False,
                 endpoint_called="combat/act",
                 error=str(e),
-                error_status=getattr(e, "status_code", 502) if hasattr(e, "status_code") else 502,
+                error_status=_extract_error_status(e),
                 raw_response={"error": str(e)},
             )
