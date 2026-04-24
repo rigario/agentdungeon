@@ -31,7 +31,7 @@ from app.services.database import get_db
 logger = logging.getLogger(__name__)
 
 DM_PROXY_URL = os.environ.get("DM_PROXY_URL", "http://d20-dm-runtime:8610")
-DM_TIMEOUT = float(os.environ.get("DM_TIMEOUT", "30.0"))
+DM_TIMEOUT = float(os.environ.get("DM_TIMEOUT", "65.0"))
 
 _shared_client: Optional[httpx.AsyncClient] = None
 
