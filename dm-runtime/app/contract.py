@@ -30,6 +30,7 @@ class IntentType(str, Enum):
     TALK = "talk"
     COMBAT = "combat"
     REST = "rest"
+    LOOK = "look"
     EXPLORE = "explore"
     INTERACT = "interact"
     PUZZLE = "puzzle"
@@ -317,6 +318,7 @@ class RoutingPolicy:
         IntentType.EXPLORE: ServerEndpoint.ACTIONS,
         IntentType.INTERACT: ServerEndpoint.ACTIONS,
         IntentType.REST: ServerEndpoint.ACTIONS,
+        IntentType.LOOK: ServerEndpoint.ACTIONS,
         IntentType.PUZZLE: ServerEndpoint.ACTIONS,
         IntentType.CAST: ServerEndpoint.ACTIONS,
         IntentType.QUEST: ServerEndpoint.ACTIONS,

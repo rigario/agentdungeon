@@ -130,6 +130,11 @@ class Intent:
     details: dict = field(default_factory=dict)
     confidence: float = 0.0
 
+    @property
+    def server_endpoint(self) -> ServerEndpoint:
+        return RoutingPolicy.get_endpoint(self.type)
+
+
 MONSTER_STATS: dict[str, dict] = {
     "cultist":      {"type": "Cultist",        "hp": 9,  "ac": 12, "attack_bonus": 3, "damage": "1d6+1", "initiative_mod": 1},
 }
@@ -140,12 +145,13 @@ _INTENT_PATTERNS: list[tuple[IntentType, str, list[str]]] = [
     (IntentType.COMBAT, "attack", ["attack", "fight", "hit ", "strike", "swing at", "shoot"]),
     (IntentType.CAST, "cast", ["cast ", "use spell", "cast spell"]),
     (IntentType.REST, "rest", ["rest", "sleep", "camp", "long rest", "short rest", "take a rest"]),
+    (IntentType.LOOK, "look", ["look", "look at", "glance", "scan", "observe", "survey"]),
     (IntentType.MOVE, "move", ["go to", "travel to", "walk to", "head to", "move to", "visit", "enter ", "return to", "go back"]),
     (IntentType.TALK, "interact", ["talk to", "speak to", "speak with", "ask ", "tell ", "say to", "chat with", "conversation with", "greet"]),
     (IntentType.PUZZLE, "puzzle", ["solve", "puzzle", "place the", "put the", "use item", "use the"]),
     (IntentType.QUEST, "quest", ["accept quest", "take quest", "complete quest", "finish quest", "turn in quest", "turn in the quest", "quest log", "view quest", "check quest"]),
-    (IntentType.EXPLORE, "explore", ["explore", "look around", "search", "investigate", "scout", "check around"]),
-    (IntentType.INTERACT, "interact", ["interact with", "examine", "inspect", "look at", "pick up", "grab", "take ", "open "]),
+    (IntentType.EXPLORE, "explore", ["explore", "look around", "look closer", "what do i see", "examine the area", "current location", "this room", "here", "without leaving", "stay here", "search", "investigate", "scout", "check around"]),
+    (IntentType.INTERACT, "interact", ["interact with", "examine", "inspect", "look at", "pick up", "grab", "take ", "open ", "touch", "feel", "study", "read", "press", "trace"]),
 ]
 
 # Broad intent patterns → turn/start (async simulation)
