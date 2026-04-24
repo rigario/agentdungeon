@@ -359,3 +359,24 @@ def _extract_choices(server_result: dict, world_context: dict) -> list:
                 "description": ask.get("description"),
             })
     return choices
+
+
+def _extract_trace(server_result: dict) -> dict:
+    """Extract server trace for debugging."""
+    trace = {
+        "turn_id": server_result.get("turn_id"),
+        "decision_point": server_result.get("decision_point"),
+        "available_actions": server_result.get("available_actions", []),
+        "intent_used": None,  # Filled by caller
+        "server_endpoint_called": "",  # Filled by caller
+        "raw_server_response_keys": list(server_result.keys()),
+    }
+    
+    # Include combat_log if present
+    combat_events = _get_combat_events(server_result)
+    if combat_events:
+        trace["combat_log"] = combat_events
+    else:
+        trace["combat_log"] = []
+    
+    return trace
