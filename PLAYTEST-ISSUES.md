@@ -1,11 +1,76 @@
 # D20 Playtest Issues Log
 
-**Last Reviewed:** 2026-04-24 15:52 UTC — Heartbeat — Smoke PASS (18/19) — Updated: 006/007/012/013 Fixed; new 014/015 created
+**Last Reviewed:** 2026-04-24 16:20 UTC — Alpha playtest — DM narrative continuity bug confirmed and replicated; ISSUE-016 created
 
-**Open Issues:** 4 | **Fixed Issues:** 11
+**Open Issues:** 5 | **Fixed Issues:** 11
 ---
 
 ## Open Issues
+
+### ISSUE-016: DM intent router misclassifies in-location interaction intents as "general" causing character teleportation (P1-High)
+
+**Severity:** P1-High  (blocks narrative continuity, character teleported out of location on every in-location intent)
+**Category:** Narrative  (intent router classification)
+**Reproduces:** YES
+**Discovered:** 2026-04-24 16:17 UTC — Alpha playtest, Scenario A replication
+
+**Steps:**
+1. Create character, move to thornhold town
+2. POST `/dm/turn` with message: "I run my hand over the stone hand looking for seal markings or sigils."
+3. POST `/dm/turn` with message: "I talk to Marta the Merchant about what's been happening."
+
+**Expected:** Both turns stay at `thornhold`, producing in-location narration via `actions` endpoint
+**Actual:** Turn 1 routes to `turn/start` (teleports to south-road); Turn 2 routes to `actions` but at south-road (wrong location)
+
+**Evidence:**
+- Endpoint: `/dm/turn`
+- Character ID: `narrbug-bb882a-e15878`
+- Timestamp: 2026-04-24T16:16:45Z
+- Replication script: `scripts/replicate_narrative_continuity.py`
+- Full transcript: `playtest-runs/20260424T161645Z-NarrBug-bb882a/transcript.json`
+
+**Turn-by-turn analysis:**
+
+| Turn | Message | Endpoint | Location | Intent | Match? |
+|------|---------|----------|----------|--------|--------|
+| 1 | "I look around Thornhold's town square..." | `actions` | thornhold | explore | ✅ |
+| 2 | "I examine the old stone statue..." | `actions` | thornhold | interact | ✅ (matched "examine") |
+| 3 | "I run my hand over the stone hand..." | `turn/start` | south-road | general | ❌ (NO keyword matched — fell through to default) |
+| 4 | "I talk to Marta..." | `actions` | south-road | talk | ❌ (correct endpoint, wrong location — already teleported) |
+
+**Root Cause Analysis:**
+
+The intent router in `dm-runtime/app/services/intent_router.py` uses keyword matching to classify intents. Two interacting bugs:
+
+**Bug A — Missing keywords (classifier gap):**
+The `_INTENT_PATTERNS` list for `INTERACT` type has keywords: `["interact with", "examine", "inspect", "look at", "pick up", "grab", "take ", "open "]`. But natural language expressions like:
+- "run my hand over" → no match
+- "search for" → no match (misses "search" which falls to EXPLORE)
+- "study ... markings" → no match
+- All fall through to `GENERAL` default → `turn/start` → teleportation
+
+**Bug B — `turn/start` misroutes in-location intent as travel:**
+When `GENERAL` routes to `turn/start`, the rules engine's `_route_turn` method (line 440-498) uses heuristic keywords to set the goal:
+```python
+if any(word in msg for word in ["travel", "go ", "move ", "head ", "return "]): 
+    goal = "travel"
+```
+Messages like "run my hand over" don't match any travel keyword, so `goal = "explore"`. The rules server then runs 3 "explore" steps which advance the player through connected locations (thornhold → forest-edge → deep-forest or thornhold → south-road), destroying narrative continuity.
+
+**Fix:**
+1. **Add missing keywords** to `_INTENT_PATTERNS` INTERACT group: `"touch", "feel", "study", "read", "press", "push", "pull", "trace", "search for", "look for"`
+2. **Better default routing**: When intent is `GENERAL` and no absurd/broad pattern matched, prefer `actions` endpoint with an `explore` action instead of `turn/start` — or pass the original message as the action type so the rules server doesn't auto-travel.
+3. **Add intent router test cases** that cover natural in-location interaction language.
+
+**Evidence from classifier test (dm-runtime):**
+```
+actions    type=interact   kw=examine    "examine the old stone statue"              ✅
+actions    type=interact   kw=inspect    "inspect the seal markings"                  ✅
+turn/start type=general    kw=(none)     "run my hand over the stone hand looking..." ❌
+turn/start type=general    kw=(none)     "study the markings on the stone hand"       ❌
+```
+
+**MC Task:** Fix keyword classifier gaps in `dm-runtime/app/services/intent_router.py`
 
 ### ISSUE-006: DM narration returns wrong NPC content for statue examination
 
@@ -505,6 +570,12 @@ The DM runtime health endpoint responds quickly but the `/dm/turn` synthesis cal
 
 **MC Task:** Ensure move handler emits and commits move events.
 
+**Fixed:** 2026-04-24 — Heartbeat agent (alpha). Two corrections in `app/routers/actions.py`:
+1. `_resolve_move()` line 541: event type changed from `"travel"` to `"move"` to align with action naming.
+2. Move event logging (line 904-906): now uses `ev.get("location_id", result["new_location"])` so move events are recorded at destination rather than source. Previously used pre-move `location_id` (source), causing event location mismatch.
+Event log now correctly records move events with proper type and destination location. Fix verified by code inspection; smoke test `test_move_updates_location_id` expects `event_type=="move"` with `location_id == target_location` and will pass once server redeployed.
+
+
 ---
 
 ### ISSUE-015: Character state desynchronization — combat_defeat recorded but GET shows alive (P1-High)
@@ -543,7 +614,37 @@ The DM runtime health endpoint responds quickly but the `/dm/turn` synthesis cal
 
 ## Playtest Session Reports
 
-### 2026-04-23 02:38 UTC — Heartbeat Agent — Scenario A
+### 2026-04-24 16:20 UTC — Alpha — Scenario A Replication — ISSUE-016 confirmed
+
+**Character:** NarrBug-bb882a (ID: `narrbug-bb882a-e15878`)
+**Smoke Health:** rules=200 dm=200
+
+**Transcript (key steps):**
+- Character creation → 201, location=rusty-tankard
+- Move to thornhold → 200 success, location_id=thornhold, current_location_id=thornhold (ISSUE-007 appears FIXED)
+- Explore → 200, set `thornhold_statue_observed=1`
+- DM Turn 1 "I look around Thornhold's town square..." → 200, endpoint=actions, location=thornhold (correct)
+- DM Turn 2 "I examine the old stone statue..." → 200, endpoint=actions, location=thornhold (correct — matched "examine" keyword)
+- DM Turn 3 "I run my hand over the stone hand..." → 200, **endpoint=turn/start, location=south-road** ❌ — teleported
+- DM Turn 4 "I talk to Marta..." → 200, endpoint=actions, location=south-road ❌ (already teleported)
+- Final location: south-road (should be thornhold)
+
+**Issues Found:**
+- **NEW: ISSUE-016 (P1-High)** — Intent router keyword classifier gap causes teleportation on natural in-location intents that don't match existing INTERACT keywords
+
+**Flags Set:** `thornhold_statue_observed=1`
+**Character Final State:** location=south-road, current_location_id=south-road
+**Evidence Path:** `playtest-runs/20260424T161645Z-NarrBug-bb882a/transcript.json`
+**Replication Script:** `scripts/replicate_narrative_continuity.py`
+
+**Notes:**
+- `current_location_id` now correctly syncs with `location_id` — ISSUE-007 FIXED in deployed VPS
+- DM agent is alive and producing good prose; the teleportation bug is purely in the intent router classifier, not the synthesis layer
+- Replication script is self-contained and can be re-run to verify fix
+
+---
+
+## Template for New Issues
 
 **Character:** Playtest-A-20260423023553 (ID: `playtest-a-20260423023553-49b486`)
 **Smoke Test:** 16/16 PASS  (production endpoints healthy)

@@ -538,7 +538,7 @@ def _resolve_move(char: dict, target_location_id: str, rng: random.Random) -> di
     encounter = _check_encounter(char, target, rng)
 
     events = [{
-        "type": "travel",
+        "type": "move",
         "location_id": target["id"],
         "description": f"You travel from {current['name']} to {target['name']}.",
     }]
@@ -900,10 +900,17 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
                         (character_id,)
                     )
 
-            # Log events
+            # Log events — use per-event location if provided, else destination
             for ev in result["events"]:
-                _log_event(conn, character_id, ev["type"], location_id, ev["description"],
-                           {"action": "move", "target": body.target})
+                event_loc = ev.get("location_id", result.get("new_location"))
+                _log_event(
+                    conn,
+                    character_id,
+                    ev["type"],
+                    event_loc,
+                    ev["description"],
+                    {"action": "move", "target": body.target},
+                )
 
             # Advance game clock (1 hour for travel)
             time_info = advance_time(character_id, get_action_time_cost("move"), conn)
