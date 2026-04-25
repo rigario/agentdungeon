@@ -14,6 +14,7 @@ from app.services.key_items import get_key_items, has_key_item
 from app.models.schemas import CharacterCreate, CharacterResponse, CharacterUpdate
 from app.services.database import get_db, init_character_fronts
 from app.services.auth_helpers import get_auth, require_character_ownership
+from app.services.character_validation import _has_active_combat
 from app.services.srd_reference import (
     RACE_NAMES, CLASS_NAMES, BACKGROUNDS, SKILL_NAMES,
     validate_point_buy, generate_point_buy, build_character_sheet,
@@ -405,6 +406,11 @@ def update_character(character_id: str, body: CharacterUpdate, request: Request)
         conn.close()
         raise HTTPException(404, f"Character not found: {character_id}")
 
+    # Guard: cannot update character while in active combat
+    if _has_active_combat(character_id):
+        conn.close()
+        raise HTTPException(409, "Character is in active combat. Resolve combat before updating character.")
+
     updates = {}
     data = body.model_dump(exclude_none=True)
 
@@ -635,6 +641,11 @@ def delete_character(character_id: str, request: Request):
     if not existing:
         conn.close()
         raise HTTPException(404, f"Character not found: {character_id}")
+
+    # Guard: cannot archive character while in active combat
+    if _has_active_combat(character_id):
+        conn.close()
+        raise HTTPException(409, "Character is in active combat. Resolve combat before archiving.")
 
     if existing["is_archived"]:
         conn.close()

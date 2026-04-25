@@ -23,12 +23,22 @@ async def lifespan(app: FastAPI):
     """Initialize database and start background cadence scheduler."""
     init_db()
     print(f"[D20] Database initialized")
-    
+
+    # Clean up stale active combats from previous crashes
+    from app.services.combat_cleanup import cleanup_stale_combats
+    result = cleanup_stale_combats()
+    if result["resolved"]:
+        print(f"[D20][Startup] Combat cleanup: resolved {result['resolved']} stale combat(s)")
+        for detail in result["details"]:
+            print(f"  [D20]  {detail}")
+    else:
+        print(f"[D20][Startup] No stale combats found — all clear")
+
     # Start cadence background scheduler
     start_scheduler(app)
-    
+
     yield
-    
+
     # Shut down scheduler on app exit
     stop_scheduler(app)
     print(f"[D20] Server shutting down")
