@@ -92,7 +92,7 @@ def serve_npcs_page():
     return FileResponse(os.path.join(static_dir, "npcs.html"))
 
 
-@app.get("/npcs")
+@app.get("/npc")
 def redirect_npcs_to_gallery():
     """Redirect /npcs to the NPC gallery page (user-friendly URL)."""
     return RedirectResponse(url="/npcs-page", status_code=302)
