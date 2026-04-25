@@ -25,6 +25,7 @@ from app.services.character_lock import acquire_character_lock, release_characte
 from app.services.character_validation import validate_char_state
 from app.services import affinity
 from app.services import milestones
+from app.services import loot
 
 
 
@@ -1509,11 +1510,48 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
 
             if roll >= 15:
                 gold_found = rng.randint(1, 5) * location_hostility
-                narration = f"You search {location['name']} carefully and find {gold_found} gold pieces."
+                # --- Roll for item loot using biome-tagged loot tables ---
+                item_ids = loot.roll_for_location(location_id, rng)
+                items_found = []
+                for item_id in item_ids:
+                    # Look up item name for narration
+                    item_row = conn.execute("SELECT name FROM items WHERE id = ?", (item_id,)).fetchone()
+                    if not item_row:
+                        continue  # Item not seeded in DB yet — skip silently
+                    item_name = item_row["name"]
+                    # Upsert into character_items (increment quantity if already owned)
+                    existing = conn.execute(
+                        "SELECT quantity FROM character_items WHERE character_id = ? AND item_id = ?",
+                        (character_id, item_id)
+                    ).fetchone()
+                    if existing:
+                        conn.execute(
+                            "UPDATE character_items SET quantity = quantity + 1 WHERE character_id = ? AND item_id = ?",
+                            (character_id, item_id)
+                        )
+                    else:
+                        conn.execute(
+                            "INSERT INTO character_items (character_id, item_id, quantity, is_equipped) VALUES (?, ?, 1, 0)",
+                            (character_id, item_id)
+                        )
+                    # Log discovery in exploration_loot_log (IF NOT EXISTS — prevents duplicates on same item)
+                    conn.execute(
+                        "INSERT OR IGNORE INTO exploration_loot_log (character_id, location_id, item_id, found_at) VALUES (?, ?, ?, datetime('now'))",
+                        (character_id, location_id, item_id)
+                    )
+                    items_found.append({"item": item_name, "quantity": 1})
+                # Build narration
+                if items_found:
+                    item_list = ", ".join(f"{i['quantity']} {i['item']}" for i in items_found)
+                    narration = f"You search {location['name']} carefully and find {gold_found} gold pieces. You also discover: {item_list}."
+                    events = [{"type": "loot", "description": narration, "gold_found": gold_found, "items": items_found}]
+                else:
+                    narration = f"You search {location['name']} carefully and find {gold_found} gold pieces."
+                    events = [{"type": "loot", "description": narration, "gold_found": gold_found}]
+                # Update gold
                 current_gold = json.loads(char.get("treasure_json", '{"gp":0}')).get("gp", 0)
                 conn.execute("UPDATE characters SET treasure_json = ? WHERE id = ?",
                              (json.dumps({"gp": current_gold + gold_found, "sp": 0, "cp": 0, "pp": 0, "ep": 0}), character_id))
-                events = [{"type": "loot", "description": narration, "gold_found": gold_found}]
             else:
                 narration = f"You search {location['name']} but find nothing of value."
                 events = [{"type": "explore", "description": narration}]
