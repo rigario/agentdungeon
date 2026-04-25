@@ -102,12 +102,21 @@ def _get_combat_events(server_result: dict) -> list[str]:
     # Stringify all collected events
     result = [s for s in (_stringify_combat_event(e) for e in raw_events) if s]
 
-    # Fallback: if we collected zero stringified events but server_result has an
+    # Fallback 1: if we collected zero stringified events but server_result has an
     # explicit combat_log, use that as the source of truth
     if not result:
         explicit_log = server_result.get("combat_log", [])
         if explicit_log:
             result = [s for s in (_stringify_combat_event(e) for e in explicit_log) if s]
+
+    # Fallback 2: if still empty and this is a combat response, use the top-level narration
+    # as a combat log entry so the trace is never empty during combat.
+    if not result and _is_combat_response(server_result):
+        narration = server_result.get("narration", "")
+        if narration:
+            narrated = _stringify_combat_event(narration)
+            if narrated:
+                result.append(narrated)
 
     return result
 

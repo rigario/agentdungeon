@@ -179,6 +179,33 @@ def test_combat_events_populate_server_trace_combat_log():
     ]
 
 
+def test_combat_log_fallback_uses_narration_when_events_empty():
+    """Combat log must not be empty: fallback to narration for combat/start with no events."""
+    _prefer_dm_runtime_app()
+    import app.services.synthesis as synthesis
+
+    # Simulate a combat/start response where player goes first (no pre-combat enemy attacks)
+    server_result = {
+        "success": True,
+        "narration": "Goblin Ambush! Initiative: You (15), Goblin (12). Your turn — what do you do?",
+        "events": [],  # No pre-combat events
+        "character_state": {"hp": {"current": 12, "max": 12}, "location_id": "forest-edge"},
+        "enemies": [{"name": "Goblin 1", "hp": 7, "ac": 15}],
+        "round": 1,
+        "combat_id": "abc123",
+    }
+    intent = {"type": "combat", "details": {}}
+    world_context = {}
+
+    response = synthesis._build_passthrough(server_result, intent, world_context)
+
+    combat_log = response.get("server_trace", {}).get("combat_log", [])
+    assert isinstance(combat_log, list)
+    assert len(combat_log) > 0, "combat_log must not be empty for combat start with no events"
+    # The fallback should have used the narration as the combat log entry
+    assert "Goblin Ambush" in combat_log[0]
+
+
 def test_synthesize_narration_llm_path_returns_server_trace():
     """synthesize_narration must include server_trace when using LLM narrator path."""
     _prefer_dm_runtime_app()
