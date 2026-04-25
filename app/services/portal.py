@@ -234,7 +234,7 @@ def get_portal_state(character_id: str) -> dict:
         # Inventory
         inventory = db.execute(
             """SELECT ci.item_id, ci.quantity, ci.is_equipped, ci.acquired_at,
-                      i.name, i.item_type, i.rarity, i.description
+                      i.name, i.item_type, i.rarity, i.description, i.image_url
                FROM character_items ci
                LEFT JOIN items i ON ci.item_id = i.id
                WHERE ci.character_id = ?

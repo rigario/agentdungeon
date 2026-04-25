@@ -210,22 +210,113 @@
   .event-detail { font-size: 0.85rem; color: var(--text-secondary); }
   .event-time { font-size: 0.7rem; color: var(--text-muted); }
 
-  /* Inventory */
-  .inv-item {
-    display: flex;
-    justify-content: space-between;
+
+  /* Inventory: card-based pixel art grid */
+  .inv-item-card {
+    display: grid;
+    grid-template-columns: 64px 1fr auto;
+    gap: 0.75rem;
     align-items: center;
-    padding: 0.4rem 0;
-    border-bottom: 1px solid var(--border-subtle);
+    padding: 0.5rem;
+    border-radius: 6px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    margin-bottom: 0.5rem;
+    position: relative;
+    overflow: hidden;
   }
-  .inv-item:last-child { border-bottom: none; }
-  .inv-name { font-size: 0.9rem; }
-  .inv-meta { font-size: 0.75rem; color: var(--text-muted); }
-  .inv-equipped { color: var(--accent-green); font-size: 0.7rem; }
-  .rarity-common { color: var(--text-secondary); }
-  .rarity-uncommon { color: var(--accent-green); }
-  .rarity-rare { color: var(--accent-blue); }
-  .rarity-legendary { color: var(--accent-gold); }
+  .inv-item-card .inv-item-image,
+  .inv-item-card .inv-item-icon {
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-deep);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .inv-item-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    image-rendering: pixelated;
+  }
+  .inv-item-card .inv-emoji-fallback {
+    font-size: 2.5rem;
+    line-height: 1;
+  }
+  .inv-item-card .inv-item-icon {
+    font-size: 2rem;
+  }
+  .inv-item-card .inv-item-details {
+    min-width: 0;
+  }
+  .inv-item-card .inv-name {
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    line-height: 1.2;
+    word-break: break-word;
+  }
+  .inv-item-card .inv-meta {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    display: block;
+  }
+  .inv-item-card .inv-type {
+    text-transform: capitalize;
+  }
+  .inv-item-card .inv-desc {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+    line-clamp: 2;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .inv-item-card .inv-btn {
+    background: var(--bg-deep);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 0.35rem 0.6rem;
+    font-size: 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .inv-btn-equip { background: rgba(58, 122, 58, 0.2); border-color: rgba(58, 122, 58, 0.3); color: var(--accent-green); }
+  .inv-btn-equip:hover { background: rgba(58, 122, 58, 0.3); border-color: var(--accent-green); }
+  .inv-btn-unequip { background: rgba(160, 48, 48, 0.2); border-color: rgba(160, 48, 48, 0.3); color: var(--accent-red); }
+  .inv-btn-unequip:hover { background: rgba(160, 48, 48, 0.3); border-color: var(--accent-red); }
+  .inv-desc { font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem; line-clamp: 2; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .inv-item-card .inv-btn:hover {
+    border-color: var(--accent-gold);
+    color: var(--accent-gold);
+  }
+  .inv-item-card .inv-item-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+  }
+  .inv-item-card .inv-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  /* Rarity bars (top border of card) */
+  .inv-item-card.rarity-bar-common { border-top: 2px solid #8a8070; }
+  .inv-item-card.rarity-bar-uncommon { border-top: 2px solid #4a8a50; }
+  .inv-item-card.rarity-bar-rare { border-top: 2px solid #5080c0; }
+  .inv-item-card.rarity-bar-epic { border-top: 2px solid #c040c0; }
+  .inv-item-card.rarity-bar-legendary { border-top: 2px solid #d4a850; }
+  /* Rarity name colors (same as existing) */
+  .inv-name-common { color: var(--text-secondary); }
+  .inv-name-uncommon { color: var(--accent-green); }
+  .inv-name-rare { color: var(--accent-blue); }
+  .inv-name-epic { color: var(--accent-purple); }
+  .inv-name-legendary { color: var(--accent-gold); }
+
 
   /* Ability Scores */
   .ability-grid {
@@ -503,19 +594,28 @@ function renderPortal(data) {
     <!-- Inventory -->
     <div class="card">
       <div class="card-title"><span class="icon">🎒</span> Inventory</div>
-      ${inv.length ? inv.map(i => `
-        <div class="inv-item">
-          <div>
-            <span class="inv-name ${rarityClass(i.rarity)}">${i.name || i.item_id}</span>
-            ${i.quantity > 1 ? `<span class="inv-meta"> ×${i.quantity}</span>` : ''}
+      ${inv.length ? inv.map(i => {
+        const rarity = i.rarity || 'common';
+        const icon = TYPE_ICONS[i.item_type] || RARITY_ICONS[rarity] || '📦';
+        const imageHtml = i.image_url
+          ? `<div class="inv-item-image"><img src="${esc(i.image_url)}" alt="${esc(i.name)}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=inv-emoji-fallback>${icon}</span>'"></div>`
+          : `<div class="inv-item-icon">${icon}</div>`;
+        return `
+        <div class="inv-item-card rarity-bar-${rarity}">
+          ${imageHtml}
+          <div class="inv-item-details">
+            <span class="inv-name inv-name-${rarity}">${esc(i.name || i.item_id)}</span>
+            ${i.quantity > 1 ? `<span class="inv-meta inv-qty">×${i.quantity}</span>` : ''}
+            <div class="inv-meta inv-type">${i.item_type || ''}</div>
+            ${i.description ? `<div class="inv-desc">${esc(i.description.substring(0, 100))}${i.description.length>100?'…':''}</div>` : ''}
           </div>
-          <div>
-            ${i.equipped ? '<span class="inv-equipped">equipped</span>' : ''}
-            <span class="inv-meta">${i.item_type || ''}</span>
+          <div class="inv-item-actions">
+            <button class="inv-btn inv-btn-${i.equipped ? 'unequip' : 'equip'}" data-action="${i.equipped ? 'unequip' : 'equip'}" data-item="${i.item_id}">
+              ${i.equipped ? '⚡ Unequip' : '🎯 Equip'}
+            </button>
           </div>
-        </div>
-      `).join('') : '<div class="empty-state">Backpack empty</div>
-    <!-- World Map -->
+        </div>`;
+      }).join('') : '<div class="empty-state">Backpack empty</div>'}<!-- World Map -->
     <div class="card">
       <div class="card-title"><span class="icon">🗺️</span> World Map</div>
       ${renderWorldMap(data.map)}
@@ -630,6 +730,22 @@ async function fetchPortalState() {
     return false;
   }
 }
+
+function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+
+// Inventory item actions (equip/unequip) — currently informational
+// Real action requires agent or user auth; share-token portal is read-only.
+document.addEventListener('click', function(e) {
+  if (e.target.matches && e.target.matches('.inv-btn')) {
+    const itemId = e.target.getAttribute('data-item');
+    const action = e.target.getAttribute('data-action');
+    // Stub: DM would call this via background task
+    console.log(`[Portal] ${action} requested for item ${itemId} — needs agent DM context`);
+    e.target.setAttribute('disabled', 'true');
+    e.target.textContent = '⏳ DM pending';
+  }
+});
 
 async function init() {
   const ok = await fetchPortalState();
