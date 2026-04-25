@@ -321,3 +321,47 @@ def test_extract_trace_returns_expected_schema():
     assert "intent_used" in trace
     assert "server_endpoint_called" in trace
     assert trace["raw_server_response_keys"] == list(server_result.keys())
+
+
+
+
+def test_hermes_session_id_is_extracted_from_stdout_or_stderr():
+    """Hermes CLI may print session_id on stdout or stderr; keep it before JSON filtering."""
+    _prefer_dm_runtime_app()
+    import app.services.dm_profile as dm_profile
+
+    assert dm_profile._extract_hermes_session_id('session_id: abc123\n{"scene":"ok"}', '') == 'abc123'
+    assert dm_profile._extract_hermes_session_id('{"scene":"ok"}', 'session_id: def456\n') == 'def456'
+
+
+def test_actions_explore_result_is_not_classified_as_combat_from_plain_events():
+    """A non-combat action with events must not get combat choices just because events exist."""
+    _prefer_dm_runtime_app()
+    import asyncio
+    import app.services.synthesis as synthesis
+    from app.services.intent_router import Intent, IntentRouter, IntentType, ServerEndpoint
+
+    class FakeRulesClient:
+        async def submit_action(self, character_id, payload):
+            return {
+                'success': True,
+                'narration': 'You find a local map.',
+                'events': [{'type': 'loot', 'description': 'You find a local map.'}],
+                'character_state': {'hp': {'current': 12, 'max': 12}, 'location_id': 'rusty-tankard'},
+            }
+
+    intent = Intent(
+        type=IntentType.EXPLORE,
+        action_type='explore',
+        details={'action_type': 'explore'},
+    )
+    result = asyncio.run(IntentRouter(FakeRulesClient())._route_action('char-1', intent))
+    payload = result.to_dict()
+
+    assert 'combat_log' not in payload
+    assert 'combat_over' not in payload
+    assert synthesis._is_combat_response(payload) is False
+    choices = synthesis._extract_choices(payload, {'connections': [{'id': 'south-road', 'name': 'South Road'}]})
+    assert choices
+    assert choices[0]['id'] == 'south-road'
+    assert not any(choice['id'] == 'attack' for choice in choices)

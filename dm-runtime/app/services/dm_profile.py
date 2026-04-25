@@ -110,6 +110,17 @@ def _build_hermes_prompt(system_prompt: str, user_prompt: str) -> str:
     )
 
 
+def _extract_hermes_session_id(*texts: str) -> Optional[str]:
+    """Extract Hermes CLI session_id from stdout or stderr.
+
+    Hermes versions differ on whether metadata is printed to stdout or stderr.
+    Capture it before stdout filtering removes metadata lines.
+    """
+    combined = "\n".join(text for text in texts if text)
+    match = re.search(r"(?:^|\n)session_id:\s*(\S+)", combined)
+    return match.group(1) if match else None
+
+
 def _filter_hermes_stdout(output: str) -> str:
     lines = []
     for line in output.splitlines():
@@ -264,9 +275,9 @@ async def narrate_via_hermes(
             logger.warning("Hermes DM output not valid JSON: %s", stdout_text[:300])
             return None
 
-        sid_match = re.search(r"session_id:\s*(\S+)", stderr_text)
-        if sid_match:
-            parsed["_hermes_session_id"] = sid_match.group(1)
+        sid = _extract_hermes_session_id(stdout.decode(errors="replace"), stderr_text)
+        if sid:
+            parsed["_hermes_session_id"] = sid
         return parsed
     except asyncio.TimeoutError:
         logger.warning("Hermes DM narration timed out after %ss", DM_NARRATOR_TIMEOUT)

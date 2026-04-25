@@ -23,7 +23,21 @@ def init_db():
     """Create tables if they don't exist."""
     conn = get_db()
     conn.executescript("""
-        CREATE TABLE IF NOT EXISTS characters (
+        
+        -- =========================================================
+        -- CAMPAIGNS — Multi-world support (multi-tenant)
+        -- =========================================================
+
+        CREATE TABLE IF NOT EXISTS campaigns (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            description TEXT DEFAULT '',
+            is_active BOOLEAN DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+CREATE TABLE IF NOT EXISTS characters (
             id TEXT PRIMARY KEY,
             player_id TEXT NOT NULL,
             name TEXT NOT NULL,
@@ -74,7 +88,9 @@ def init_db():
             encounter_threshold INTEGER DEFAULT 10,
             recommended_level INTEGER DEFAULT 1,
             connected_to TEXT DEFAULT '[]',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            campaign_id TEXT NOT NULL DEFAULT 'default',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (campaign_id) REFERENCES campaigns(id)
         );
 
         CREATE TABLE IF NOT EXISTS encounters (
@@ -92,8 +108,10 @@ def init_db():
             wis_save_dc INTEGER,
             save_failure_effect TEXT,
             save_success_effect TEXT,
+            campaign_id TEXT NOT NULL DEFAULT 'default',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (location_id) REFERENCES locations(id)
+            FOREIGN KEY (location_id) REFERENCES locations(id),
+            FOREIGN KEY (campaign_id) REFERENCES campaigns(id)
         );
 
         CREATE TABLE IF NOT EXISTS npcs (
@@ -113,7 +131,9 @@ def init_db():
             current_location_id TEXT REFERENCES locations(id),
             default_location_id TEXT REFERENCES locations(id),
             movement_rules_json TEXT DEFAULT '{}',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            campaign_id TEXT NOT NULL DEFAULT 'default',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (campaign_id) REFERENCES campaigns(id)
         );
 
         CREATE TABLE IF NOT EXISTS event_log (
@@ -182,7 +202,9 @@ def init_db():
             stakes_json TEXT DEFAULT '[]',
             is_active BOOLEAN DEFAULT 1,
             advanced_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            campaign_id TEXT NOT NULL DEFAULT 'default',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (campaign_id) REFERENCES campaigns(id)
         );
 
         CREATE TABLE IF NOT EXISTS narrative_flags (
@@ -462,6 +484,16 @@ def init_db():
     """)
     conn.execute("CREATE INDEX IF NOT EXISTS idx_share_tokens_character ON share_tokens(character_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_share_tokens_token ON share_tokens(token)")
+
+    # Campaign scoping indices
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_locations_campaign ON locations(campaign_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_encounters_campaign ON encounters(campaign_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_npcs_campaign ON npcs(campaign_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_fronts_campaign ON fronts(campaign_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_characters_campaign ON characters(campaign_id)")
+
+    # Seed default campaign (idempotent)
+    conn.execute("""INSERT OR IGNORE INTO campaigns (id, name, description) VALUES ('default', 'Thornhold Whisperwood', 'Original single-world campaign — pre-migration default')""")
 
     # =========================================================
     # DM RUNTIME — Session persistence for async recap/resume

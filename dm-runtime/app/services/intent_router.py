@@ -420,27 +420,31 @@ class IntentRouter:
                 payload["details"] = {"action": action_val}
 
             result = await self._client.submit_action(character_id, payload)
-            # Attack actions wrap combat data under 'combat' key — extract to top-level
-            # Handle null combat value: result.get("combat", {}) returns None when key exists with null
+            # Attack actions wrap combat data under 'combat' key — extract only when present.
+            # Non-combat action responses may include normal events; those must not be
+            # promoted into combat_log or marked combat_over, or synthesis will return combat choices.
             combat_data = result.get("combat") or {}
-            return RouterResult(
-                success=True,
-                endpoint_called="actions",
-                narration=result.get("narration", ""),
-                events=result.get("events", []),
-                dice_log=result.get("dice_log", []),
-                character_state=result.get("character_state", {}),
-                world_context=result.get("world_context"),
-                approval_triggered=result.get("approval_triggered", False),
-                approval_reason=result.get("approval_reason"),
-                # Combat fields extracted from nested combat_data
-                enemies=combat_data.get("enemies", []),
-                round=combat_data.get("rounds", 0),
-                combat_over=combat_data.get("victory") is not None or combat_data.get("hp_remaining", 0) <= 0,
-                combat_result="victory" if combat_data.get("victory") else "defeat" if combat_data.get("victory") is not None else None,
-                combat_log=result.get("events", []),  # Combat events from top-level events
-                raw_response=result,
-            )
+            result_kwargs = {
+                "success": True,
+                "endpoint_called": "actions",
+                "narration": result.get("narration", ""),
+                "events": result.get("events", []),
+                "dice_log": result.get("dice_log", []),
+                "character_state": result.get("character_state", {}),
+                "world_context": result.get("world_context"),
+                "approval_triggered": result.get("approval_triggered", False),
+                "approval_reason": result.get("approval_reason"),
+                "raw_response": result,
+            }
+            if combat_data:
+                result_kwargs.update({
+                    "enemies": combat_data.get("enemies", []),
+                    "round": combat_data.get("rounds", 0),
+                    "combat_over": combat_data.get("victory") is not None or combat_data.get("hp_remaining", 1) <= 0,
+                    "combat_result": "victory" if combat_data.get("victory") else "defeat" if combat_data.get("victory") is not None else None,
+                    "combat_log": result.get("events", []),
+                })
+            return RouterResult(**result_kwargs)
         except Exception as e:
             return RouterResult(
                 success=False,
