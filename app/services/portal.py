@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from app.services.database import get_db
+from app.services.npc_movement import get_npcs_at_location
 
 
 def create_share_token(character_id: str, label: str = None, expires_hours: int = None) -> dict:
@@ -186,9 +187,10 @@ def get_portal_state(character_id: str) -> dict:
         import json
         sheet = json.loads(char["sheet_json"]) if char["sheet_json"] else {}
 
-        # Current location
+        # Current location + nearby NPCs
         location = None
         location_id = char["location_id"] if "location_id" in char.keys() else None
+        npcs_at_location = []
         if location_id:
             loc = db.execute(
                 "SELECT id, name, description, biome, hostility_level FROM locations WHERE id = ?",
@@ -196,6 +198,12 @@ def get_portal_state(character_id: str) -> dict:
             ).fetchone()
             if loc:
                 location = dict(loc)
+                # Fetch NPCs at this location
+                npc_rows = db.execute(
+                    "SELECT id, name, archetype, personality, is_quest_giver FROM npcs WHERE current_location_id = ? ORDER BY name",
+                    (location_id,),
+                ).fetchall()
+                npcs_at_location = [dict(r) for r in npc_rows]
 
         # Active quests
         quests = db.execute(
@@ -289,6 +297,7 @@ def get_portal_state(character_id: str) -> dict:
                 "sheet": sheet,
             },
             "location": location,
+            "npcs_at_location": npcs_at_location,
             "quests": [dict(q) for q in quests],
             "recent_events": [
                 {

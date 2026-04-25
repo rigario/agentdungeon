@@ -434,6 +434,20 @@ function renderPortal(data) {
           <div class="danger-bar"><div class="danger-fill" style="width:${loc.hostility_level * 10}%"></div></div>
           <div class="danger-label">Hostility: ${loc.hostility_level}/10</div>
         ` : ''}
+        ${(data.npcs_at_location && data.npcs_at_location.length) ? `
+          <div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border-subtle);">
+            <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.35rem;">Characters Present</div>
+            ${data.npcs_at_location.map(npc => `
+              <div style="display:flex;align-items:center;gap:0.5rem;padding:0.25rem 0;">
+                <span style="font-size:1.2rem;">${npc.is_quest_giver ? '⭐' : '👤'}</span>
+                <div>
+                  <div style="font-weight:600;font-size:0.9rem;">${npc.name}</div>
+                  <div style="font-size:0.75rem;color:var(--text-muted);">${npc.archetype}</div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
       ` : '<div class="empty-state">Location unknown</div>'}
     </div>
 
