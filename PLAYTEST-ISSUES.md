@@ -1,6 +1,6 @@
 # D20 Playtest Issues Log
 
-**Last Reviewed:** 2026-04-25 16:46 UTC — Heartbeat — Scenario B — Smoke 20/20 PASS — ISSUE-016 active, ISSUE-017 live
+**Last Reviewed:** 2026-04-25 17:47 UTC — Heartbeat — Smoke 20/20 PASS — ISSUE-017/007 active
 
 **Open Issues:** 4 | **Fixed Issues:** 13
 ---
@@ -492,6 +492,11 @@ The rules server is unreachable from the DM runtime (DNS resolution failure). DM
     - Smoke failures: test_dm_runtime_health, test_explore_turn, test_move_turn all due to DM unreachable
     - Conclusion: DM runtime service down or route misconfigured — blocks all playtesting
 
+
+
+**Heartbeat Check (2026-04-25 17:47 UTC — Infrastructure):**
+    - /health 200, /dm/health 200, /api/map/data 200
+    - Smoke 20/20 PASS — ISSUE-010 NOT reproduced
 
 ### ISSUE-011: Action endpoints return 500 Internal Server Error (P1-High)
 
@@ -1377,6 +1382,21 @@ Redeploy to latest main (deployment drift). Two P1 regressions active: world top
 **Next:** Redeploy latest main to clear deployment lag on ISSUE-016, 007, 017 triad
 
 ---
+### 2026-04-25 17:47 UTC — Heartbeat Agent — Scenario A (P1-High blocked)
+
+**Smoke:** 20/20 PASS  **Infra:** 200 all  **Probe:** heartbeat-probe-6af69a
+
+ACTIVE P1-High:
+  - ISSUE-017: world exits None → blocks ALL movement/narrative
+  - ISSUE-007: move response current_location_id=null (serialization)
+
+INACTIVE:
+  - ISSUE-010: infrastructure (endpoints healthy)
+
+PRIORITY: Redeploy + verify world_seed DB migration
+
+
+---
 
 ## Template for New Issues
 
@@ -1871,3 +1891,17 @@ Health endpoints and world data accessible, but all `POST /characters/{id}/actio
 > - Status: ...
 > - Character ID: ...
 > - Timestamp: ...
+
+
+**Heartbeat Check (2026-04-25 17:47 UTC — World topology):**
+    - Endpoint: GET /api/map/data
+    - total=12, every location `exits` = None
+    - Effect: zero connectivity, explore yields [], movement impossible
+    - Probe: heartbeat-probe-6af69a
+    - ISSUE-017 CONFIRMED
+
+
+**Heartbeat Check (2026-04-25 17:47 UTC — Serialization):**
+    - Move action: character_state.current_location_id = null
+    - After GET: correct → response layer bug
+    - ISSUE-007 CONFIRMED (Fixed marker present but still live)

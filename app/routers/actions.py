@@ -206,24 +206,22 @@ def _resolve_combat(char: dict, encounter: dict, rng: random.Random) -> dict:
                 "name_override": e.get("name_override"),
             })
 
-    # ========================================================================
-    # Task 11d8192e — Moonpetal Guardian peaceful path (pre-combat check)
-    # ========================================================================
-    # If encounter is enc-moonpetal-guardian and character meets peaceful
-    # conditions (3x moonpetal in inventory AND knows Green Woman's seal identity),
-    # bypass combat entirely. Set moonpetal_warden_peaceful flag and return.
+    # Moonpetal Guardian peaceful path check
     if encounter.get("id") == "enc-moonpetal-guardian":
+        # Check flag: knows Green Woman is seal-keeper
         conn_check = get_db()
         gw_knowledge = conn_check.execute(
             "SELECT 1 FROM narrative_flags WHERE character_id = ? AND flag_key = 'green_woman_seal_knowledge' AND flag_value = '1'",
             (char["id"],)
         ).fetchone()
-        moonpetal_count = conn_check.execute(
-            "SELECT COUNT(*) as cnt FROM character_key_items WHERE character_id = ? AND key_item_name = 'moonpetal'",
-            (char["id"],)
-        ).fetchone()
+        # Check moonpetal count from equipment_json
+        try:
+            equipment = json.loads(char.get("equipment_json", "[]"))
+        except (json.JSONDecodeError, TypeError):
+            equipment = []
+        moonpetal_count = sum(1 for item in equipment if isinstance(item, dict) and item.get("name") == "moonpetal")
         conn_check.close()
-        if gw_knowledge and (moonpetal_count and moonpetal_count["cnt"] >= 3):
+        if gw_knowledge and moonpetal_count >= 3:
             conn_peace = get_db()
             conn_peace.execute(
                 """INSERT INTO narrative_flags (character_id, flag_key, flag_value, source)
