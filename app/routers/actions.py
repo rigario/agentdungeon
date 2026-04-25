@@ -468,7 +468,7 @@ def _resolve_combat(char: dict, encounter: dict, rng: random.Random) -> dict:
             """INSERT INTO narrative_flags (character_id, flag_key, flag_value, source)
                VALUES (?, ?, '1', 'combat_victory')
                ON CONFLICT(character_id, flag_key) DO UPDATE SET flag_value = '1'""",
-            (char["id"], "moonpetal_warden_killed", "1")
+            (char["id"], "moonpetal_warden_killed")
         )
         conn_moon.commit()
         conn_moon.close()
@@ -1874,9 +1874,29 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
                                 elif location_id == "moonpetal-glade" and obj_name == "standing stone":
                                     key_item_name = "moonpetal"
                                 if key_item_name:
+                                    # For moonpetal: detect greedy acquisition (character already has 3+ before this)
+                                    pre_count = 0
+                                    if key_item_name == "moonpetal":
+                                        try:
+                                            pre_eq = json.loads(char.get("equipment_json", "[]"))
+                                            pre_count = sum(
+                                                1 for i in pre_eq
+                                                if isinstance(i, dict) and i.get("name") == "moonpetal"
+                                            )
+                                        except (json.JSONDecodeError, TypeError, KeyError):
+                                            pre_count = 0
+
                                     added = add_key_item(character_id, key_item_name, conn)
                                     if added:
                                         obj_desc = f"{obj_desc} You take the {added['display_name']}."
+                                    # Set moonpetal_greed if character already had 3+ before this award
+                                    if key_item_name == "moonpetal" and pre_count >= 3 and added:
+                                        conn.execute(
+                                            """INSERT INTO narrative_flags (character_id, flag_key, flag_value, source)
+                                               VALUES (?, ?, '1', 'moonpetal_greed')
+                                               ON CONFLICT(character_id, flag_key) DO UPDATE SET flag_value = '1'""",
+                                            (character_id, "moonpetal_greed")
+                                        )
                                 # ------------------------------------
                                 conn2.close()
                                 conn.close()
@@ -2484,9 +2504,6 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
                            {"quest_id": quest_id, "quest_title": quest_row["quest_title"],
                             "xp_reward": xp_reward, "gold_reward": gold_reward})
 
-                conn.commit()
-                conn.close()
-
                 narration = f"Quest completed: {quest_row['quest_title']}!"
                 rewards = []
                 if xp_reward > 0:
@@ -2507,9 +2524,27 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
                     if (ki_quest and ki_quest in quest_keywords) or \
                        (quest_keywords and quest_keywords in ki_quest) or \
                        any(kw in quest_keywords for kw in ki_name.split("_") if len(kw) > 3):
+                        # Pre-count for moonpetal greed detection
+                        pre_count = 0
+                        if ki_name == "moonpetal":
+                            try:
+                                pre_eq = json.loads(char.get("equipment_json", "[]"))
+                                pre_count = sum(
+                                    1 for i in pre_eq
+                                    if isinstance(i, dict) and i.get("name") == "moonpetal"
+                                )
+                            except (json.JSONDecodeError, TypeError, KeyError):
+                                pre_count = 0
                         added = add_key_item(character_id, ki_name, conn)
                         if added:
                             narration += f" Found {ki_def['display_name']}."
+                        if ki_name == "moonpetal" and pre_count >= 3 and added:
+                            conn.execute(
+                                """INSERT INTO narrative_flags (character_id, flag_key, flag_value, source)
+                                   VALUES (?, ?, '1', 'moonpetal_greed')
+                                   ON CONFLICT(character_id, flag_key) DO UPDATE SET flag_value = '1'""",
+                                (character_id, "moonpetal_greed")
+                            )
 
 
                 # ---- bd046983: Explicit key item wiring for quest rewards ----
@@ -2517,14 +2552,33 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
                 # are awarded even if auto-match fails (naming mismatch, etc.), or via alternate path.
                 quest_id_completed_norm = quest_id_completed.replace("-", "_").lower()
                 if quest_id_completed_norm == "quest_moonpetal" and not has_key_item(character_id, "moonpetal", conn):
+                    # Pre-count for moonpetal greed detection
+                    pre_count = 0
+                    try:
+                        pre_eq = json.loads(char.get("equipment_json", "[]"))
+                        pre_count = sum(
+                            1 for i in pre_eq
+                            if isinstance(i, dict) and i.get("name") == "moonpetal"
+                        )
+                    except (json.JSONDecodeError, TypeError, KeyError):
+                        pre_count = 0
                     added_q = add_key_item(character_id, "moonpetal", conn)
                     if added_q:
                         narration += f" Found {added_q['display_name']}."
+                    if pre_count >= 3 and added_q:
+                        conn.execute(
+                            """INSERT INTO narrative_flags (character_id, flag_key, flag_value, source)
+                               VALUES (?, ?, '1', 'moonpetal_greed')
+                               ON CONFLICT(character_id, flag_key) DO UPDATE SET flag_value = '1'""",
+                            (character_id, "moonpetal_greed")
+                        )
                 elif quest_id_completed_norm == "quest_save_drenna_child" and not has_key_item(character_id, "drens_daughter_insignia", conn):
                     added_q = add_key_item(character_id, "drens_daughter_insignia", conn)
                     if added_q:
                         narration += f" Found {added_q['display_name']}."
                 # ----------------------------------------------------------------
+                conn.commit()
+                conn.close()
                 return {
                     "success": True,
                     "narration": narration,

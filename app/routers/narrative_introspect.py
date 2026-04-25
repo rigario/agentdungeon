@@ -157,6 +157,11 @@ CRITICAL_FLAGS = {
     "green_woman_suppression_3": ("Third suppression used", "suppression"),
     "green_woman_dead": ("Green Woman died (Merge ending locked)", "suppression"),
     
+    # Moonpetal Warden outcomes
+    "moonpetal_warden_peaceful": ("Warden stood down (3 petals + Green Woman's name)", "npc"),
+    "moonpetal_warden_killed": ("Warden killed in combat", "npc"),
+    "moonpetal_greed": ("Took more than 3 moonpetals (greed path)", "npc"),
+    
     # Endings
     "ending_reseal": ("Chose Reseal ending", "ending"),
     "ending_communion": ("Chose Communion ending", "ending"),
