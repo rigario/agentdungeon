@@ -56,20 +56,41 @@ class AuthMiddleware(BaseHTTPMiddleware):
             # Format: Agent <fingerprint>:<base64_signature>
             payload = auth_header[6:].strip()
             if ":" in payload:
-                fingerprint, signature = payload.split(":", 1)
-                # Look up agent by fingerprint
+                fingerprint, signature_b64 = payload.split(":", 1)
+                # Look up agent by fingerprint + fetch public key
                 from app.services.database import get_db
                 conn = get_db()
                 try:
                     agent = conn.execute(
-                        "SELECT id, user_id, is_active FROM agents WHERE public_key_fingerprint = ?",
+                        "SELECT id, user_id, is_active, public_key FROM agents WHERE public_key_fingerprint = ?",
                         (fingerprint,)
                     ).fetchone()
                     if agent and agent["is_active"]:
-                        request.state.auth_type = "agent"
-                        request.state.agent_id = agent["id"]
-                        request.state.user_id = agent["user_id"]
-                        request.state.auth_raw = payload
+                        # Verify Ed25519 signature over canonical request string
+                        import base64
+                        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+
+                        pub_key_b64 = agent.get("public_key")
+                        if not pub_key_b64:
+                            # No public key on record — cannot verify, reject auth
+                            pass
+                        else:
+                            try:
+                                sig_bytes = base64.b64decode(signature_b64)
+                                pub_bytes = base64.b64decode(pub_key_b64)
+                                canonical = f"{request.method} {request.url.path}"
+                                message_bytes = canonical.encode("utf-8")
+
+                                public_key = Ed25519PublicKey.from_public_bytes(pub_bytes)
+                                public_key.verify(sig_bytes, message_bytes)
+                                # Signature valid — authenticate
+                                request.state.auth_type = "agent"
+                                request.state.agent_id = agent["id"]
+                                request.state.user_id = agent["user_id"]
+                                request.state.auth_raw = payload
+                            except Exception:
+                                # Invalid signature or malformed data — reject auth
+                                pass
                 finally:
                     conn.close()
 
