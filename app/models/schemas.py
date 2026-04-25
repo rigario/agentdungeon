@@ -130,6 +130,7 @@ class CharacterResponse(BaseModel):
     conditions: dict = {}
     xp: int = 0
     location_id: Optional[str] = None
+    current_location_id: Optional[str] = None
     approval_config: dict = {}
     aggression_slider: int = 50
     is_archived: bool = False
