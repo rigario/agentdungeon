@@ -128,6 +128,7 @@ CRITICAL_FLAGS = {
     # NPC dialogue chains
     "kol_backstory_known": ("Know Brother Kol's identity (Communion ending req)", "npc"),
     "aldric_lying": ("Know Aldric is hiding Hollow Eye knowledge", "npc"),
+    "aldric_confessed": ("Aldric admitted to Hollow Eye arrangement", "npc"),
     "green_woman_seal_knowledge": ("Know Green Woman is seal-keeper", "npc"),
     "maren_seal_knowledge": ("Know Ser Maren guards the seal", "npc"),
     

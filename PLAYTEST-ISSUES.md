@@ -1,6 +1,6 @@
 # D20 Playtest Issues Log
 
-**Last Reviewed:** 2026-04-25 17:47 UTC — Heartbeat — Smoke 20/20 PASS — ISSUE-017/007 active
+**Last Reviewed:** 2026-04-25 19:38 UTC — Heartbeat — Smoke 20/20 PASS — Scenario D blocked: ISSUE-013 dm_turn ReadTimeout + ISSUE-017 world exits None — evidence appended
 
 **Open Issues:** 4 | **Fixed Issues:** 13
 ---
@@ -1394,6 +1394,25 @@ INACTIVE:
   - ISSUE-010: infrastructure (endpoints healthy)
 
 PRIORITY: Redeploy + verify world_seed DB migration
+
+
+---
+
+### 2026-04-25 19:38 UTC — Heartbeat Agent — Scenario D — BLOCKED (dm_turn ReadTimeout)
+
+**Smoke Test:** 20/20 PASS
+**Character Created:** playtest-d-20260425t193732-6dc533
+**Scenario Attempted:** D (NPC Quest Chain — Drenna/Kol)
+**Blockers:**
+  - ISSUE-013: /dm/turn endpoint ReadTimeout (15s, no response) — confirmed reproducing
+  - ISSUE-017: World exits all None — movement impossible, narrative arc broken
+**Pre-flight Health:** /health 200 OK | /dm/health 200 OK (despite /dm/turn hanging)
+**Direct Probes:**
+  - GET /api/map/data: total=12, all exits=[]
+  - POST /dm/turn message="I look around.": ReadTimeout after 15s
+**Scenario Execution:** Skipped — core DM path non-functional
+**Evidence appended to:** ISSUE-013, ISSUE-017
+**Highest Priority Fix:** Restore /dm/turn endpoint (ISSUE-013 — Kimi API connectivity or DM runtime)
 
 
 ---

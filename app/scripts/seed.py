@@ -948,6 +948,11 @@ NPCS = [
                 "context": "hollow_eye_confessed",
                 "requires_flag": "aldric_lying",
                 "pushback_dialogue": "That's all I know. I swear. Find Brother Kol if you want answers — he runs the road crew.",
+                "clue_reward": {
+                    "flag": "aldric_confessed",
+                    "value": "1",
+                    "narrative": "Aldric admitted to the Hollow Eye arrangement"
+                },
             },
         ]),
         "trades_json": json.dumps([
