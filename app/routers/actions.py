@@ -206,6 +206,41 @@ def _resolve_combat(char: dict, encounter: dict, rng: random.Random) -> dict:
                 "name_override": e.get("name_override"),
             })
 
+    # ========================================================================
+    # Task 11d8192e — Moonpetal Guardian peaceful path (pre-combat check)
+    # ========================================================================
+    # If encounter is enc-moonpetal-guardian and character meets peaceful
+    # conditions (3x moonpetal in inventory AND knows Green Woman's seal identity),
+    # bypass combat entirely. Set moonpetal_warden_peaceful flag and return.
+    if encounter.get("id") == "enc-moonpetal-guardian":
+        conn_check = get_db()
+        gw_knowledge = conn_check.execute(
+            "SELECT 1 FROM narrative_flags WHERE character_id = ? AND flag_key = 'green_woman_seal_knowledge' AND flag_value = '1'",
+            (char["id"],)
+        ).fetchone()
+        moonpetal_count = conn_check.execute(
+            "SELECT COUNT(*) as cnt FROM character_key_items WHERE character_id = ? AND key_item_name = 'moonpetal'",
+            (char["id"],)
+        ).fetchone()
+        conn_check.close()
+        if gw_knowledge and (moonpetal_count and moonpetal_count["cnt"] >= 3):
+            conn_peace = get_db()
+            conn_peace.execute(
+                """INSERT INTO narrative_flags (character_id, flag_key, flag_value, source)
+                   VALUES (?, ?, '1', 'warden_peaceful')
+                   ON CONFLICT(character_id, flag_key) DO UPDATE SET flag_value = '1'""",
+                (char["id"], "moonpetal_warden_peaceful")
+            )
+            conn_peace.commit()
+            conn_peace.close()
+            return {
+                "success": True,
+                "narration": "You speak the Green Woman's name as you approach the Warden. The stone guardian shudders, then settles — its purpose fulfilled. You pass through unharmed and gather the moonpetals at the monolith's base.",
+                "events": [{"type": "encounter_peaceful", "encounter_id": "enc-moonpetal-guardian"}],
+                "loot": [],
+                "hp_remaining": hp,
+            }
+
     # Initiative — character vs each enemy group
     char_init = _roll_d20(rng) + ability_modifier(json.loads(char["ability_scores_json"]).get("dex", 10))
     for enemy in enemies:
@@ -402,6 +437,14 @@ def _resolve_combat(char: dict, encounter: dict, rng: random.Random) -> dict:
                ON CONFLICT(character_id, flag_key) DO UPDATE SET flag_value = excluded.flag_value""",
             (char["id"], "del_ghost_roll", str(ghost_passed), "del_ghost_visit_roll")
         )
+        # del_ghost_met — flag set when Del's ghost actually visits (roll passed)
+        if ghost_passed:
+            conn.execute(
+                """INSERT INTO narrative_flags (character_id, flag_key, flag_value, source)
+                   VALUES (?, ?, ?, ?)
+                   ON CONFLICT(character_id, flag_key) DO UPDATE SET flag_value = excluded.flag_value""",
+                (char["id"], "del_ghost_met", "1", "del_ghost_visit_met")
+            )
 
         result["del_encounter"]["ghost_roll"] = ghost_roll
         result["del_encounter"]["ghost_passed"] = ghost_passed
@@ -415,6 +458,38 @@ def _resolve_combat(char: dict, encounter: dict, rng: random.Random) -> dict:
 
         conn.commit()
         conn.close()
+
+    # ========================================================================
+    # Post-combat narrative flag setting — per-encounter flag wiring
+    # Task 11d8192e: Wire broken flag chains for moonpetal warden, bugbear gromm
+    # ========================================================================
+    if victory and encounter.get("id") == "enc-moonpetal-guardian":
+        conn_moon = get_db()
+        conn_moon.execute(
+            """INSERT INTO narrative_flags (character_id, flag_key, flag_value, source)
+               VALUES (?, ?, '1', 'combat_victory')
+               ON CONFLICT(character_id, flag_key) DO UPDATE SET flag_value = '1'""",
+            (char["id"], "moonpetal_warden_killed", "1")
+        )
+        conn_moon.commit()
+        conn_moon.close()
+
+    if victory and encounter.get("id") == "enc-bugbear":
+        conn_gromm = get_db()
+        conn_gromm.execute(
+            """INSERT INTO narrative_flags (character_id, flag_key, flag_value, source)
+               VALUES (?, ?, '1', 'encounter_resolved')
+               ON CONFLICT(character_id, flag_key) DO UPDATE SET flag_value = '1'""",
+            (char["id"], "gromm_met", "1")
+        )
+        conn_gromm.execute(
+            """INSERT INTO narrative_flags (character_id, flag_key, flag_value, source)
+               VALUES (?, ?, '1', 'encounter_resolved')
+               ON CONFLICT(character_id, flag_key) DO UPDATE SET flag_value = '1'""",
+            (char["id"], "gromm_ally_potential", "1")
+        )
+        conn_gromm.commit()
+        conn_gromm.close()
 
     return result
 
@@ -2290,6 +2365,14 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
                        ON CONFLICT(character_id, flag_key) DO UPDATE SET flag_value = '1'""",
                     (character_id, f"quest_completed_{quest_id}")
                 )
+                # drenna_child_saved — set when quest-save-drenna-child is completed
+                if quest_id == "quest-save-drenna-child":
+                    conn.execute(
+                        """INSERT INTO narrative_flags (character_id, flag_key, flag_value, source)
+                           VALUES (?, ?, '1', 'quest_completed')
+                           ON CONFLICT(character_id, flag_key) DO UPDATE SET flag_value = '1'""",
+                        (character_id, "drenna_child_saved")
+                    )
 
                 # Award XP
                 xp_reward = quest_row["reward_xp"]
