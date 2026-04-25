@@ -24,6 +24,8 @@ from app.services.dm_proxy import get_dm_proxy, get_dm_session, build_world_cont
 from app.services.character_lock import acquire_character_lock, release_character_lock
 from app.services.character_validation import validate_char_state
 from app.services import affinity
+from app.services import milestones
+
 
 
 router = APIRouter(prefix="/characters/{character_id}", tags=["actions"])
@@ -1795,6 +1797,35 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
                        f"You speak with {npc['name']}. {dialogue}",
                        {"npc_id": npc["id"], "npc_name": npc["name"]})
 
+            # --- c2b52bfb: Record NPC interaction stats + check milestones ---
+            now_iso = datetime.utcnow().isoformat()
+
+            # Check whether an interaction record already exists for this (character, NPC)
+            existing_row = conn.execute(
+                "SELECT interaction_count FROM character_npc_interactions "
+                "WHERE character_id = ? AND npc_id = ?",
+                (character_id, npc["id"])
+            ).fetchone()
+
+            if existing_row:
+                conn.execute(
+                    "UPDATE character_npc_interactions "
+                    "SET interaction_count = interaction_count + 1, last_interaction_at = ? "
+                    "WHERE character_id = ? AND npc_id = ?",
+                    (now_iso, character_id, npc["id"])
+                )
+            else:
+                conn.execute(
+                    "INSERT INTO character_npc_interactions "
+                    "(character_id, npc_id, interaction_count, affinity, first_interaction_at, last_interaction_at) "
+                    "VALUES (?, ?, 1, 50, ?, ?)",
+                    (character_id, npc["id"], now_iso, now_iso)
+                )
+
+            # Check for milestone rewards (function does its own DB commit)
+            new_milestones = milestones.check_npc_milestones(character_id)
+            # ----------------------------------------------------------------
+
             # Advance game clock (15 min for NPC interaction)
             time_info = advance_time(character_id, get_action_time_cost("interact"), conn)
 
@@ -1811,6 +1842,16 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
                 "success": True,
                 "narration": f"You approach {npc['name']} ({npc['archetype']}). {dialogue}",
                 "events": [{"type": "npc_interaction", "npc": npc["name"], "dialogue": dialogue}],
+                "interaction_count": (existing_row["interaction_count"] + 1) if existing_row else 1,
+                "current_affinity":   affinity.get_affinity(character_id, npc["id"]),
+                "milestone_rewards": [
+                    {
+                        "reward_type": m["reward_type"],
+                        "reward_data": m["reward_data"],
+                        "threshold":   m["threshold"],
+                    }
+                    for m in new_milestones
+                ],
                 "character_state": {
                     "hp": {"current": char["hp_current"], "max": char["hp_max"]},
                     "location_id": char["location_id"],
