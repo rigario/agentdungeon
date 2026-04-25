@@ -1,21 +1,39 @@
-"""D20 Agent RPG — Narrative seed data.
+"""D20 Agent RPG — Campaign world seed data (multi-campaign abstraction).
 
-Pocket realm: Thornhold and the Whisperwood.
-Main arc: The Dreaming Hunger stirs beneath the seal. A sealed presence
-possesses a friendly NPC (Del) to mark the new arrival with the
-Mark of the Dreamer — a brand that links the bearer to the Hunger.
-Hollow Eye cultists are the vector. The seal is cracking.
+Populates the default campaign with all narrative content and world
+state. Designed to be additive and campaign-scoped: each campaign
+(row in `campaigns` table) owns its own set of locations, encounters,
+npcs, and fronts.
 
-Narrative structure:
-- front: world-level doom clock (grim portents advance on timer)
-- narrative_flags: per-character story state (who they've met, what fired)
-- mark_of_dreamer_stage: 0=none, 1=minor, 2=moderate, 3=severe, 4=cured
-- Encounter descriptions are thematic, not generic.
+Campaign bootstrap flow
+-----------------------
+1. init_db() creates the schema, including the `campaigns` table
+   and all world tables with campaign_id FK (default='default').
+2. Seed script inserts the default campaign row:
+       id='default' name='Thornhold Whisperwood'
+3. All seeded locations / encounters / npcs / fronts are inserted with
+   campaign_id='default' (via column DEFAULT or explicit param).
+4. New characters automatically get campaign_id='default' (DEFAULT)
+   unless a specific campaign_id is provided at creation.
 
-Source: soryy708/dnd5-srd (MIT License) for SRD monster data.
-Adventure content and world-building are our own original work.
+Adding a new campaign
+---------------------
+- Create a campaigns row: INSERT INTO campaigns (id, name, ...) VALUES (...)
+- Duplicate/adapt world content with the new campaign_id
+- Seed campaign-specific locations, encounters, npcs as needed
 
-Run once: python -m app.scripts.seed
+Migration path
+--------------
+Existing pre-campaign installations:
+- The init_db() block and migration logic both insert the 'default'
+  campaign idempotently.
+- For tables that already exist (no campaign_id column), the
+  ALTER TABLE loop added to init_db() appends campaign_id with
+  DEFAULT 'default' and backfills existing rows to 'default'.
+- All FK constraints to campaigns.id reference the default row, so
+  refusal on deploy does not occur.
+
+Run: python3 app/scripts/seed.py  (safe to run multiple times; uses INSERT OR REPLACE)
 """
 
 import json
@@ -1609,17 +1627,22 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",            (
                 npc.get("movement_rules_json", "{}"),
             )
         )
+    # Ensure default campaign exists (idempotent)
+    conn.execute(
+        "INSERT OR IGNORE INTO campaigns (id, name, description) VALUES ('default', 'Thornhold Whisperwood', 'Original world — pre-migration default')"
+    )
+
 
     for front in FRONTS:
         conn.execute(
             """INSERT OR REPLACE INTO fronts
                (id, name, description, danger_type, grim_portents_json,
-                current_portent_index, impending_doom, stakes_json, is_active)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                current_portent_index, impending_doom, stakes_json, is_active, campaign_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 front["id"], front["name"], front["description"], front["danger_type"],
                 front["grim_portents_json"], front["current_portent_index"],
-                front["impending_doom"], front["stakes_json"], front["is_active"],
+                front["impending_doom"], front["stakes_json"], front["is_active"], 'default',
             )
         )
 

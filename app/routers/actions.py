@@ -150,11 +150,13 @@ def _check_encounter(char: dict, location: dict, rng: random.Random) -> dict | N
     ).fetchall()
     completed_ids = {r["encounter_id"] for r in completed}
 
+    # Get campaign-scoped encounters
+    campaign_id = char.get("campaign_id", "default")
     encounters = conn.execute(
         """SELECT * FROM encounters
-           WHERE location_id = ? AND min_level <= ? AND max_level >= ?
+           WHERE location_id = ? AND campaign_id = ? AND min_level <= ? AND max_level >= ?
            AND is_opening_encounter = 0""",
-        (location["id"], char_level, char_level)
+        (location["id"], campaign_id, char_level, char_level)
     ).fetchall()
 
     # Filter out already-completed encounters for this character

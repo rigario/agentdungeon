@@ -485,7 +485,22 @@ CREATE TABLE IF NOT EXISTS characters (
     conn.execute("CREATE INDEX IF NOT EXISTS idx_share_tokens_character ON share_tokens(character_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_share_tokens_token ON share_tokens(token)")
 
-    # Campaign scoping indices
+    # -----------------------------------------------------------------
+    # Campaign scoping migration — additive, idempotent
+    # -----------------------------------------------------------------
+    for tbl, col in [
+        ("locations", "campaign_id"),
+        ("encounters", "campaign_id"),
+        ("npcs", "campaign_id"),
+        ("fronts", "campaign_id"),
+        ("characters", "campaign_id"),
+    ]:
+        try:
+            conn.execute(f"ALTER TABLE {tbl} ADD COLUMN {col} TEXT NOT NULL DEFAULT 'default'")
+        except Exception:
+            pass
+
+    # Create indices (now that columns exist)
     conn.execute("CREATE INDEX IF NOT EXISTS idx_locations_campaign ON locations(campaign_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_encounters_campaign ON encounters(campaign_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_npcs_campaign ON npcs(campaign_id)")
@@ -493,7 +508,7 @@ CREATE TABLE IF NOT EXISTS characters (
     conn.execute("CREATE INDEX IF NOT EXISTS idx_characters_campaign ON characters(campaign_id)")
 
     # Seed default campaign (idempotent)
-    conn.execute("""INSERT OR IGNORE INTO campaigns (id, name, description) VALUES ('default', 'Thornhold Whisperwood', 'Original single-world campaign — pre-migration default')""")
+    conn.execute("INSERT OR IGNORE INTO campaigns (id, name, description) VALUES ('default', 'Thornhold Whisperwood', 'Original single-world campaign — pre-migration default')")
 
     # =========================================================
     # DM RUNTIME — Session persistence for async recap/resume

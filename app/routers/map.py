@@ -12,20 +12,46 @@ router = APIRouter(tags=["map"])
 
 
 @router.get("/api/map/data")
-def get_map_data():
-    """Get all locations and their connections for the world map, including NPC positions."""
+def get_map_data(character_id: str = None):
+    """Get world map data for a campaign.
+
+    If character_id is provided, returns only locations/NPCs belonging to that
+    character's campaign (scoped world). Otherwise returns all locations/NPCs
+    (legacy single-campaign mode).
+    """
     conn = get_db()
     try:
-        rows = conn.execute(
-            "SELECT id, name, biome, description, hostility_level, "
-            "encounter_threshold, recommended_level, connected_to, image_url "
-            "FROM locations ORDER BY hostility_level, name"
-        ).fetchall()
+        # Derive campaign_id if character_id provided
+        campaign_id = None
+        if character_id:
+            cur = conn.execute("SELECT campaign_id FROM characters WHERE id = ?", (character_id,))
+            row = cur.fetchone()
+            if row:
+                campaign_id = row["campaign_id"]
 
-        # Get NPC locations
-        npc_rows = conn.execute(
-            "SELECT id, name, current_location_id FROM npcs WHERE current_location_id IS NOT NULL"
-        ).fetchall()
+        # Build location query
+        if campaign_id:
+            rows = conn.execute(
+                "SELECT id, name, biome, description, hostility_level, "
+                "encounter_threshold, recommended_level, connected_to, image_url "
+                "FROM locations WHERE campaign_id = ? ORDER BY hostility_level, name",
+                (campaign_id,)
+            ).fetchall()
+            # NPCs filtered by campaign
+            npc_rows = conn.execute(
+                "SELECT id, name, current_location_id FROM npcs "
+                "WHERE current_location_id IS NOT NULL AND campaign_id = ?",
+                (campaign_id,)
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT id, name, biome, description, hostility_level, "
+                "encounter_threshold, recommended_level, connected_to, image_url "
+                "FROM locations ORDER BY hostility_level, name"
+            ).fetchall()
+            npc_rows = conn.execute(
+                "SELECT id, name, current_location_id FROM npcs WHERE current_location_id IS NOT NULL"
+            ).fetchall()
         npcs_by_location = {}
         for nr in npc_rows:
             loc_id = nr["current_location_id"]
