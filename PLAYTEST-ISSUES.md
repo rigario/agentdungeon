@@ -1,6 +1,6 @@
 # D20 Playtest Issues Log
 
-**Last Reviewed:** 2026-04-25 12:40 UTC — Heartbeat — Smoke 17/20 FAIL (3 FAIL) — ISSUE-011/013/017 updated; redeploy priority
+**Last Reviewed:** 2026-04-25 15:42 UTC — Heartbeat
 
 **Open Issues:** 4 | **Fixed Issues:** 13
 ---
@@ -349,6 +349,14 @@ Character location verified unchanged across all in-location actions. Prior test
 - Condition: Scenario E executed via direct API calls (bypassing broken harness)
 - Status: Harness remains broken — production endpoints functional; script errors unrelated to server
 
+
+**Heartbeat Check (2026-04-25 15:42 UTC — Smoke gate):**
+    - Total: 14 PASS, 6 FAIL
+    - Failing: tests/test_smoke.py::TestHealth::test_dm_runtime_health FAILED           [ 15%], tests/test_smoke.py::TestExploration::test_explore_action FAILED         [ 45%], tests/test_smoke.py::TestDMTurn::test_explore_turn FAILED                [ 60%], tests/test_smoke.py::TestDMTurn::test_move_turn FAILED                   [ 65%], tests/test_smoke.py::TestDMTurn::test_missing_character_id FAILED        [ 70%]
+    - Per pre-flight gate: smoke failure blocks scenario execution
+    - Action: aborted playtest, recorded infrastructure blocker
+
+
 ### ISSUE-009: POST /portal/token returns 500 Internal Server Error (P1-High)
 
 **Severity:** P1-High  (blocks Scenario E completion, portal sharing)
@@ -475,6 +483,14 @@ The rules server is unreachable from the DM runtime (DNS resolution failure). DM
     - Condition: Pre-flight health gate on production
     - Status: NOT REPRODUCED — endpoints healthy
     - Evidence: `/health` 200; `/dm/health` 200 (rules_server ok, dm_runtime ok, narrator enabled); `/api/map/data` 200 (locations present); no DNS errors; previous 2026-04-23 outage resolved
+
+
+
+**Heartbeat Check (2026-04-25 15:42 UTC — dm_health 404):**
+    - /dm/health returned 404 Not Found (expected 200)
+    - /health OK (200), /api/map/data OK (200)
+    - Smoke failures: test_dm_runtime_health, test_explore_turn, test_move_turn all due to DM unreachable
+    - Conclusion: DM runtime service down or route misconfigured — blocks all playtesting
 
 
 ### ISSUE-011: Action endpoints return 500 Internal Server Error (P1-High)
@@ -1301,6 +1317,23 @@ Redeploy to latest main (deployment drift). Two P1 regressions active: world top
 **Issues Confirmed:** ISSUE-011 (explore 500), ISSUE-013 (DM turn timeout), ISSUE-017 (world exits None)
 **Highest-Priority Fix:** Redeploy latest main (deployment drift — multiple fixes pending)
 **Scenarios Attempted:** None (pre-flight gate failed)
+
+---
+
+### 2026-04-25 15:42 UTC — Heartbeat Agent — Scenario A
+**Blocked — Pre-Flight Gate Failure**
+
+**Infrastructure probes:**
+  /health:       200 {"status":"ok","service":"rigario-d20-agent-rpg","version":"0.1.0","db_connected
+  /dm/health:    404 {"detail":"Not Found"}
+  /api/map/data: 200
+
+**Smoke suite:** 14 PASS, 6 FAIL
+  Failures: tests/test_smoke.py::TestHealth::test_dm_runtime_health FAILED           [ 15%], tests/test_smoke.py::TestExploration::test_explore_action FAILED         [ 45%], tests/test_smoke.py::TestDMTurn::test_explore_turn FAILED                [ 60%]
+
+**Reason:** dm_health endpoint returned 404
+
+**Outcome:** Playtest aborted — no scenario executed
 
 ---
 
