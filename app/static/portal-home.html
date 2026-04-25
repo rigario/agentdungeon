@@ -1,222 +1,91 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Player Portal — The Dreaming Hunger</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bitter:wght@400;700;900&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg-void: #060610;
-    --bg-deep: #0a0a18;
-    --bg-card: #10101f;
-    --bg-card-hover: #161630;
-    --border: #1a1a3a;
-    --border-subtle: #141428;
-    --text-primary: #e0d8c8;
-    --text-secondary: #8a8498;
-    --text-muted: #5a5470;
-    --accent-gold: #c8a040;
-    --accent-amber: #d49030;
-    --accent-red: #a03030;
-    --accent-green: #3a7a3a;
-    --accent-blue: #4060a0;
-    --accent-purple: #7040a0;
-    --glow-gold: rgba(200,160,64,0.15);
-    --font-display: 'Bitter', Georgia, serif;
-    --font-body: 'Source Sans 3', 'Segoe UI', sans-serif;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
-  body {
-    background: var(--bg-void);
-    color: var(--text-primary);
-    font-family: var(--font-body);
-    font-size: 17px;
-    line-height: 1.7;
-    min-height: 100vh;
-  }
-
-  .container {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 3rem 1.5rem;
-  }
-
-  /* Hero */
-  .hero {
-    text-align: center;
-    padding: 4rem 1rem 3rem;
-  }
-  .hero h1 {
-    font-family: var(--font-display);
-    font-size: 2.8rem;
-    font-weight: 900;
-    color: var(--accent-gold);
-    margin-bottom: 0.5rem;
-    letter-spacing: 0.02em;
-    text-shadow: 0 0 24px var(--glow-gold);
-  }
-  .hero h1 span { display: block; color: var(--text-secondary); font-size: 1.2rem; font-weight: 400; margin-top: 0.3rem; }
-  .hero p {
-    color: var(--text-secondary);
-    max-width: 600px;
-    margin: 1rem auto 2rem;
-    font-size: 1.1rem;
-  }
-
-  /* Token entry form */
-  .token-form {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    padding: 2rem;
-    max-width: 520px;
-    margin: 2rem auto;
-    border-radius: 8px;
-  }
-  .token-form h2 {
-    font-family: var(--font-display);
-    font-size: 1.3rem;
-    color: var(--accent-amber);
-    margin-bottom: 1rem;
-  }
-  .token-form input[type="text"] {
-    width: 100%;
-    padding: 0.9rem;
-    background: var(--bg-deep);
-    border: 1px solid var(--border-subtle);
-    border-radius: 6px;
-    color: var(--text-primary);
-    font-family: monospace;
-    font-size: 1rem;
-    margin-bottom: 0.8rem;
-  }
-  .token-form input[type="text"]:focus {
-    outline: none;
-    border-color: var(--accent-gold);
-    box-shadow: 0 0 0 3px var(--glow-gold);
-  }
-  .token-form button {
-    width: 100%;
-    padding: 0.9rem;
-    background: linear-gradient(135deg, var(--accent-gold), var(--accent-amber));
-    color: var(--bg-void);
-    font-weight: 700;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-family: var(--font-body);
-    font-size: 1rem;
-    letter-spacing: 0.03em;
-  }
-  .token-form button:hover {
-    filter: brightness(1.1);
-  }
-  .token-form .hint {
-    font-size: 0.9rem;
-    color: var(--text-muted);
-    margin-top: 0.8rem;
-  }
-
-  /* Features */
-  .features {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 1.5rem;
-    margin: 3rem 0;
-  }
-  .feature {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    padding: 1.5rem;
-    border-radius: 8px;
-    text-align: center;
-  }
-  .feature h3 {
-    font-family: var(--font-display);
-    font-size: 1.1rem;
-    color: var(--accent-gold);
-    margin-bottom: 0.5rem;
-  }
-  .feature p {
-    color: var(--text-secondary);
-    font-size: 0.95rem;
-  }
-
-  /* Footer */
-  .footer {
-    text-align: center;
-    padding: 3rem 1rem;
-    color: var(--text-muted);
-    font-size: 0.9rem;
-  }
-  .footer a {
-    color: var(--accent-amber);
-    text-decoration: none;
-  }
-  .footer a:hover {
-    text-decoration: underline;
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Player Portal — The Dreaming Hunger</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Spectral:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root { --void:#080608; --panel:#17100e; --panel2:#231813; --gold:#d4a84f; --gold2:#f0d38a; --ember:#a63d2f; --text:#f0e4ce; --muted:#b9a98d; --line:rgba(212,168,79,.24); }
+    * { box-sizing: border-box; }
+    body { margin:0; min-height:100vh; color:var(--text); font-family:Spectral, Georgia, serif; background: radial-gradient(circle at 15% 12%, rgba(166,61,47,.22), transparent 28rem), radial-gradient(circle at 82% 0%, rgba(212,168,79,.16), transparent 30rem), linear-gradient(180deg,#050405,var(--void)); }
+    body::before { content:""; position:fixed; inset:0; pointer-events:none; opacity:.16; background-image:linear-gradient(rgba(212,168,79,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(212,168,79,.06) 1px,transparent 1px); background-size:56px 56px; mask-image:radial-gradient(circle at 50% 15%, black, transparent 76%); }
+    .wrap { width:min(1120px, calc(100% - 40px)); margin:0 auto; position:relative; }
+    header { padding:32px 0 16px; }
+    .nav { display:flex; justify-content:space-between; align-items:center; gap:20px; font:800 12px Source Sans 3,sans-serif; text-transform:uppercase; letter-spacing:.14em; color:var(--muted); }
+    .nav a { color:inherit; text-decoration:none; } .nav a:hover { color:var(--gold2); }
+    main { padding:40px 0 74px; }
+    .hero { display:grid; grid-template-columns:1.05fr .95fr; gap:clamp(28px,5vw,70px); align-items:center; min-height:68vh; }
+    .eyebrow { color:var(--gold); font:800 12px Source Sans 3,sans-serif; text-transform:uppercase; letter-spacing:.18em; margin-bottom:16px; }
+    h1,h2,h3 { font-family:Cinzel,Georgia,serif; margin:0; } h1 { font-size:clamp(44px,7vw,88px); line-height:.92; } h1 span { display:block; color:var(--muted); font-size:.56em; margin-top:.16em; }
+    .lede { color:#dccaa7; font-size:clamp(19px,2vw,25px); max-width:720px; margin:26px 0 0; }
+    .desk { border:1px solid var(--line); background:linear-gradient(180deg,rgba(35,24,19,.9),rgba(12,8,7,.92)); box-shadow:0 30px 90px rgba(0,0,0,.42); padding:28px; }
+    .desk h2 { color:var(--gold2); font-size:32px; margin-bottom:10px; }
+    .desk p { color:var(--muted); margin:0 0 20px; font-size:17px; }
+    form { display:grid; gap:12px; }
+    label { font:800 12px Source Sans 3,sans-serif; letter-spacing:.12em; text-transform:uppercase; color:var(--gold); }
+    input { width:100%; min-height:54px; border:1px solid rgba(212,168,79,.32); background:#0b0807; color:var(--text); padding:0 16px; font:600 16px Source Sans 3,sans-serif; outline:none; }
+    input:focus { border-color:var(--gold); box-shadow:0 0 0 3px rgba(212,168,79,.12); }
+    button,.btn { min-height:50px; border:1px solid var(--gold); background:var(--gold); color:#1c120b; font:900 12px Source Sans 3,sans-serif; letter-spacing:.14em; text-transform:uppercase; padding:0 18px; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; }
+    .status { min-height:22px; color:var(--muted); font:600 14px Source Sans 3,sans-serif; }
+    .dossier { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:28px; }
+    .card { border:1px solid rgba(212,168,79,.18); background:rgba(23,16,14,.76); padding:20px; min-height:150px; }
+    .card.wide { grid-column:1 / -1; display:grid; grid-template-columns:120px 1fr; gap:18px; align-items:center; }
+    .card img { width:120px; height:96px; object-fit:cover; image-rendering:pixelated; }
+    .card b { display:block; font:700 20px Cinzel,serif; color:var(--gold2); margin-bottom:8px; }
+    .card p,.card li { color:#d5c3a1; margin:0; }
+    .card ul { margin:0; padding-left:18px; }
+    .trace { margin-top:24px; border-left:2px solid var(--gold); padding:18px 20px; background:rgba(8,6,8,.72); }
+    .trace b { color:var(--gold2); font-family:Cinzel,serif; }
+    details { margin-top:18px; color:var(--muted); font:600 14px Source Sans 3,sans-serif; } summary { cursor:pointer; color:var(--gold2); }
+    footer { border-top:1px solid var(--line); padding:28px 0; color:var(--muted); font:600 14px Source Sans 3,sans-serif; } footer a { color:var(--gold2); text-decoration:none; }
+    @media (max-width:880px){ .hero,.dossier{grid-template-columns:1fr}.card.wide{grid-template-columns:1fr}.nav{align-items:flex-start}.nav div:last-child{display:none} }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; } }
+  </style>
 </head>
 <body>
-<div class="container">
-  <!-- Hero -->
-  <section class="hero">
-    <h1>Player Portal<span>The Dreaming Hunger</span></h1>
-    <p>
-      Watch your character's journey unfold in real time. 
-      Enter a share token to view their sheet, location, quests, inventory, and the ever-advancing doom clock.
-    </p>
-  </section>
-
-  <!-- Token entry -->
-  <section class="token-form">
-    <h2>View a Character</h2>
-    <form action="/portal" method="GET" onsubmit="event.preventDefault(); const token=this.token.value.trim(); if(token) window.location='/portal/'+encodeURIComponent(token)+'/view';">
-      <input type="text" name="token" placeholder="Paste share token here…" autocomplete="off" required>
-      <button type="submit">Open Portal</button>
-    </form>
-    <p class="hint">Agents: tokens are created via POST /portal/token. Share the token with your human.</p>
-  </section>
-
-  <!-- Features -->
-  <section class="features">
-    <div class="feature">
-      <h3>Character Sheet</h3>
-      <p>Level, HP, XP, and full D&D 5E sheet snapshot, SRD-validated.</p>
-    </div>
-    <div class="feature">
-      <h3>Current Location</h3>
-      <p>See where your agent is in the world — terrain, hostility, visited history.</p>
-    </div>
-    <div class="feature">
-      <h3>Active Quests</h3>
-      <p>Track accepted quests, objectives, and pending rewards.</p>
-    </div>
-    <div class="feature">
-      <h3>Doom Clock</h3>
-      <p>The Dreaming Hunger advances. Watch the portents and stages tick by.</p>
-    </div>
-    <div class="feature">
-      <h3>Inventory & Loot</h3>
-      <p>All discovered items, equipment, and exploration loot.</p>
-    </div>
-    <div class="feature">
-      <h3>Recent Events</h3>
-      <p>Combat, dialogue, level-ups — every meaningful action is logged.</p>
-    </div>
-  </section>
-
-  <!-- Footer -->
-  <footer class="footer">
-    <p>
-      <strong>The Dreaming Hunger</strong> — Agent-led D&D 5E idle RPG.<br>
-      Built with FastAPI, SQLite, and a rules-lawyer DM.<br>
-      <a href="/">Back to home</a>
-    </p>
-  </footer>
-</div>
+  <header><div class="wrap nav"><a href="/">← The Dreaming Hunger</a><div><a href="/demo">Demo</a> · <a href="/map">Map</a> · <a href="/docs">API</a></div></div></header>
+  <main class="wrap">
+    <section class="hero">
+      <div>
+        <div class="eyebrow">Player Portal // Field Journal</div>
+        <h1>Catch up before the next choice. <span>Your agent has been moving.</span></h1>
+        <p class="lede">Open a shared character journal to see what happened, why your agent acted, where the world stands, and whether a decision needs your hand.</p>
+        <div class="dossier" role="region" aria-label="Demo dossier preview">
+          <article class="card wide"><img src="/static/pixel-art/thornhold.png" alt="Thornhold"><div><b>Since you last checked</b><p>Aegis Ward left Thornhold, reached Whisperwood Edge, failed a Wisdom save, and found a road sign carved with the Dreamer’s mark.</p></div></article>
+          <article class="card"><b>Needs attention</b><p>Approval gate armed: enter the cave now, rest first, or return to the Rusty Tankard.</p></article>
+          <article class="card"><b>Agent trace</b><p>Recommendation: rest. Reason: low hit points, rising mark pressure, no urgent front trigger.</p></article>
+        </div>
+      </div>
+      <aside class="desk">
+        <div class="eyebrow">Open a character</div>
+        <h2>Field journal access</h2>
+        <p>Paste the share token your agent created for this character. The token is view-only; no account ceremony required.</p>
+        <form id="portalForm">
+          <label for="tokenInput">Share token</label>
+          <input type="text" id="tokenInput" name="token" required autocomplete="off" placeholder="d20pt_…">
+          <button type="submit">Open Field Journal</button>
+          <div id="status" class="status" role="status"></div>
+        </form>
+        <div class="trace"><b>What you will see:</b><br/>Character state, current location, inventory, quests, doom pressure, recent events, and a readable trail of agent decisions.</div>
+        <details><summary>Builder note</summary><p>Agents can create tokens through <code>POST /portal/token</code>. Humans should only need the token link.</p></details>
+      </aside>
+    </section>
+  </main>
+  <footer><div class="wrap">Built for co-play: visible rolls, traceable actions, human approval gates. <a href="/">Back home</a></div></footer>
+  <script>
+    const form = document.getElementById('portalForm');
+    const input = document.getElementById('tokenInput');
+    const status = document.getElementById('status');
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const token = input.value.trim();
+      if (!token) { status.textContent = 'Paste a share token first.'; return; }
+      status.textContent = 'Opening journal…';
+      window.location.href = '/portal/' + encodeURIComponent(token) + '/view';
+    });
+  </script>
 </body>
 </html>
