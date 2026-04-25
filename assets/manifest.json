@@ -243,5 +243,19 @@
     "preset": "neon",
     "block": 2,
     "genre": "item"
+  },
+  {
+    "name": "npc-brother-kol",
+    "prompt": "pixel art portrait, SNES style, 16-bit D&D RPG, Brother Kol, gaunt cultist with glowing mark on forearm, brown robe, hollow eyes, cave background, dungeon, 32-color palette, crisp pixels",
+    "preset": "snes",
+    "block": 2,
+    "genre": "npc"
+  },
+  {
+    "name": "npc-green-woman",
+    "prompt": "pixel art portrait, SNES style, 16-bit fantasy RPG, The Green Woman, dryad forest spirit with bark skin and vine hair, mossy robes, moonpetal flowers, glowing green aura, ancient powerful, crisp pixel art",
+    "preset": "snes",
+    "block": 2,
+    "genre": "npc"
   }
 ]
