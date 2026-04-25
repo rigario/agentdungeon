@@ -26,6 +26,7 @@ from app.services.character_validation import validate_char_state
 from app.services import affinity
 from app.services import milestones
 from app.services import loot as loot_service
+from app.services.atmosphere import get_atmospheric_description
 
 
 
@@ -1012,6 +1013,24 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
 
             # Advance game clock (1 hour for travel)
             time_info = advance_time(character_id, get_action_time_cost("move"), conn)
+            # Atmospheric overlay for destination location
+            new_loc_row = conn.execute("SELECT * FROM locations WHERE id = ?", (result["new_location"],)).fetchone()
+            if new_loc_row:
+                new_loc = dict(new_loc_row)
+                portent_row = conn.execute(
+                    "SELECT current_portent_index FROM campaign_fronts WHERE COALESCE(is_active, 1) = 1 ORDER BY id LIMIT 1"
+                ).fetchone()
+                portent_index = portent_row[0] if portent_row else 0
+                overlay = get_atmospheric_description(
+                    result["new_location"],
+                    char.get("mark_of_dreamer_stage", 0),
+                    portent_index,
+                    game_hour=time_info["new_hour"],
+                    biome=new_loc.get("biome")
+                )
+                if overlay:
+                    result["narration"] = f"{overlay} {result['narration']}"
+
 
             conn.commit()
             conn.close()
@@ -1567,6 +1586,21 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
             # Advance game clock (1h short rest / 8h long rest)
             rest_minutes = get_action_time_cost("rest_long") if rest_type == "long" else get_action_time_cost("rest_short")
             time_info = advance_time(character_id, rest_minutes, conn)
+            # Atmospheric overlay for rest location
+            portent_row = conn.execute(
+                "SELECT current_portent_index FROM campaign_fronts WHERE COALESCE(is_active, 1) = 1 ORDER BY id LIMIT 1"
+            ).fetchone()
+            portent_index = portent_row[0] if portent_row else 0
+            atmosphere = get_atmospheric_description(
+                location_id,
+                char.get("mark_of_dreamer_stage", 0),
+                portent_index,
+                game_hour=time_info["new_hour"],
+                biome=location.get("biome")
+            )
+            if atmosphere:
+                result["narration"] = f"{atmosphere} {result['narration']}"
+
 
             conn.commit()
             conn.close()
@@ -1656,6 +1690,21 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
 
             # Advance game clock (30 min for exploration)
             time_info = advance_time(character_id, get_action_time_cost("explore"), conn)
+            # Atmospheric overlay for current location
+            portent_row = conn.execute(
+                "SELECT current_portent_index FROM campaign_fronts WHERE COALESCE(is_active, 1) = 1 ORDER BY id LIMIT 1"
+            ).fetchone()
+            portent_index = portent_row[0] if portent_row else 0
+            atmosphere = get_atmospheric_description(
+                location_id,
+                char.get("mark_of_dreamer_stage", 0),
+                portent_index,
+                game_hour=time_info["new_hour"],
+                biome=location.get("biome")
+            )
+            if atmosphere:
+                narration = f"{atmosphere} {narration}"
+
 
             conn.commit()
             conn.close()
@@ -1725,6 +1774,21 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
 
             # Minimal time cost (5 minutes for a glance)
             time_info = advance_time(character_id, get_action_time_cost("look"), conn)
+            # Atmospheric overlay for current location
+            portent_row = conn.execute(
+                "SELECT current_portent_index FROM campaign_fronts WHERE COALESCE(is_active, 1) = 1 ORDER BY id LIMIT 1"
+            ).fetchone()
+            portent_index = portent_row[0] if portent_row else 0
+            atmosphere = get_atmospheric_description(
+                location_id,
+                char.get("mark_of_dreamer_stage", 0),
+                portent_index,
+                game_hour=time_info["new_hour"],
+                biome=location.get("biome")
+            )
+            if atmosphere:
+                narration = f"{atmosphere} {narration}"
+
 
             conn.commit()
             conn.close()

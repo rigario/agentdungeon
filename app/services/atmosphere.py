@@ -111,18 +111,8 @@ _LOCATION_ATMOSPHERE = {
              (4, 7): "The cave is no longer a cave. It is a passage. The walls are smooth and organic. The seal's amber light is visible from here, pulsing like a heartbeat that matches your own." },
     },
 
-    "cave-depths": {
-        0: { (0, 1): "Deep stone. Deep silence. Roots push through the ceiling — the forest above, reaching down. The air is thick and warm." },
-        1: { (0, 2): "The roots from above are moving. Slowly, imperceptibly, but moving — orienting toward your mark.",
-             (3, 5): "The Bone Gallery holds centuries of offerings. Some are bones. Some are not. The chalice on the pedestal still holds liquid — amber, warm.",
-             (6, 7): "The seal chamber door is visible now. The three finger-stones are dark — waiting for keys. The air is electric with anticipation." },
-        2: { (0, 3): "The deeper you go, the more the walls resemble flesh. Stone and bone and something in between. The Hunger's body is the cave itself.",
-             (4, 7): "Brother Kol has been here. His journal is pinned to the wall with a bone splinter. The final entry reads: 'It spoke to me. It was kind.'" },
-        3: { (0, 3): "The cave has a pulse. You can feel it through the floor — slow, vast, patient. This is not a place. This is a living thing, and you are inside it.",
-             (4, 7): "The Bone Gallery offerings glow amber. The chalice's liquid is warm and moves on its own. The cave wants you to go deeper. It has always wanted you to go deeper." },
-    },
 
-    "seal-chamber": {
+    "cave-depths": {
         0: { (0, 1): "The end of the cave. A circular chamber, hewn from living rock. Three stone fingers rise from a sealed door, each with a keyhole that has no lock. The air is still." },
         1: { (0, 2): "The seal door is warm. The three finger-stones seem to track you as you move. The amber glow comes from everywhere and nowhere.",
              (3, 5): "The seal is weakening. Hairline cracks trace the door's circumference, and amber light leaks through. The Hunger knows how close you are.",
@@ -167,6 +157,11 @@ DREAM_NARRATIONS = {
         "Everyone you know is standing in a circle around you. They are not watching you — they are watching something behind you. You turn. There is nothing. You turn back. Their faces are wrong now. Wrong in the same way. Like masks that almost fit. The mark burns. You rip it off — no, you can't. It's not on your skin. It's deeper.",
         "The dream is not a dream. You are standing in the Seal Chamber and the three keys are in your hands. The Hunger speaks through the walls: 'You could let me out. I would be grateful. I remember gratitude. I remember the Thorn who put me here. Their name was Elara.' You wake with the taste of amber on your tongue.",
     ],
+    4: [
+        "You stand in the Seal Chamber and the three keys are in your hands — but the choice was already made. The Hunger is already partly free, and it recognizes you as its kin.",
+        "The boundary between dream and waking is gone. You dream the world, and the world dreams you. The Hunger's hunger is your hunger. Its satisfaction will be your satisfaction.",
+        "You wake screaming, but the scream is not yours. It belongs to the Hunger, echoing through the dreams of everyone in town. The mark burns, but it does not hurt. It feels like coming home.",
+    ],
 }
 
 
@@ -175,6 +170,7 @@ DREAM_NARRATIONS = {
 # ---------------------------------------------------------------------------
 
 PORTENT_WORLD_EFFECTS = {
+    0: "No portent active — the world proceeds as normal.",
     1: "The trees in the forest lean inward — paths shift overnight. Travelers report wrong turns, lost time, and the feeling of being watched from the canopy.",
     2: "Hollow-eyed cultists are seen at dawn, moving between the forest edge and town. They carry bundles — supplies or offerings. The townsfolk are too frightened to stop them.",
     3: "The earth bleeds amber at the crossroads. The stone marker cracks. Anyone who touches the amber feels warmth — pleasant, insistent warmth — spreading up their arm.",
