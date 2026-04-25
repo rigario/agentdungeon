@@ -55,7 +55,7 @@ services:
       - 'DM_RULES_SERVER_URL=http://d20-rules-server:8600'
       - 'DM_REDIS_URL=redis://d20-redis:6379/0'
       - 'DM_NARRATOR_ENABLED=true'
-      - 'DM_NARRATOR_MODEL=kimi-for-coding'
+      - 'DM_NARRATOR_MODEL=kimi-k2.5'
       - 'DM_HERMES_MODE=hermes'
       - 'DM_HERMES_PROFILE=d20-dm'
       - 'HERMES_HOME=/root/.hermes'
