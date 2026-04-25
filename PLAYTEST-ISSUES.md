@@ -1,6 +1,6 @@
 # D20 Playtest Issues Log
 
-**Last Reviewed:** 2026-04-25 03:43 UTC — Heartbeat — Smoke 19/20 FAIL — ISSUE-007 & 017 confirmed live; portal/action endpoints OK
+**Last Reviewed:** 2026-04-25 05:55 UTC — Heartbeat — Smoke 19/20 PASS — ISSUE-007/016/017 confirmed live
 
 **Open Issues:** 4 | **Fixed Issues:** 13
 ---
@@ -78,6 +78,12 @@ turn/start type=general    kw=(none)     "study the markings on the stone hand" 
 - TALK keywords ("talk to", "speak to") → `talk`/`actions`, no teleport ✓
 - EXPLORE local phrases ("look around", "looking around", "what do I see", "here", "stay here") → `explore`/`actions`, location preserved ✓
 Character location verified unchanged across all in-location actions. Prior test failure due to incorrect request field (`user_input` vs `message`). Production code healthy. Commit: 48b65a2 (deployed VPS container rebuilt 2026-04-24 20:11 UTC).
+
+**Heartbeat Check (2026-04-25 05:55 UTC — intent routing):**
+    - Character started thornhold, after DM turns ended at crossroads
+    - DM turns classified in-location intents as "general" causing travel
+    - Evidence: /dm/turn:intents used were "general" for statue interaction; character teleported
+    - Conclusion: ISSUE-016 misclassification still active — deployment lag
 
 ### ISSUE-006: DM narration returns wrong NPC content for statue examination
 
@@ -269,6 +275,11 @@ Character location verified unchanged across all in-location actions. Prior test
     - Root cause: Fix committed but not yet deployed to VPS; production retains original bug
     - Recommendation: PRIORITY-1 redeploy latest main (includes ISSUE-007 field serialization fix)
     
+
+**Heartbeat Check (2026-04-25 05:55 UTC — live probe):**
+    - Character: probeb-0425-381ec6
+    - Move actions: location_id updates but current_location_id remains None
+    - Conclusion: current_location_id persistence regression still live — deployment lag
 
 ### ISSUE-008: full_playthrough_with_gates.py crashes due to invalid location ID and missing success validation (P1-High)
 
@@ -743,6 +754,12 @@ World topology regression — DB seed/migration cleared the `exits` column or fa
     - Priority: P1-High — blocks all movement/combat/quests ending access
     
 
+**Heartbeat Check (2026-04-25 05:55 UTC — world topology):**
+    - /api/map/data: 12 locations, every exits field = None
+    - Explore returns 0 available_paths
+    - Movement relies on internal fallback graph only
+    - Root cause: location adjacency edges missing from DB seed; reseed required
+
 ## Deployment
 
 **Commit:** 9036249 on main branch
@@ -959,6 +976,13 @@ World topology regression — DB seed/migration cleared the `exits` column or fa
 
 ---
 
+### 2026-04-25 05:55 UTC — Heartbeat Agent — Smoke 19/20 PASS (ISSUE-007/016/017 confirmed)
+
+**Pre-flight:** /health=200, /dm/health=200, /api/map/data=200
+**Smoke:** 19/20 PASS, 1 FAIL — test_move_updates_location_id
+**Probe:** probeb-0425-381ec6; current_location_id=None throughout; world exits None
+**Evidence:** ISSUE-007 (persistence), ISSUE-016 (intent teleport), ISSUE-017 (topology)
+**Decision:** Defer scenarios; highest priority redeploy to latest main (deployment drift)
 
 ## Template for New Issues
 

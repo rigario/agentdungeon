@@ -25,6 +25,17 @@ from app.services.portal import (
 router = APIRouter(prefix="/portal", tags=["portal"])
 
 
+@router.get("/", response_class=HTMLResponse)
+def portal_home():
+    """Serve the player portal landing page."""
+    static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
+    home_html = os.path.join(static_dir, "portal-home.html")
+    if os.path.exists(home_html):
+        from fastapi.responses import FileResponse
+        return FileResponse(home_html)
+    return HTMLResponse("<h1>Portal home not found</h1>", status_code=500)
+
+
 class CreateTokenRequest(BaseModel):
     character_id: str
     label: Optional[str] = None
