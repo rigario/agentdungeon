@@ -158,6 +158,33 @@ def _build_context_prompt(server_result: dict, intent: dict, world_context: dict
     if front:
         parts.append(f"FRONT: {front.get('name', '?')} — Portent {front.get('current_portent', 0)}")
 
+    # Social context — relationship affinity, milestones, exploration history
+    social = world_context.get("social_context", {})
+    if social:
+        affinities = social.get("affinities", {})
+        if affinities:
+            aff_lines = [
+                f"- {npc_id}: {score}/100 ({'hostile' if score<30 else 'wary' if score<50 else 'neutral' if score<70 else 'friendly' if score<90 else 'devoted'})"
+                for npc_id, score in sorted(affinities.items(), key=lambda x: x[1], reverse=True)[:8]
+            ]
+            parts.append("NPC RELATIONSHIPS (affinity scores):\\n" + "\\n".join(aff_lines))
+
+        milestones = social.get("milestones", [])
+        if milestones:
+            ms_lines = [
+                f"- [{m.get('type','?')}] Threshold {m.get('threshold','?')} — {m.get('reward_type','?')} at {m.get('claimed_at','?')}"
+                for m in milestones[:5]
+            ]
+            parts.append("RECENT MILESTONES:\\n" + "\\n".join(ms_lines))
+
+        loot_history = social.get("loot_history", [])
+        if loot_history:
+            loot_lines = [
+                f"- Found {l.get('item_name','?')} (rarity: {l.get('rarity','common')}) at {l.get('location_id','?')}"
+                for l in loot_history[:5]
+            ]
+            parts.append("EXPLORATION LOOT HISTORY:\\n" + "\\n".join(loot_lines))
+
     return "\n\n".join(parts)
 
 

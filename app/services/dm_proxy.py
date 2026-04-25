@@ -27,6 +27,8 @@ from typing import Optional, Dict, Any
 import httpx
 
 from app.services.database import get_db
+from app.services.key_items import KEY_ITEMS
+from app.services import affinity
 
 logger = logging.getLogger(__name__)
 
@@ -153,25 +155,74 @@ async def build_world_context(character_id: str) -> Dict[str, Any]:
         for r in quest_rows
     ]
 
-    key_item_rows = conn.execute(
-        """
-        SELECT i.id, i.name, i.description, i.lore_text, ci.quantity
-        FROM items i
-        JOIN character_items ci ON i.id = ci.item_id
-        WHERE ci.character_id = ? AND i.is_key_item = 1
-        """,
+    # -------------------------------------------------------------------------
+    # Key Item Extraction — derive from equipment_json (not character_items)
+    # -------------------------------------------------------------------------
+    # Key items are stored as structured objects in character.equipment_json.
+    # They are not tracked in character_items junction table.
+    # Enrich each key item from the global KEY_ITEMS definitions.
+    equipment = json.loads(char.get("equipment_json", "[]") or "[]")
+    key_items = []
+    for item in equipment:
+        if isinstance(item, dict) and item.get("type") == "key_item":
+            ki_name = item.get("name")
+            ki_def = KEY_ITEMS.get(ki_name, {})
+            key_items.append({
+                "id": ki_name,
+                "name": ki_def.get("display_name", ki_name),
+                "description": ki_def.get("description", item.get("description", "")),
+                "lore": ki_def.get("deeper_lore", ""),
+                "quantity": 1,
+            })
+    # -------------------------------------------------------------------------
+
+    # Social Context — affinity, milestones, exploration loot log
+    # -------------------------------------------------------------------------
+    # Fetch per-NPC affinity for relationship-status narration
+    all_affinities = affinity.get_all_affinities(character_id)
+    # Filter to only NPCs with recorded affinity
+    social_affinities = {npc_id: score for npc_id, score in all_affinities.items() if score is not None}
+    
+    # Character milestone history (recent achievements/completed goals)
+    milestone_rows = conn.execute(
+        "SELECT milestone_type, threshold, claimed_at, reward_type, reward_data "
+        "FROM character_milestones WHERE character_id = ? "
+        "ORDER BY claimed_at DESC LIMIT 10",
         (character_id,)
     ).fetchall()
-    key_items = [
+    milestones = [
         {
-            "id": r["id"],
-            "name": r["name"],
-            "description": r["description"],
-            "lore": r.get("lore_text", ""),
-            "quantity": r["quantity"],
+            "type": r["milestone_type"],
+            "threshold": r["threshold"],
+            "claimed_at": r["claimed_at"],
+            "reward_type": r["reward_type"],
+            "reward_data": json.loads(r["reward_data"] or "{}"),
         }
-        for r in key_item_rows
+        for r in milestone_rows
     ]
+    
+    # Exploration loot log — track unique items found during searches
+    loot_rows = conn.execute(
+        "SELECT ell.location_id, ell.item_id, ell.found_at, i.name, i.description, i.rarity "
+        "FROM exploration_loot_log ell "
+        "JOIN items i ON i.id = ell.item_id "
+        "WHERE ell.character_id = ? "
+        "ORDER BY ell.found_at DESC LIMIT 10",
+        (character_id,)
+    ).fetchall()
+    loot_history = [
+        {
+            "location_id": r["location_id"],
+            "item_id": r["item_id"],
+            "item_name": r["name"],
+            "item_description": r["description"],
+            "rarity": r["rarity"],
+            "found_at": r["found_at"],
+        }
+        for r in loot_rows
+    ]
+    
+    # -------------------------------------------------------------------------
 
     conn.close()
 
@@ -196,6 +247,11 @@ async def build_world_context(character_id: str) -> Dict[str, Any]:
         "front_progression": front_progression,
         "active_quests": active_quests,
         "key_items": key_items,
+        "social_context": {
+            "affinities": social_affinities,
+            "milestones": milestones,
+            "loot_history": loot_history,
+        },
     }
 
 
