@@ -11,6 +11,7 @@ from fastapi import APIRouter, HTTPException, Depends, Request, Query
 from pydantic import BaseModel
 from typing import Optional
 from app.services.key_items import get_key_items, has_key_item
+from app.services.portal import create_share_token
 from app.models.schemas import CharacterCreate, CharacterResponse, CharacterUpdate
 from app.services.database import get_db, init_character_fronts
 from app.services.auth_helpers import get_auth, require_character_ownership
@@ -840,6 +841,49 @@ def revoke_agent(character_id: str, body: RevokeAgentRequest, request: Request):
         "status": "revoked",
         "character_id": character_id,
         "agent_id": body.agent_id,
+    }
+
+
+
+
+@router.post("/{character_id}/share")
+def create_character_share_token(
+    character_id: str,
+    request: Request,
+    label: Optional[str] = Query(None, description="Optional label for the share token (e.g. 'Playtest #1')"),
+    expires_hours: Optional[int] = Query(None, description="Token expiry in hours (None = never expires)", ge=1, le=8760)
+):
+    """Generate a new share token for a character.
+
+    Creates a signed token that allows unauthenticated access to the
+    character's state via the public portal. Only the character owner
+    can create tokens.
+
+    Returns:
+        dict with `token`, `portal_url`, `expires_at`, `label`, `character_id`
+    """
+    auth = get_auth(request)
+    if auth.get("auth_type") != "user":
+        raise HTTPException(status_code=401, detail="User authentication required to create share tokens")
+
+    user_id = request.state.user_id
+    require_character_ownership(character_id, user_id)
+
+    result = create_share_token(
+        character_id=character_id,
+        label=label or "Character share link",
+        expires_hours=expires_hours
+    )
+
+    portal_url = f"https://d20.holocronlabs.ai/portal/{result['token']}/view"
+
+    return {
+        "token": result["token"],
+        "portal_url": portal_url,
+        "expires_at": result["expires_at"],
+        "label": result["label"],
+        "character_id": character_id,
+        "view_count": result["view_count"],
     }
 
 

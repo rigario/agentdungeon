@@ -220,6 +220,7 @@ class DMResponse(BaseModel):
     choices: list[ChoiceOption] = Field(default_factory=list)
     server_trace: ServerTrace = Field(default_factory=ServerTrace)
     session_id: Optional[str] = None
+    portal_url: Optional[str] = None
 
 
 # =============================================================================

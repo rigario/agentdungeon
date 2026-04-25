@@ -6,6 +6,9 @@ LLM-powered narration via synthesis → narrator pipeline.
 """
 
 from fastapi import APIRouter, HTTPException
+import logging
+
+logger = logging.getLogger("dm_runtime")
 
 from app.contract import DMResponse, NarrationPayload, MechanicsPayload, ChoiceOption, ServerTrace
 from app.services import rules_client
@@ -190,8 +193,29 @@ async def get_character(character_id: str):
 
 @router.post("/character")
 async def create_character(payload: dict):
+    """Create a new character and auto-generate a portal share link."""
     try:
-        return await rules_client.create_character(payload)
+        character = await rules_client.create_character(payload)
+        character_id = character.get("id") if isinstance(character, dict) else getattr(character, "id", None)
+
+        portal_url = None
+        if character_id:
+            try:
+                share_response = await rules_client._request(
+                    "POST",
+                    f"/characters/{str(character_id)}/share",
+                    json={}
+                )
+                share_data = share_response.json() if share_response.status_code == 200 else None
+                if share_data:
+                    portal_url = share_data.get("portal_url")
+            except Exception as e:
+                logger.warning(f"Share token generation failed for {character_id}: {e}")
+
+        if portal_url and isinstance(character, dict):
+            character["portal_url"] = portal_url
+
+        return character
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
 
