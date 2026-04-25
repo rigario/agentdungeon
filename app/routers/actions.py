@@ -920,6 +920,10 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
                             added = add_key_item(character_id, "kols_journal", conn)
                             if added:
                                 result["narration"] += f" Found {added['display_name']}."
+                        if encounter.get("id") == "enc-hollow-eye-ritual" and not has_key_item(character_id, "seal_stone_fragment", conn):
+                            added = add_key_item(character_id, "seal_stone_fragment", conn)
+                            if added:
+                                result["narration"] += f" Found {added['display_name']}."
                         if encounter.get("id") == "enc-miniboss-hollow-eye-lieutenant" and not has_key_item(character_id, "drens_daughter_insignia", conn):
                             added = add_key_item(character_id, "drens_daughter_insignia", conn)
                             if added:

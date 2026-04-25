@@ -62,6 +62,11 @@ KEY_ITEMS = {
         "quest": "quest_moonpetal",
         "source": "exploration",
         "consumed": False,
+        "set_flag_on_acquire": {
+            "flag": "green_woman_suppression_1",
+            "value": "1",
+            "source": "quest"
+        },
         "deeper_lore": "Moonpetals only bloom when moonlight strikes the standing stone — a monolith of fey origin that predates the seal by millennia. The Green Woman uses them to create a poultice that suppresses the mark's growth, buying time. But suppression is not cure. Each moonpetal delays the inevitable; the Hunger is patient. The flower's luminescence comes from absorbed moonlight — it literally holds starlight in its petals.",
         "mark_stage_lore": {
             0: "A delicate, glowing flower. It smells like night air and distant rain.",
@@ -97,6 +102,11 @@ KEY_ITEMS = {
         "quest": "cave_puzzle",
         "source": "puzzle",
         "consumed": True,
+        "set_flag_on_acquire": {
+            "flag": "seal_stone_fragment",
+            "value": "1",
+            "source": "key_item"
+        },
         "deeper_lore": "This fragment is from the original seal — a circle of standing stones erected by a coalition of fey, dwarven, and human mages eight centuries ago. Each stone was keyed to a different aspect of containment: one for the body, one for the mind, one for the will. This shard is from the Will Stone. When placed back in its hollow, it restores the seal's ability to resist the Hunger's persuasion.",
         "mark_stage_lore": {
             0: "A stone shard, warm to the touch. Ancient runes are etched into its surface — you can't read them yet.",
@@ -127,6 +137,11 @@ KEY_ITEMS = {
         "quest": "drenna_rescue",
         "source": "combat",
         "consumed": True,
+        "set_flag_on_acquire": {
+            "flag": "drenna_child_saved",
+            "value": "1",
+            "source": "quest"
+        },
         "deeper_lore": "Elara was taken by Hollow Eye cultists during a supply run. She's Drenna's only living family — Drenna being the cult's unwilling ritual specialist. Drenna performs the Breaking Rite because they hold Elara hostage. Return the insignia, and Drenna will sabotage the rite from within — substituting salt for blood, chanting the wrong syllables. It won't stop the Hunger, but it will buy time.",
         "mark_stage_lore": {
             0: "A child's wooden token, carved with a sun. Elara made this herself. She's maybe twelve years old.",
