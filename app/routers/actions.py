@@ -1841,9 +1841,31 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
                 )
 
             # 948229f2: Brother Kol talkability gate — affinity 70+
+            # Fix 30faab95: Bypass gate if player has proven understanding of Kol's backstory
             if npc["id"] == "npc-brother-kol":
                 current_aff = affinity.get_affinity(character_id, npc["id"])
-                if current_aff < 70:
+                
+                # Check for bypass: player knows Kol's backstory via journal or flag
+                bypass_gate = False
+                
+                # Check 1: Player has Kol's journal (kols_journal key item)
+                try:
+                    if has_key_item(character_id, "kols_journal", conn):
+                        bypass_gate = True
+                except Exception:
+                    pass  # Safe fallback to regular affinity check
+                
+                # Check 2: Player already learned Kol's backstory (kol_backstory_known flag)
+                if not bypass_gate:
+                    flag_row = conn.execute(
+                        "SELECT flag_value FROM narrative_flags WHERE character_id = ? AND flag_key = 'kol_backstory_known'",
+                        (character_id,)
+                    ).fetchone()
+                    if flag_row and flag_row["flag_value"] == "1":
+                        bypass_gate = True
+                
+                # Enforce gate only if affinity insufficient AND no bypass
+                if not bypass_gate and current_aff < 70:
                     # Kol refuses to engage — trust insufficient
                     try:
                         if 'conn2' in locals() and conn2:
