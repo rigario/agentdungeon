@@ -23,6 +23,7 @@ from app.services.time_of_day import advance_time, get_action_time_cost, get_tim
 from app.services.dm_proxy import get_dm_proxy, get_dm_session, build_world_context
 from app.services.character_lock import acquire_character_lock, release_character_lock
 from app.services.character_validation import validate_char_state
+from app.services import affinity
 
 
 router = APIRouter(prefix="/characters/{character_id}", tags=["actions"])
@@ -1723,6 +1724,31 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
                        ON CONFLICT(character_id, flag_key) DO NOTHING""",
                     (character_id,)
                 )
+
+            # 948229f2: Brother Kol talkability gate — affinity 70+
+            if npc["id"] == "npc-brother-kol":
+                current_aff = affinity.get_affinity(character_id, npc["id"])
+                if current_aff < 70:
+                    # Kol refuses to engage — trust insufficient
+                    try:
+                        if 'conn2' in locals() and conn2:
+                            conn2.close()
+                    except Exception:
+                        pass
+                    try:
+                        conn.commit()
+                        conn.close()
+                    except Exception:
+                        pass
+                    return {
+                        "success": False,
+                        "narration": "Brother Kol's eyes narrow. 'I don't speak with those who haven't proven their trust.'",
+                        "events": [{"type": "npc_interaction_refused", "npc": npc["name"], "reason": "low_affinity", "affinity": current_aff}],
+                        "character_state": {
+                            "hp": {"current": char["hp_current"], "max": char["hp_max"]},
+                            "location_id": char["location_id"],
+                        },
+                    }
 
             # Load character's narrative flags for dialogue gating
             char_flags = {}
