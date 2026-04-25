@@ -40,12 +40,14 @@ def migrate():
         try:
             cursor.execute(f"PRAGMA table_info({table})")
             cols = [row[1] for row in cursor.fetchall()]
-            if 'campaign_id' in cols:
-                count = cursor.execute(
-                    f"UPDATE {table} SET campaign_id = 'default' WHERE campaign_id IS NULL OR campaign_id = ''"
-                ).rowcount
-                if count > 0:
-                    migrated.append(f"{table}: backfilled {count} row(s)")
+            if 'campaign_id' not in cols:
+                cursor.execute(f"ALTER TABLE {table} ADD COLUMN campaign_id TEXT DEFAULT 'default'")
+                migrated.append(f"{table}: added campaign_id column (new)")
+            count = cursor.execute(
+                f"UPDATE {table} SET campaign_id = 'default' WHERE campaign_id IS NULL OR campaign_id = ''"
+            ).rowcount
+            if count > 0:
+                migrated.append(f"{table}: backfilled {count} row(s)")
         except Exception as e:
             print(f"[WARN] Could not backfill {table}: {e}")
 

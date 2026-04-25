@@ -95,6 +95,7 @@ class CharacterCreate(BaseModel):
     race: str = Field(..., min_length=1, max_length=32)
     class_name: str = Field(..., alias="class", min_length=1, max_length=32)
     background: Optional[str] = Field(None, max_length=64)
+    campaign_id: Optional[str] = None  # campaign scoping (default='default')
     stats: Optional[dict] = None  # point-buy: {"str": 14, "dex": 16, ...}
     languages: Optional[list] = None  # extra languages beyond racial defaults
     skills: Optional[list] = None  # 2 class skill choices

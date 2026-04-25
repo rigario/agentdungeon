@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS characters (
             mark_of_dreamer_stage INTEGER DEFAULT 0,
             xp INTEGER DEFAULT 0,
             location_id TEXT,
+            campaign_id TEXT DEFAULT 'default',
             sheet_json TEXT,
             sheet_signature TEXT,
             approval_config TEXT DEFAULT '{}',
@@ -75,7 +76,8 @@ CREATE TABLE IF NOT EXISTS characters (
             is_archived INTEGER DEFAULT 0,
             archived_at TIMESTAMP,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (campaign_id) REFERENCES campaigns(id)
         );
 
         CREATE TABLE IF NOT EXISTS locations (

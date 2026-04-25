@@ -1,6 +1,6 @@
 # D20 Playtest Issues Log
 
-**Last Reviewed:** 2026-04-25 15:42 UTC — Heartbeat
+**Last Reviewed:** 2026-04-25 16:46 UTC — Heartbeat — Scenario B — Smoke 20/20 PASS — ISSUE-016 active, ISSUE-017 live
 
 **Open Issues:** 4 | **Fixed Issues:** 13
 ---
@@ -1334,6 +1334,47 @@ Redeploy to latest main (deployment drift). Two P1 regressions active: world top
 **Reason:** dm_health endpoint returned 404
 
 **Outcome:** Playtest aborted — no scenario executed
+
+---
+
+### 2026-04-25 16:46 UTC — Heartbeat Agent — Scenario B (Absurd Test) — ISSUE-016 reproduced
+
+**Character:** scenob-1777135456-d3230a
+**Smoke Health:** 20/20 PASS ✅
+
+**Pre-flight:**
+- /health: 200 OK
+- /dm/health: 200 OK (narrator enabled)
+- /api/map/data: 200 OK (12 locations, exits all None — ISSUE-017 live)
+
+**Scenario B Execution:**
+- Character created (Fighter Human) at rusty-tankard
+- Move to thornhold: 200 success, location_id=thornhold, current_location_id=thornhold
+- DM turn 'I swallow the statue whole.' → ENDPOINT: turn/server_endpoint=general, LOCATION: thornhold→south-road ❌ teleported
+  Refusal narration present but auto-travel occurred (mechanics.location changed)
+- DM turn 'I fly to the moon unaided.' → endpoint=turn/general, location remained south-road (already teleported)
+- DM turn 'I examine the statue carefully.' → intent_used=interact/server_endpoint=actions — correct classification
+  Note: character already at south-road; location preserved but not tested from thornhold
+
+**Issues Confirmed:**
+- ISSUE-016 (P1-High — Intent Router): Teleportation on absurd/general intents still active in production.
+  Fix committed (48b65a2) but not redeployed — deployment lag.
+- ISSUE-017 (P1-High — World Topology): All locations exits=None (confirmed 12/12)
+
+**Findings:**
+- Absurd actions refusal works (narration) but falls through to turn/start which triggers travel heuristics
+- The turn/start route interprets even non-travel intent as exploration, advancing player through connected locations
+- Character final location: south-road (should be thornhold)
+- current_location_id field now updates correctly post-move (ISSUE-007 appears resolved)
+- DM turn response structure: server_trace.intent_used dict present, endpoint_used field absent (None)
+
+**Evidence:**
+- Endpoint: POST /dm/turn
+- Character: scenob-1777135456-d3230a
+- Probes: 2026-04-26 run, full transcript
+- Severity: P1 — blocks narrative continuity; in-location actions cause unwanted travel
+
+**Next:** Redeploy latest main to clear deployment lag on ISSUE-016, 007, 017 triad
 
 ---
 

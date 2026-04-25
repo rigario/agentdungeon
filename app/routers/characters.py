@@ -236,7 +236,7 @@ def create_character(
             ability_scores_json, speed_json, skills_json, saving_throws_json,
             languages_json, weapon_proficiencies_json, armor_proficiencies_json,
             equipment_json, treasure_json, spell_slots_json, spells_json, feats_json, conditions_json,
-            xp, location_id, sheet_json, sheet_signature, approval_config, aggression_slider)
+            xp, location_id, campaign_id, sheet_json, sheet_signature, approval_config, aggression_slider)
            VALUES (?, ?, ?, ?, ?,
                    ?, ?, ?, 1,
                    ?, ?, 0,
@@ -244,7 +244,7 @@ def create_character(
                    ?, ?, ?, ?,
                    ?, ?, ?,
                    ?, ?, ?, ?, ?, ?,
-                   0, ?, ?, ?, ?, 50)""",
+                   0, ?, ?, ?, ?, 50, ?)""",
         (
             char_id, player_id, resolved_user_id, resolved_agent_id, resolved_perm,
             body.name, body.race, body.class_name,
@@ -264,6 +264,7 @@ def create_character(
             starting_location,
             sheet_json, signature,
             json.dumps(approval_config),
+            'default',
         )
     )
 
