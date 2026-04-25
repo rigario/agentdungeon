@@ -1838,17 +1838,28 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
             except (json.JSONDecodeError, TypeError, ValueError):
                 trades = []
 
+            # 70b1d5b6: Calculate trade discount based on affinity
+            current_affinity = affinity.get_affinity(character_id, npc["id"])
+            discount_multiplier = affinity.calculate_discount(current_affinity)
+            discounted_trades = []
+            for item in trades:
+                original_price = item.get("price", 0)
+                discounted_trades.append({
+                    **item,
+                    "price_discounted": round(original_price * discount_multiplier)
+                })
+
             result = {
                 "success": True,
                 "narration": f"You approach {npc['name']} ({npc['archetype']}). {dialogue}",
                 "events": [{"type": "npc_interaction", "npc": npc["name"], "dialogue": dialogue}],
                 "interaction_count": (existing_row["interaction_count"] + 1) if existing_row else 1,
-                "current_affinity":   affinity.get_affinity(character_id, npc["id"]),
+                "current_affinity": current_affinity,
                 "milestone_rewards": [
                     {
                         "reward_type": m["reward_type"],
                         "reward_data": m["reward_data"],
-                        "threshold":   m["threshold"],
+                        "threshold": m["threshold"],
                     }
                     for m in new_milestones
                 ],
@@ -1856,7 +1867,7 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
                     "hp": {"current": char["hp_current"], "max": char["hp_max"]},
                     "location_id": char["location_id"],
                 },
-                "npc": {"name": npc["name"], "archetype": npc["archetype"], "trades": trades},
+                "npc": {"name": npc["name"], "archetype": npc["archetype"], "trades": discounted_trades},
                 "time_info": time_info,
             }
 
