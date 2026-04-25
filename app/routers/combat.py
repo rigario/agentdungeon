@@ -129,6 +129,9 @@ def _run_enemy_turns(combat: dict, player_ac: int, rng: random.Random, conn) -> 
     # Update character HP in characters table
     conn.execute("UPDATE characters SET hp_current = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
                  (current_hp, combat["character_id"]))
+    # Keep sheet_json hit_points.current synchronized with hp_current
+    conn.execute("UPDATE characters SET sheet_json = json_set(sheet_json, '$.hit_points.current', ?) WHERE id = ?",
+                 (current_hp, combat["character_id"]))
 
     return events, current_hp
 
@@ -253,6 +256,9 @@ def start_combat(character_id: str, encounter_name: str = "Wild Encounter",
     # Update HP
     conn.execute("UPDATE combat_participants SET hp_current = ? WHERE id = ?", (player_hp, parts[player_idx]["id"]))
     conn.execute("UPDATE characters SET hp_current = ? WHERE id = ?", (player_hp, character_id))
+    # Keep sheet_json hit_points.current synchronized with hp_current
+    conn.execute("UPDATE characters SET sheet_json = json_set(sheet_json, '$.hit_points.current', ?) WHERE id = ?",
+                 (player_hp, character_id))
     conn.commit()
 
     # Check if player died before acting
@@ -444,6 +450,9 @@ def combat_act(character_id: str, body: CombatAction, auth: dict = Depends(get_a
             conn.execute("UPDATE combat_participants SET hp_current = ? WHERE id = ?",
                          (new_hp, _player(combat)["id"]))
             conn.execute("UPDATE characters SET hp_current = ? WHERE id = ?",
+                         (new_hp, character_id))
+            # Keep sheet_json hit_points.current synchronized with hp_current
+            conn.execute("UPDATE characters SET sheet_json = json_set(sheet_json, '$.hit_points.current', ?) WHERE id = ?",
                          (new_hp, character_id))
             conn.commit()
             combat = _get_combat(character_id)

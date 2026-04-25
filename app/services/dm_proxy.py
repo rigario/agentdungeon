@@ -99,7 +99,14 @@ async def build_world_context(character_id: str) -> Dict[str, Any]:
         "SELECT * FROM encounters WHERE location_id = ?",
         (char["location_id"],)
     ).fetchall()
-    encounters = [dict(r) for r in encounter_rows]
+    encounters = []
+    for row in encounter_rows:
+        enc = dict(row)
+        try:
+            enc["enemies"] = json.loads(enc.get("enemies_json", "[]") or "[]")
+        except Exception:
+            enc["enemies"] = []
+        encounters.append(enc)
 
     from app.services.atmosphere import get_atmospheric_description
     

@@ -1,6 +1,6 @@
 # D20 Playtest Issues Log
 
-**Last Reviewed:** 2026-04-25 05:55 UTC — Heartbeat — Smoke 19/20 PASS — ISSUE-007/016/017 confirmed live
+**Last Reviewed:** 2026-04-25 07:56 UTC — Heartbeat — Scenario B + supplement — Issues 007/017 live; 016 resolved; redeploy recommended
 
 **Open Issues:** 4 | **Fixed Issues:** 13
 ---
@@ -84,6 +84,13 @@ Character location verified unchanged across all in-location actions. Prior test
     - DM turns classified in-location intents as "general" causing travel
     - Evidence: /dm/turn:intents used were "general" for statue interaction; character teleported
     - Conclusion: ISSUE-016 misclassification still active — deployment lag
+
+**Heartbeat Check (2026-04-25 07:56 UTC — supplemental statue probe):**
+    - Character: hbb-202604251545-2bfa3d at thornhold; explore did not set statue flag (paths blocked by exits=None)
+    - DM turn "examine statue carefully": intent_type="interact", target="statue carefully" (correct)
+    - Narration described stone hand (correct NPC/object), no teleport
+    - Conclusion: Intent routing for in-location interaction now works — ISSUE-016 fix appears deployed
+
 
 ### ISSUE-006: DM narration returns wrong NPC content for statue examination
 
@@ -280,6 +287,13 @@ Character location verified unchanged across all in-location actions. Prior test
     - Character: probeb-0425-381ec6
     - Move actions: location_id updates but current_location_id remains None
     - Conclusion: current_location_id persistence regression still live — deployment lag
+
+**Heartbeat Check (2026-04-25 07:56 UTC — Scenario B — move persistence):**
+    - Character: hbb-202604251545-2bfa3d
+    - Move action: POST /characters/{id}/actions {"action_type":"move","target":"thornhold"} → 200, success=True
+    - GET /characters/{id} after move: location_id="thornhold" ✅ but current_location_id=None ❌
+    - Conclusion: current_location_id regression still live — deployment lag persists
+
 
 ### ISSUE-008: full_playthrough_with_gates.py crashes due to invalid location ID and missing success validation (P1-High)
 
@@ -726,6 +740,14 @@ World topology regression — DB seed/migration cleared the `exits` column or fa
     - Blocks all scenario progression — P1-High
 
 
+**Heartbeat Check (2026-04-25 07:56 UTC — Scenario B — world topology):**
+    - GET /api/map/data: total=12 locations present
+    - Every location's `exits` field = None (12/12)
+    - Explore at thornhold: available_paths = [] (zero connectivity)
+    - Movement via move action still works (uses fallback), but narrative exploration broken
+    - Conclusion: World graph exits regression still active — DB seed needs full adjacency reseed
+
+
 ---
 
 
@@ -983,6 +1005,28 @@ World topology regression — DB seed/migration cleared the `exits` column or fa
 **Probe:** probeb-0425-381ec6; current_location_id=None throughout; world exits None
 **Evidence:** ISSUE-007 (persistence), ISSUE-016 (intent teleport), ISSUE-017 (topology)
 **Decision:** Defer scenarios; highest priority redeploy to latest main (deployment drift)
+
+---
+
+### 2026-04-25 07:56 UTC — Heartbeat Agent — Scenario B (Absurd Test) + ISSUE-016 supplemental probe
+
+**Character:** hbb-202604251545-2bfa3d
+**Smoke Pre-flight:** 19/20 PASS (single failure: test_move_updates_location_id — ISSUE-007)
+
+**Scenario B Transcript:**
+- Move to thornhold: 200 success; location_id=thornhold confirmed, current_location_id=None (ISSUE-007 reproduced)
+- DM turn "I swallow the statue": intent=general, refusal narration ("not possible"), choices include travel alternatives but no auto-travel; location unchanged
+- DM turn "I fly to the moon": intent=general, refusal narration, no movement
+- World probe: /api/map/data total=12, exits=None for all 12 (ISSUE-017 confirmed)
+- Explore at thornhold: available_paths=0 (ISSUE-017 symptom)
+
+**Supplemental — Statue Interaction (ISSUE-016):**
+- Explore at thornhold: did not set statue flag (paths blocked by exits=None)
+- DM turn "examine statue carefully": intent_type=interact, target="statue carefully" (correct), scene described stone hand, no teleport
+- Conclusion: Intent routing now correct — ISSUE-016 fix appears deployed
+
+**Issues Confirmed:** ISSUE-007, ISSUE-017 live; ISSUE-016 resolved; redeploy needed
+---
 
 ## Template for New Issues
 

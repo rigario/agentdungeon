@@ -699,6 +699,9 @@ def _simulate_turn(character_id: str, intent: TurnIntent) -> dict:
                 new_hp = min(max_hp, char["hp_current"] + heal)
                 conn = get_db()
                 conn.execute("UPDATE characters SET hp_current = ? WHERE id = ?", (new_hp, character_id))
+                # Keep sheet_json hit_points.current synchronized with hp_current
+                conn.execute("UPDATE characters SET sheet_json = json_set(sheet_json, '$.hit_points.current', ?) WHERE id = ?",
+                             (new_hp, character_id))
                 _log_event(conn, character_id, "rest", current_loc_id, f"Rested. Healed {heal} HP.")
                 conn.commit()
                 conn.close()
@@ -815,6 +818,9 @@ def _simulate_turn(character_id: str, intent: TurnIntent) -> dict:
                 char["hp_current"] = combat_result["hp_remaining"]
                 conn = get_db()
                 conn.execute("UPDATE characters SET hp_current = ? WHERE id = ?",
+                             (combat_result["hp_remaining"], character_id))
+                # Keep sheet_json hit_points.current synchronized with hp_current
+                conn.execute("UPDATE characters SET sheet_json = json_set(sheet_json, '$.hit_points.current', ?) WHERE id = ?",
                              (combat_result["hp_remaining"], character_id))
                 conn.commit()
                 conn.close()
