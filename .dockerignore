@@ -1,0 +1,16 @@
+# Exclude heavy/stateful paths from rules-server build context
+# We only need app/, requirements.txt, and config
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.git
+.gitignore
+.env
+.dockerignore
+*.md
+data/
+dm-runtime/
+d20.db
+*.log

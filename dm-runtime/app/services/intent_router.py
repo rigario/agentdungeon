@@ -154,7 +154,7 @@ _INTENT_PATTERNS: list[tuple[IntentType, str, list[str]]] = [
     # QUEST BEFORE INTERACT — "take quest" must not be shadowed by INTERACT's generic "take "
     (IntentType.QUEST, "quest", ["accept quest", "take quest", "complete quest", "finish quest", "turn in quest", "turn in the quest", "quest log", "view quest", "check quest"]),
     # INTERACT before LOOK to catch "look at X" and "examine X"
-    (IntentType.INTERACT, "interact", ["interact with", "examine", "inspect", "look at", "pick up", "grab", "take ", "open ", "touch", "feel", "study", "read", "press", "trace"]),
+    (IntentType.INTERACT, "interact", ["interact with", "examine", "inspect", "look at", "pick up", "grab", "take ", "open ", "touch", "feel", "study", "read", "press", "trace", "search for", "look for", "listen to", "listen for", "sniff", "push", "pull", "run my hand over"]),
     # Generic LOOK LAST among look-adjacent verbs — only catches truly generic look words
     (IntentType.LOOK, "look", ["glance", "scan", "observe", "survey"]),
     (IntentType.MOVE, "move", ["go to", "travel to", "walk to", "head to", "move to", "visit", "enter ", "return to", "go back"]),
