@@ -1014,22 +1014,23 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
             # Advance game clock (1 hour for travel)
             time_info = advance_time(character_id, get_action_time_cost("move"), conn)
             # Atmospheric overlay for destination location
-            new_loc_row = conn.execute("SELECT * FROM locations WHERE id = ?", (result["new_location"],)).fetchone()
-            if new_loc_row:
-                new_loc = dict(new_loc_row)
-                portent_row = conn.execute(
-                    "SELECT current_portent_index FROM campaign_fronts WHERE COALESCE(is_active, 1) = 1 ORDER BY id LIMIT 1"
-                ).fetchone()
-                portent_index = portent_row[0] if portent_row else 0
-                overlay = get_atmospheric_description(
-                    result["new_location"],
-                    char.get("mark_of_dreamer_stage", 0),
-                    portent_index,
-                    game_hour=time_info["new_hour"],
-                    biome=new_loc.get("biome")
-                )
-                if overlay:
-                    result["narration"] = f"{overlay} {result['narration']}"
+            if result.get("success") and result.get("new_location"):
+                new_loc_row = conn.execute("SELECT * FROM locations WHERE id = ?", (result["new_location"],)).fetchone()
+                if new_loc_row:
+                    new_loc = dict(new_loc_row)
+                    portent_row = conn.execute(
+                        "SELECT current_portent_index FROM campaign_fronts WHERE COALESCE(is_active, 1) = 1 ORDER BY id LIMIT 1"
+                    ).fetchone()
+                    portent_index = portent_row[0] if portent_row else 0
+                    overlay = get_atmospheric_description(
+                        result["new_location"],
+                        char.get("mark_of_dreamer_stage", 0),
+                        portent_index,
+                        game_hour=time_info["new_hour"],
+                        biome=new_loc.get("biome")
+                    )
+                    if overlay:
+                        result["narration"] = f"{overlay} {result['narration']}"
 
 
             conn.commit()
