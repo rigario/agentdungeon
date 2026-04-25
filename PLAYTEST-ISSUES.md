@@ -1,6 +1,6 @@
 # D20 Playtest Issues Log
 
-**Last Reviewed:** 2026-04-24 21:37 UTC — Heartbeat — Smoke 19/20 FAIL (ISSUE-007 persists; ISSUE-017 confirmed)
+**Last Reviewed:** 2026-04-25 03:43 UTC — Heartbeat — Smoke 19/20 FAIL — ISSUE-007 & 017 confirmed live; portal/action endpoints OK
 
 **Open Issues:** 4 | **Fixed Issues:** 13
 ---
@@ -251,6 +251,24 @@ Character location verified unchanged across all in-location actions. Prior test
     - Status: ISSUE-007 regression CONFIRMED — field-level serialization bug still present in production (fix committed but not redeployed)
     - Evidence: POST /characters/{id}/actions (move) -> 200, character_state.location_id='rusty-tankard'; subsequent GET current_location_id=None; direct API probe timestamp 2026-04-24T21:37:58.670480+00:00
 
+
+**Heartbeat Check (2026-04-25 02:47 UTC — current_location_id still None after move):**
+    - Probe: hb-check-0425-0241-518ffa
+    - Move thornhold: success=True, response location_id=thornhold
+    - GET after move: location_id=thornhold, current_location_id=None
+    - Smoke test `test_move_updates_location_id` FAIL (expected thornhold, got None)
+    - ISSUE-007 confirmed live (Fixed marker present but deployment lag)
+
+
+
+**Heartbeat Check (2026-04-25 03:43 UTC — deployment lag reconfirmed):**
+    - Probe character `hb-check-0425-1138-623a72-33d7db`: create→explore→move sequence executed
+    - Move result: success=True, response `character_state.location_id='thornhold'`
+    - GET after move: `location_id='thornhold'` ✓; `current_location_id=None` ✗ (field-level bug)
+    - Smoke test `test_move_updates_location_id` FAIL (got None, expected 'thornhold')
+    - Root cause: Fix committed but not yet deployed to VPS; production retains original bug
+    - Recommendation: PRIORITY-1 redeploy latest main (includes ISSUE-007 field serialization fix)
+    
 
 ### ISSUE-008: full_playthrough_with_gates.py crashes due to invalid location ID and missing success validation (P1-High)
 
@@ -708,6 +726,23 @@ World topology regression — DB seed/migration cleared the `exits` column or fa
     - Timestamp: 2026-04-24T21:37:58.670480+00:00
 
 
+**Heartbeat Check (2026-04-25 02:47 UTC — World exits all None — topology collapse reconfirmed):**
+    - GET /api/map/data → 200, 12 locations present
+    - Every location's exits field = null (12/12)
+    - Zero connectivity — narrative traversal impossible
+    - ISSUE-017 (P1-High) CONFIRMED
+
+
+
+**Heartbeat Check (2026-04-25 03:43 UTC — world topology collapse reconfirmed):**
+    - GET /api/map/data → 200 OK, total=12 locations, required arc nodes present
+    - Inspected every location's `exits` field: all 12 are `null` (zero connectivity)
+    - Direct move attempts: no valid paths; narrative traversal fully blocked
+    - Probe character: `hb-check-0425-1138-623a72-33d7db`; confirm zero edges world-graph
+    - Root cause: DB seed/migration cleared adjacency; requires full reseed + redeploy
+    - Priority: P1-High — blocks all movement/combat/quests ending access
+    
+
 ## Deployment
 
 **Commit:** 9036249 on main branch
@@ -869,6 +904,61 @@ World topology regression — DB seed/migration cleared the `exits` column or fa
 **Next:** Await redeploy; re-run heartbeat post-deploy verification.
 
 ---
+
+### 2026-04-25 02:47 UTC — Heartbeat Agent — Smoke 19/20 FAIL (ISSUE-007 & ISSUE-017 confirmed)
+
+**Smoke Test:** 19/20 PASS — 1 FAIL (`test_move_updates_location_id`)
+
+**Health endpoints:** /health 200, /dm/health 200, /api/map/data 200
+
+**Probe character:** hb-check-0425-0241-518ffa
+- Move rusty-tankard → thornhold: success=True, response location_id=thornhold
+- GET after move: location_id=thornhold, current_location_id=None
+- World exits: 12/12 locations have exits=None
+
+**Issues Confirmed:**
+- ISSUE-007 (P1-High, Fixed-but-live) — current_location_id stays null after move
+- ISSUE-017 (P1-High, Open) — world graph completely collapsed (no exits)
+
+**Other status:**
+- ISSUE-009/011 (P1) — smoke tests PASS, appear resolved
+- ISSUE-015 (combat desync) — not tested this run
+
+**Scenarios attempted:** None (smoke gate failed — pre-flight abort)
+
+**Highest priority:** (1) Reseed world adjacency to restore exits; (2) Fix current_location_id persistence; then redeploy and re-smoke.
+
+---
+
+### 2026-04-25 03:43 UTC — Heartbeat Agent — BLOCKED by smoke failure (ISSUE-007 & 017 live)
+
+**Smoke Test:** 19/20 PASS — 1 FAIL (`test_move_updates_location_id`)
+
+**Health endpoints:** /health 200, /dm/health 200, /api/map/data 200
+
+**Probe character:** `hb-check-0425-1138-623a72-33d7db`
+- Character creation: location_id=rusty-tankard, current_location_id=None (initial)
+- Explore: 200 OK, success=True, `thornhold_statue_observed` not set
+- Move rusty-tankard→thornhold: POST success=True, response `location_id='thornhold'`
+- GET after move: `location_id=✓ thornhold`, `current_location_id=None` ✗ (field bug — ISSUE-007)
+- World topology: GET /api/map/data → all 12 locations `exits=None` (ISSUE-017 confirmed)
+
+**Issues Confirmed:**
+- ISSUE-007 (P1-High, Fixed-but-live) — `current_location_id` field remains `None` after move despite `location_id` updating; fix committed but not redeployed (deployment drift)
+- ISSUE-017 (P1-High, Open) — world graph completely disconnected; all locations `exits: null`; narrative traversal impossible
+
+**Issues Verified Resolved:**
+- ISSUE-009 (portal token) — 201 Created ✓
+- ISSUE-013 (DM turn) — endpoint 200 OK ✓
+
+**Scenarios attempted:** None (pre-flight smoke gate FAILED — blocked per mandatory rule)
+
+**Highest-Priority Fix Recommendation:**
+1. Immediate: **Redeploy latest main to VPS** — both ISSUE-007 and ISSUE-017 have fixes committed but un-deployed; production exhibits original behavior (deployment drift)
+2. After redeploy: rerun smoke suite; if 20/20 PASS, execute Scenario C (Combat Full Chain) — next in rotation after A (last completed 2026-04-24)
+
+---
+
 
 ## Template for New Issues
 
