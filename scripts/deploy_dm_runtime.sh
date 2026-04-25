@@ -91,14 +91,13 @@ PY"
     ssh "$VPS_HOST" "cd '$VPS_APP_DIR' && docker compose -f docker-compose.yml -f docker-compose.override.yml build d20-dm-runtime"
   fi
 
-  log "Recreate only d20-dm-runtime"
+  log "Recreate d20-dm-runtime with required dependencies"
   ssh "$VPS_HOST" "set -Eeuo pipefail
     cd '$VPS_APP_DIR'
-    docker compose -f docker-compose.yml -f docker-compose.override.yml up -d --no-deps --force-recreate d20-dm-runtime
+    docker compose -f docker-compose.yml -f docker-compose.override.yml up -d d20-redis d20-rules-server d20-dm-runtime
     sleep 8
     docker ps --filter name=d20 --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
-    # Full container parity check verifies dm-runtime files inside container match local source
-    ssh "$VPS_HOST" "cd '$VPS_APP_DIR' && python3 scripts/check_deployment_parity.py --stage=container"
+    python3 scripts/check_deployment_parity.py --stage=container
     docker exec d20-dm-runtime sh -lc 'which hermes && hermes --help >/tmp/hermes-help.txt && head -5 /tmp/hermes-help.txt'
   "
 fi

@@ -25,7 +25,7 @@ from app.services.character_lock import acquire_character_lock, release_characte
 from app.services.character_validation import validate_char_state
 from app.services import affinity
 from app.services import milestones
-from app.services import loot
+from app.services import loot as loot_service
 
 
 
@@ -1511,7 +1511,7 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
             if roll >= 15:
                 gold_found = rng.randint(1, 5) * location_hostility
                 # --- Roll for item loot using biome-tagged loot tables ---
-                item_ids = loot.roll_for_location(location_id, rng)
+                item_ids = loot_service.roll_for_location(location_id, rng)
                 items_found = []
                 for item_id in item_ids:
                     # Look up item name for narration
