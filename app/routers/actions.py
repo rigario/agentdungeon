@@ -13,7 +13,7 @@ import re
 import sqlite3
 import logging
 from datetime import datetime
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends, Request, Body
 from app.models.schemas import ActionRequest, ActionResponse
 from app.services.database import get_db
 from app.services.srd_reference import get_monsters_by_cr, ability_modifier, get_spells, _spellcasting_ability
@@ -2731,3 +2731,20 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
     finally:
 
         await release_character_lock(character_id, lock_token)
+
+# ---------------------------------------------------------------------------
+# Compatibility: Global /actions endpoint (no character_id path param)
+# ---------------------------------------------------------------------------
+
+global_actions_router = APIRouter(tags=["actions"])
+
+@global_actions_router.post("/actions")
+async def submit_action_global(
+    character_id: str = Body(..., embed=True, description="Character identifier"),
+    body: ActionRequest = Body(...),
+    request: Request = None,
+    auth: dict = Depends(get_auth),
+):
+    '''Global un-prefixed /actions endpoint — forwards to core handler.'''
+    return await submit_action(character_id, body, request, auth)
+

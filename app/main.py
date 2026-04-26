@@ -8,7 +8,7 @@ from fastapi.responses import RedirectResponse, FileResponse
 from app.config import HOST, PORT
 from app.services.database import init_db
 from app.services.auth_middleware import AuthMiddleware
-from app.routers import health, characters, events, actions, combat, turns, narrative, items, auth, npcs, map as map_router, encounters
+from app.routers import health, characters, events, actions, combat, turns, narrative, items, auth, npcs, map as map_router, encounters, global_actions_router
 from app.routers.combat import approval_router
 from app.routers import narrative_introspect
 from app.routers import time as time_router
@@ -124,6 +124,7 @@ app.include_router(health.router)
 app.include_router(characters.router)
 app.include_router(events.router)
 app.include_router(actions.router)
+app.include_router(global_actions_router)
 app.include_router(combat.router)
 app.include_router(approval_router)
 app.include_router(turns.router)
