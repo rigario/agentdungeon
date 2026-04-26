@@ -1938,9 +1938,35 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
                                     },
                                 }
 
-            # Fall back to random NPC if no target match
+            # Fall back to NPC selection if no target match (fix 8084708d:
+            # deterministic routing — multi-NPC returns choices, single-NPC picks first)
             if npc is None:
-                npc = dict(rng.choice(npcs))
+                if len(npcs) > 1:
+                    # Multi-NPC hub: return explicit choice list so agent can pick;
+                    # never randomly select on behalf of the agent.
+                    npc_choices = []
+                    for n in npcs:
+                        n_dict = dict(n)
+                        npc_choices.append({
+                            "id": n_dict["id"],
+                            "label": n_dict["name"],
+                            "description": f"Talk to {n_dict['name']} ({n_dict.get('archetype', 'person')}).",
+                        })
+                    conn2.close()
+                    conn.close()
+                    return {
+                        "success": True,
+                        "narration": "Several people are here. Who would you like to speak with?",
+                        "choices": npc_choices,
+                        "events": [{"type": "npc_selection_required", "available_npcs": [n["id"] for n in npcs]}],
+                        "character_state": {
+                            "hp": {"current": char["hp_current"], "max": char["hp_max"]},
+                            "location_id": char["location_id"],
+                        },
+                    }
+                else:
+                    # Single-NPC location: deterministic selection (first/only)
+                    npc = dict(npcs[0])
             # Defensive: handle NULL or malformed JSON in dialogue_templates
             raw_dialogues = npc.get("dialogue_templates") or "[]"
             try:
