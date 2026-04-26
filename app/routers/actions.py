@@ -1823,8 +1823,8 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
             # Look for NPCs at current location
             conn2 = get_db()
             npcs = conn2.execute(
-                "SELECT * FROM npcs WHERE biome = ? AND current_location_id = ?",
-                (location["biome"], location_id)
+                "SELECT * FROM npcs WHERE current_location_id = ?",
+                (location_id,)
             ).fetchall()
 
             if not npcs:
