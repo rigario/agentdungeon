@@ -81,13 +81,14 @@ try:
     if r.status_code == 201:
         char_data = r.json()
         char_id = char_data.get("id")
-        # Required invariants: id present, location_id not null, sheet_json valid
+        # Required invariants: id present, location_id not null, valid character sheet structure
         if char_id and char_data.get("location_id"):
-            sheet = char_data.get("sheet_json", {})
-            if isinstance(sheet, dict) and sheet.get("character"):
-                check("POST /characters (create)", True, f"id={char_id}, loc={char_data.get('location_id')}")
+            # Character response has classes/hit_points at top level (community-compatible schema)
+            classes = char_data.get("classes")
+            if isinstance(classes, list) and len(classes) > 0:
+                check("POST /characters (create)", True, f"id={char_id}, loc={char_data.get('location_id')}, class={classes[0].get('name')}")
             else:
-                check("POST /characters (create)", False, "sheet_json invalid or missing character")
+                check("POST /characters (create)", False, "invalid character sheet: missing classes")
         else:
             check("POST /characters (create)", False, "missing id or location_id")
     else:
@@ -133,10 +134,11 @@ if char_id:
         check("POST /actions (explore)", False, str(e)[:120])
 
     # Move action (requires char to exist, location must be valid target)
+    # Starting location: rusty-tankard. Valid first move: thornhold (parent town)
     try:
         r = httpx.post(
             f"{RULES_URL}/characters/{char_id}/actions",
-            json={"action_type": "move", "target": "forest-edge"},
+            json={"action_type": "move", "target": "thornhold"},
             timeout=TIMEOUT
         )
         if r.status_code == 200:
