@@ -1526,6 +1526,426 @@ NPCS = [
         "movement_rules_json": '{"can_visit": ["mountain-pass", "moonpetal-glade"], "schedule": "seasonal", "availability_hours": [0, 23], "triggers": [{"flag": "green_woman_suppression_1", "target": "moonpetal-glade", "description": "Harren retreats to sacred grove"}, {"flag": "kol_backstory_known", "target": "mountain-pass", "description": "Harren returns to pass watching for cult activity"}]}',
     },
 
+    # --- Additional NPCs for expanded hub rosters (task b99be563) ---
+
+    # rusty-tankard: Bohdan the dwarf miner (hollow eye connection)
+    {
+        "id": "npc-bohdan",
+        "name": "Bohdan Ironvein",
+        "archetype": "miner",
+        "biome": "town",
+        "personality": (
+            "Gruff, dust-covered, suspicious of strangers but proud of his craft. "
+            "Bohdan is a dwarven miner who supplies ore to the town's smiths. "
+            "He's noticed strange veins in the mountain — the 'hollow' ore that crumbles to dust. "
+            "His cousin went missing near the cave entrance last moon. He suspects the Hollow Eye."
+        ),
+        "dialogue_templates": json.dumps([
+            {
+                "template": "You want something forged? I don't work for free. But I've got quality steel.",
+                "context": "greeting",
+            },
+            {
+                "template": "The ore from the mountain ain't right lately. It's got a... hollow ring to it. Like it's screaming inside.",
+                "context": "ore_quality",
+                "clue_reward": {
+                    "flag": "hollow_ore_noticed",
+                    "value": "1",
+                    "narrative": "Bohdan has observed unnerving properties in the local ore.",
+                },
+            },
+            {
+                "template": "My cousin, Gorlag, was hauling a load through the pass three weeks ago. Never came back. The trail just... ends. You find him, you let me know.",
+                "context": "missing_cousin",
+                "requires_flag": "hollow_ore_noticed",
+                "quest_offer": "find_gorlag",
+            },
+        ]),
+        "trades_json": json.dumps([
+            {"buy": "Mining Pick", "price": 15},
+            {"buy": "Iron Ore (lb)", "price": 3},
+            {"sell": "Weapon Repair", "price": 25},
+        ]),
+        "quests_json": json.dumps([]),
+        "is_quest_giver": 1,
+        "notes": "Bohdan provides early Hollow Eye investigation hook and mining-related lore. Potential side quest: find his missing cousin Gorlag (linked to cave-mouth disappearance).",
+        "image_url": "/static/pixel-art/npc-bohdan.png",
+        "current_location_id": "rusty-tankard",
+        "default_location_id": "rusty-tankard",
+        "movement_rules_json": '{"can_visit": ["rusty-tankard", "cave-entrance"], "schedule": "daytime", "triggers": [], "availability_hours": [8, 18]}',
+    },
+
+    # rusty-tankard: Tally the urchin information broker
+    {
+        "id": "npc-tally",
+        "name": "Tally",
+        "archetype": "urchin",
+        "biome": "town",
+        "personality": (
+            "Sharp-eyed, quick-witted, and always watching. Tally is a street urchin who "
+            "knows everyone's business and sells information for a copper piece. She's seen "
+            "the hollow eye cultists meeting in the old mill. She knows where Brother Kol's "
+            "hidden shrine is. And she knows the green woman's true name — but she won't give "
+            "it up unless you can pay... or do her a favor."
+        ),
+        "dialogue_templates": json.dumps([
+            {
+                "template": "Got a coin for a sharp-eyed kid? I hear things. Lots of things.",
+                "context": "greeting",
+            },
+            {
+                "template": "The moonpetal glade? That's the green woman's domain. Old Harren says her name is Sylvania. But he's crazy, so who knows.",
+                "context": "green_woman_name",
+                "requires_flag": None,
+                "pushback_dialogue": "For a real name, you'd need to ask someone who's actually spoken to her. Not me.",
+            },
+            {
+                "template": "The mill by the river — empty for years. But men in grey cloaks go there at night. They don't buy ale. They don't say hello.",
+                "context": "mill_sightings",
+                "requires_flag": None,
+                "clue_reward": {
+                    "flag": "hollow_eye_mill",
+                    "value": "1",
+                    "narrative": "Tally reports cultist meetings at the abandoned mill.",
+                },
+            },
+        ]),
+        "trades_json": json.dumps([
+            {"sell": "Information - local gossip", "price": 1},
+            {"sell": "Rumor about nearby location", "price": 5},
+        ]),
+        "quests_json": json.dumps([]),
+        "is_quest_giver": 1,
+        "notes": "Tally is an information broker for early investigative hooks. Provides Hollow Eye meeting location and Green Woman's rumored name. High-value gossip source.",
+        "image_url": "/static/pixel-art/npc-tally.png",
+        "current_location_id": "rusty-tankard",
+        "default_location_id": "rusty-tankard",
+        "movement_rules_json": '{"can_visit": ["rusty-tankard", "crossroads", "thornhold"], "schedule": "all_day", "triggers": [], "availability_hours": [6, 22]}',
+    },
+
+    # thornhold: Brother Ferron the blacksmith (Kol's colleague)
+    {
+        "id": "npc-ferron",
+        "name": "Brother Ferron",
+        "archetype": "blacksmith",
+        "biome": "town",
+        "personality": (
+            "Devout, hardworking, and quietly anxious. Ferron was Brother Kol's apprentice "
+            "before Kol left to join the road crew. He runs the town forge alone now, and he's "
+            "worried. Kol hasn't written in months. The seal stone on the town square feels "
+            "colder than it should. He's seen the mark on dreams, not people — he recognizes "
+            "your eyes when you sleep."
+        ),
+        "dialogue_templates": json.dumps([
+            {
+                "template": "The hammer speaks truth. What can I forge for you?",
+                "context": "greeting",
+            },
+            {
+                "template": "Brother Kol? He was like a brother to me. He left to repair the mountain road. That was two full moons ago. I haven't heard a word.",
+                "context": "kol_missing",
+                "requires_flag": None,
+                "pushback_dialogue": "If something happened to him... the road is dangerous. But he knew the passes better than anyone.",
+            },
+            {
+                "template": "You've seen it too, haven't you? The stone hand. It's not just a statue — it's a seal. And something is pressing against it from the other side.",
+                "context": "seal_concern",
+                "requires_flag": "seal_awareness",
+                "clue_reward": {
+                    "flag": "ferron_seal_knowledge",
+                    "value": "1",
+                    "narrative": "Ferron confirms the seal is real and under pressure.",
+                },
+            },
+        ]),
+        "trades_json": json.dumps([
+            {"buy": "Iron Weapon (+1)", "price": 100},
+            {"buy": "Chain Shirt", "price": 75},
+            {"buy": "Shield (standard)", "price": 50},
+        ]),
+        "quests_json": json.dumps([]),
+        "is_quest_giver": 0,
+        "notes": "Ferron provides emotional connection to Brother Kol and confirms the seal's true nature. Non-quest giver but key lore source.",
+        "image_url": "/static/pixel-art/npc-ferron.png",
+        "current_location_id": "thornhold",
+        "default_location_id": "thornhold",
+        "movement_rules_json": '{"can_visit": ["thornhold", "mountain-pass"], "schedule": "daytime", "triggers": [], "availability_hours": [8, 18]}',
+    },
+
+    # thornhold: Bobby the blacksmith (city blacksmith, gruff but fair)
+    {
+        "id": "npc-bobby",
+        "name": "Bobby of the Mountain",
+        "archetype": "blacksmith",
+        "biome": "town",
+        "personality": (
+            "Burly, soot-stained, and perpetually hammering. Bobby is Thornhold's main blacksmith — "
+            "a dwarven-born human who settled here twenty years ago. He knows everyone who matters "
+            "and fixes everything that breaks. He's neutral in town politics but has a soft spot for "
+            "the guard (Ser Maren's armor has been his regular repair for a decade). He knows about "
+            "weapons, siege, and defenses — and he knows the town's walls aren't enough if the dream "
+            "pressure continues."
+        ),
+        "dialogue_templates": json.dumps([
+            {
+                "template": "You need something stronger? I can work steel, but I can't work miracles.",
+                "context": "greeting",
+            },
+            {
+                "template": "The mark on your arm — it's been there since the dream, hasn't it? I've seen it before. A lifetime ago. It's not a curse. It's a call.",
+                "context": "mark_observed",
+                "requires_flag": "mark_of_dreamer",
+                "pushback_dialogue": "You're not the first marked one to walk through here. None of them left unchanged.",
+            },
+            {
+                "template": "Ser Maren's plate? Second-hand, but good steel. She pays on time. That's all I need to know.",
+                "context": "ser_maren_defense",
+            },
+        ]),
+        "trades_json": json.dumps([
+            {"buy": "Steel Shield", "price": 60},
+            {"buy": "Battleaxe", "price": 120},
+            {"buy": "Chain Mail", "price": 125},
+        ]),
+        "quests_json": json.dumps([]),
+        "is_quest_giver": 0,
+        "notes": "Bobby provides town defense perspective and senses the mark's nature — it's a call, not a curse. Confirms mark has appeared before.",
+        "image_url": "/static/pixel-art/npc-bobby.png",
+        "current_location_id": "thornhold",
+        "default_location_id": "thornhold",
+        "movement_rules_json": '{"can_visit": ["thornhold", "rusty-tankard"], "schedule": "daytime", "triggers": [], "availability_hours": [7, 19]}',
+    },
+
+    # crossroads: Cassian the caravan scout (rovers origin)
+    {
+        "id": "npc-cassian",
+        "name": "Cassian the Roadward",
+        "archetype": "scout",
+        "biome": "plains",
+        "personality": (
+            "World-weary, observant, speaks in short sentences. Cassian used to scout for the "
+            "Silver Road caravan company before it folded. He's seen a dozen trade routes rise and "
+            "fall, and he knows when a road goes bad. The South Road is bad — not bandits, not "
+            "beasts. Something that watches from the trees. He's mapped safe passages and warned "
+            "others, but no one listens until it's too late."
+        ),
+        "dialogue_templates": json.dumps([
+            {
+                "template": "The road knows secrets. If you walk softly, it watches back. I'm Cassian. You're new to the edge.",
+                "context": "greeting",
+            },
+            {
+                "template": "Three weeks ago I found a wagon stripped clean, horses gone, no tracks leading away. Not a robbery — something took them from the air.",
+                "context": "south_road_danger",
+                "clue_reward": {
+                    "flag": "south_road_unnatural_threat",
+                    "value": "1",
+                    "narrative": "Cassian confirms unnatural threat on South Road.",
+                },
+            },
+            {
+                "template": "If you're heading to Deep Whisperwood, take the east trail. The west path is... watched. I've seen eyes in the canopy that don't blink.",
+                "context": "forest_edge_warning",
+            },
+        ]),
+        "trades_json": json.dumps([
+            {"sell": "Map of region (rough)", "price": 25},
+            {"sell": "Travel advice", "price": 10},
+        ]),
+        "quests_json": json.dumps([]),
+        "is_quest_giver": 0,
+        "notes": "Cassian provides atmospheric danger warnings and reinforces that the threat extends beyond town to the road network.",
+        "image_url": "/static/pixel-art/npc-cassian.png",
+        "current_location_id": "crossroads",
+        "default_location_id": "crossroads",
+        "movement_rules_json": '{"can_visit": ["crossroads", "south-road", "forest-edge"], "schedule": "daytime", "triggers": [], "availability_hours": [6, 20]}',
+    },
+
+    # south-road: Brother Loris the wandering healer (cleric on pilgrimage)
+    {
+        "id": "npc-loris",
+        "name": "Brother Loris",
+        "archetype": "cleric",
+        "biome": "road",
+        "personality": (
+            "Gentle, soft-spoken, carries a staff with healing herbs tied to it. Loris is a "
+            "traveling healer making a pilgrimage to scattered shrines. He's been on the road "
+            "for months and has seen the dream-scarred in his sleep. He doesn't understand what "
+            "the mark means, but he knows it's not evil — he can feel the dream-touch and it "
+            "doesn't repel him. He's searching for the Dreamer's Wake shrine to understand."
+        ),
+        "dialogue_templates": json.dumps([
+            {
+                "template": "Rest here, traveler. The road is hard on the body and harder on the spirit.",
+                "context": "greeting",
+            },
+            {
+                "template": "I've tended to men with the mark. Their dreams are... vivid. Not nightmares — memories from somewhere else. It's a gift, I think. But it's changing them.",
+                "context": "mark_healed",
+                "requires_flag": "mark_of_dreamer",
+                "clue_reward": {
+                    "flag": "loris_mark_insight",
+                    "value": "1",
+                    "narrative": "Brother Loris identifies the mark as a gift from the dream, not a curse.",
+                },
+            },
+            {
+                "template": "The Dreamer's Wake. An old shrine in the deep wood. Most have forgotten it. I'm trying to find it. If you learn its location... tell me?",
+                "context": "shrine_seeking",
+            },
+        ]),
+        "trades_json": json.dumps([
+            {"buy": "Healing Potion", "price": 30},
+            {"buy": "Antitoxin", "price": 50},
+            {"buy": "Herbalism Kit", "price": 15},
+        ]),
+        "quests_json": json.dumps([]),
+        "is_quest_giver": 0,
+        "notes": "Brother Loris provides spiritual perspective on the mark — it's a gift, not a curse. Provides narrative contrast to Sister Drenna's fear-based interpretation.",
+        "image_url": "/static/pixel-art/npc-loris.png",
+        "current_location_id": "south-road",
+        "default_location_id": "south-road",
+        "movement_rules_json": '{"can_visit": ["south-road", "thornhold", "forest-edge"], "schedule": "traveling", "triggers": [], "availability_hours": [5, 21]}',
+    },
+
+    # forest-edge: Rowan the woodsman (spirit-touched hunter)
+    {
+        "id": "npc-rowan",
+        "name": "Rowan of the Deep Green",
+        "archetype": "hunter",
+        "biome": "forest",
+        "personality": (
+            "Lean, quiet, moves like a shadow. Rowan has hunted the Whisperwood for thirty years "
+            "and knows its moods. He's the one who found the statue's clearing first — and he was "
+            "the one who left offerings when the mark appeared on him. He doesn't fear the green "
+            "woman; he respects her. He's the only NPC who can safely navigate between forest-edge "
+            "and deep-forest without drawing warden attention, and he knows how to speak to the "
+            "stone without setting it off."
+        ),
+        "dialogue_templates": json.dumps([
+            {
+                "template": "The forest watches. If you walk softly, it watches back. I'm Rowan. You're new to the edge.",
+                "context": "greeting",
+            },
+            {
+                "template": "The statue in the clearing? That's the seal's anchor. Don't touch it unless you're meaning business. The warden knows.",
+                "context": "statue_warning",
+                "requires_flag": "seal_awareness",
+                "pushback_dialogue": "You want to interact with the seal? There's a way. But the price is on you, not the stone.",
+            },
+            {
+                "template": "The warden doesn't attack unless provoked. Stand your ground, speak your intent, and don't reach for a weapon. It will listen.",
+                "context": "warden_peaceful_pass",
+                "requires_flag": "moonpetal_warden_peaceful",
+                "pushback_dialogue": "You passed the warden? Good. That means you understand the balance.",
+            },
+        ]),
+        "trades_json": json.dumps([
+            {"buy": "Hunter's Bow", "price": 80},
+            {"buy": "Arrows (20)", "price": 5},
+            {"buy": "Proof Against Poison", "price": 40},
+        ]),
+        "quests_json": json.dumps([]),
+        "is_quest_giver": 0,
+        "notes": "Rowan is the wilderness lorekeeper who explains statue/warden mechanics and offers peaceful bypass guidance. He's the bridge between player and the forest guardians.",
+        "image_url": "/static/pixel-art/npc-rowan.png",
+        "current_location_id": "forest-edge",
+        "default_location_id": "forest-edge",
+        "movement_rules_json": '{"can_visit": ["forest-edge", "deep-forest", "moonpetal-glade"], "schedule": "daytime", "triggers": [], "availability_hours": [5, 20]}',
+    },
+
+    # cave-depths: Gimble the prisoner (enslaved miner seeker)
+    {
+        "id": "npc-gimble",
+        "name": "Gimble Stoneheart",
+        "archetype": "artisan",
+        "biome": "underground",
+        "personality": (
+            "Trembling, desperate, but sharp-eyed. Gimble is a dwarven miner captured by the "
+            "Hollow Eye and forced to extract moonpetal ore under guard. He escaped during a roof "
+            "collapse and now hides in the cave-depths, too scared to surface. He knows the cave "
+            "layout, knows where the moonpetal vein is richest, and knows that Brother Kol was "
+            "captured too — but he doesn't know if Kol survived. He's the key to finding the "
+            "hollow eye's mining operation."
+        ),
+        "dialogue_templates": json.dumps([
+            {
+                "template": "Hush! Voices carry in the stone. You... you're not one of them? You look like a surface-walker.",
+                "context": "greeting",
+            },
+            {
+                "template": "They took us deep. Past where the veins glow blue. The moonpetal ore — it hums. Drives men mad if you listen too long.",
+                "context": "mining_horrors",
+                "clue_reward": {
+                    "flag": "hollow_eye_mine_location",
+                    "value": "1",
+                    "narrative": "Gimble reveals the Hollow Eye mine location and moonpetal's psychic effect.",
+                },
+            },
+            {
+                "template": "Brother Kol? Tall man, calm eyes, carried a book? Yes... he was with us. They took him to the deep chamber. I don't know if he's alive. The chanting... it's worst there.",
+                "context": "kol_captured",
+                "requires_flag": "kol_missing",
+                "quest_offer": "rescue_kol",
+            },
+        ]),
+        "trades_json": json.dumps([
+            {"sell": "Rough Moonpetal Fragment (quest item)", "price": 0},
+            {"sell": "Cave map (partial)", "price": 15},
+        ]),
+        "quests_json": json.dumps([]),
+        "is_quest_giver": 1,
+        "notes": "Gimble provides Hollow Eye mining location intel and Brother Kol capture status. Offers quest hook to rescue Kol. Critical path for cave-depths narrative.",
+        "image_url": "/static/pixel-art/npc-gimble.png",
+        "current_location_id": "cave-depths",
+        "default_location_id": "cave-depths",
+        "movement_rules_json": '{"can_visit": ["cave-depths", "deep-forest"], "schedule": "hidden", "triggers": [], "availability_hours": [0, 24]}',
+    },
+
+    # mountain-pass: Elara the wayfarer (caravan survivor, spirit-seeing)
+    {
+        "id": "npc-elara",
+        "name": "Elara of the Lost Caravan",
+        "archetype": "wayfarer",
+        "biome": "mountain",
+        "personality": (
+            "Haunted, vigilant, speaks in half-remembered dreams. Elara was the sole survivor of "
+            "a caravan that vanished in the pass three months ago. She wandered out of the mist "
+            "with no memory of what happened to the others — only that the mountain itself reached "
+            "for them with shadows. She can see the green woman's moth-patterns on the rock faces. "
+            "She knows Old Harren, but she's afraid of what he's become."
+        ),
+        "dialogue_templates": json.dumps([
+            {
+                "template": "The pass is haunted. Not by ghosts. By hunger. I lost my family to it. I won't rest until the stone wakes and answers.",
+                "context": "greeting",
+            },
+            {
+                "template": "The last thing I remember... a great stone hand in the fog. It opened its palm and the wagons... rolled in. Like they were paper.",
+                "context": "caravan_loss",
+                "clue_reward": {
+                    "flag": "seal_consumed_caravan",
+                    "value": "1",
+                    "narrative": "Elara witnessed the seal stone consuming a caravan in the pass.",
+                },
+            },
+            {
+                "template": "Old Harren? He talks to the stones. The stones talk back. He's not mad — he's listening to the wrong voice.",
+                "context": "harren_warning",
+                "requires_flag": "hallen_spoken",
+            },
+        ]),
+        "trades_json": json.dumps([
+            {"sell": "Caravan Survivor's Token (quest item)", "price": 0},
+        ]),
+        "quests_json": json.dumps([]),
+        "is_quest_giver": 0,
+        "notes": "Elara provides direct witness of the seal's active hunger (caravan consumption). Links to Harren's condition and confirms the seal's agency.",
+        "image_url": "/static/pixel-art/npc-elara.png",
+        "current_location_id": "mountain-pass",
+        "default_location_id": "mountain-pass",
+        "movement_rules_json": '{"can_visit": ["mountain-pass", "thornhold", "moonpetal-glade"], "schedule": "roaming", "triggers": [], "availability_hours": [8, 20]}',
+    },
 ]
 
 
