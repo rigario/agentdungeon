@@ -44,21 +44,27 @@ def _row_to_response(row) -> dict:
     # Use full JSON sheet if available, otherwise construct from flat columns
     if d.get("sheet_json"):
         import datetime
-        sheet = json.loads(d["sheet_json"])
-        sheet["id"] = d["id"]
-        sheet["player"] = {"name": d["player_id"]}
-        sheet["location_id"] = d["location_id"]
-        sheet["current_location_id"] = d["location_id"]
-        sheet["approval_config"] = json.loads(d.get("approval_config", "{}"))
-        sheet["aggression_slider"] = d.get("aggression_slider", 50)
-        sheet["is_archived"] = bool(d.get("is_archived", 0))
-        sheet["archived_at"] = d.get("archived_at")
-        # Preserve data_source from sheet, add signature/created_at from DB
-        if "provenance" not in sheet:
-            sheet["provenance"] = {}
-        sheet["provenance"]["signature"] = d.get("sheet_signature", "")
-        sheet["provenance"]["created_at"] = d.get("created_at", "")
-        return sheet
+        try:
+            sheet = json.loads(d["sheet_json"])
+        except (json.JSONDecodeError, TypeError) as e:
+            # Corrupted sheet_json — fall back to flat-column reconstruction below
+            pass
+        else:
+            sheet["id"] = d["id"]
+            sheet["player"] = {"name": d["player_id"]}
+            sheet["location_id"] = d["location_id"]
+            sheet["current_location_id"] = d["location_id"]
+            sheet["approval_config"] = json.loads(d.get("approval_config", "{}"))
+            sheet["aggression_slider"] = d.get("aggression_slider", 50)
+            sheet["is_archived"] = bool(d.get("is_archived", 0))
+            sheet["archived_at"] = d.get("archived_at")
+            # Preserve provenance, mark repair
+            if "provenance" not in sheet:
+                sheet["provenance"] = {}
+            sheet["provenance"]["signature"] = d.get("sheet_signature", "")
+            sheet["provenance"]["created_at"] = d.get("created_at", "")
+            sheet["provenance"]["repaired_from_corruption"] = True
+            return sheet
 
     # Fallback: construct from flat columns
     response = {
@@ -98,6 +104,7 @@ def _row_to_response(row) -> dict:
         "provenance": {
             "created_at": d.get("created_at", ""),
             "signature": d.get("sheet_signature", ""),
+            "repaired_from_corruption": True,
         },
     }
 
@@ -248,7 +255,7 @@ def create_character(
                    ?, ?, ?, ?,
                    ?, ?, ?,
                    ?, ?, ?, ?, ?, ?,
-                   0, ?, ?, ?, ?, 50, ?)""",
+                   0, ?, ?, ?, ?, ?, 50)""",
         (
             char_id, player_id, resolved_user_id, resolved_agent_id, resolved_perm,
             body.name, body.race, body.class_name,
@@ -266,9 +273,9 @@ def create_character(
             json.dumps(sheet["feats"]),
             json.dumps(sheet["conditions"]),
             starting_location,
+            'default',
             sheet_json, signature,
             json.dumps(approval_config),
-            'default',
         )
     )
 
