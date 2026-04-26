@@ -9,6 +9,7 @@ The agent submits actions. The server is the single source of truth:
 import json
 import hashlib
 import random
+import re
 import sqlite3
 import logging
 from datetime import datetime
@@ -1827,11 +1828,25 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
             npc = None
             if body.target:
                 target_lower = body.target.lower().strip()
+                target_tokens = {
+                    t for t in re.findall(r"[a-z0-9]+", target_lower)
+                    if t not in {"the", "a", "an", "to", "with", "about", "on", "of", "and", "ask", "tell", "say", "speak", "talk", "chat"}
+                }
                 for n in npcs:
                     n_dict = dict(n)
                     name_lower = n_dict.get("name", "").lower()
-                    # Match if target is a substring of name or vice versa
-                    if target_lower in name_lower or name_lower in target_lower:
+                    name_tokens = {
+                        t for t in re.findall(r"[a-z0-9]+", name_lower)
+                        if t not in {"the", "a", "an", "of"}
+                    }
+                    # Match if target is a substring of name or vice versa; also support
+                    # free-form prompts like "ask Aldric about the dreams" where the
+                    # extracted target contains both the NPC name and topic.
+                    if (
+                        target_lower in name_lower
+                        or name_lower in target_lower
+                        or bool(target_tokens.intersection(name_tokens))
+                    ):
                         npc = n_dict
                         break
 
