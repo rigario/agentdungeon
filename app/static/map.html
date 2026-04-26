@@ -715,6 +715,17 @@
       text-transform: uppercase;
       letter-spacing: 0.08em;
     }
+    .npc-card-sm .npc-personality {
+      font-size: 0.55rem;
+      color: var(--muted);
+      line-height: 1.3;
+      margin-bottom: 0.25rem;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
     .npc-card-sm .npc-status {
       font-size: 0.7rem;
       padding: 0.1rem 0.3rem;
@@ -1245,6 +1256,7 @@ function buildPanel(locId) {
           <div class="npc-info">
             <div class="npc-name">${esc(npc.name)}</div>
             <div class="npc-archetype">${esc(npc.archetype || 'Unknown')}</div>
+            ${npc.personality ? `<div class="npc-personality">${esc(npc.personality.substring(0, 80) + (npc.personality.length > 80 ? '...' : ''))}</div>` : ''}
             ${availLabel ? `<div class="npc-status">${esc(availLabel)}</div>` : ''}
             <div class="npc-prompt">Talk to ${esc(npc.name)}</div>
           </div>
