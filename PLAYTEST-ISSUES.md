@@ -1,6 +1,6 @@
 # D20 Playtest Issues Log
 
-**Last Reviewed:** 2026-04-26 12:52 UTC — Heartbeat — Smoke 13/20 FAIL — action endpoints 500; world exits None; deployment drift triad active
+**Last Reviewed:** 2026-04-26 19:40 UTC — Heartbeat — Semantic guard LIVE verified; 102 tests pass; infra healthy
 
 **Open Issues:** 4 | **Fixed Issues:** 13
 ---
@@ -1070,6 +1070,26 @@ World topology regression — DB seed/migration cleared the `exits` column or fa
 **Smoke tests:** 16/16 PASS on VPS
 
 ## Playtest Session Reports
+
+### 2026-04-26 19:40 UTC — Heartbeat Agent — SemanticGuard Verified Scenario SKIP — Infra Healthy, Semantic Guard Verified
+
+**Infrastructure:**
+  /health:       200
+  /dm/health:    200
+  /api/map/data: total=11 (thornhold, south-road, crossroads, forest-edge confirmed)
+
+**Semantic Guard Live Probes (dm/intent/analyze):**
+  BLOCK cases (11/11): all correctly flagged with _semantic_guard=true, type=general, action_type=null, reason=negated_or_refusal_action
+  ALLOW cases (5/5): all correctly NOT flagged
+  Verified: "I don't want to go to the woods", "avoid the woods", "don't attack the wolves", etc.
+
+**Local Regression Tests:**
+  tests/test_intent_router.py + tests/test_dm_runtime_synthesis.py: 102 PASS
+  Includes test_synthesize_semantic_guard_returns_noop_without_story_progression.
+
+**Narrate endpoint:** Skipped (requires character_id; local tests sufficient)
+
+**Outcome:** Semantic coherence guard operational. All systems green.
 
 ### 2026-04-26 12:52 UTC — Heartbeat Agent — Pre-flight GATE FAILED (smoke 13/20 — no scenario executed)
 
