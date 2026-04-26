@@ -2740,11 +2740,24 @@ global_actions_router = APIRouter(tags=["actions"])
 
 @global_actions_router.post("/actions")
 async def submit_action_global(
-    character_id: str = Body(..., embed=True, description="Character identifier"),
-    body: ActionRequest = Body(...),
-    request: Request = None,
+    request: Request,
     auth: dict = Depends(get_auth),
 ):
-    '''Global un-prefixed /actions endpoint — forwards to core handler.'''
-    return await submit_action(character_id, body, request, auth)
+    """
+    Global un-prefixed /actions endpoint.
+
+    Expects JSON: { "character_id": "...", **action_fields... }
+    Forwards to the core actions handler.
+    """
+    payload = await request.json()
+    character_id = payload.get("character_id")
+    if not character_id:
+        raise HTTPException(status_code=400, detail="character_id is required in request body")
+    # Extract ActionRequest fields (everything except character_id)
+    action_fields = {k: v for k, v in payload.items() if k != "character_id"}
+    try:
+        action_body = ActionRequest(**action_fields)
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=f"Invalid action request: {exc}")
+    return await submit_action(character_id, action_body, request, auth)
 
