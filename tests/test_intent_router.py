@@ -241,6 +241,77 @@ class TestClassifyIntent:
         assert intent.type == IntentType.COMBAT
 
 
+
+class TestSemanticGuard:
+    """Negated/refusal player speech must not greenlight state-changing actions."""
+
+    @pytest.mark.parametrize("message", [
+        "I don't want to go to the woods",
+        "do not go to the woods",
+        "avoid the woods",
+        "I refuse to enter the cave",
+        "stay away from Whisperwood",
+        "not going to the cave",
+        "don't attack the wolves",
+        "dont rest here",
+        "I will not attack the wolves",
+        "let us not go to the woods",
+        "do not open the door",
+    ])
+    def test_negated_or_refusal_actions_are_guarded(self, message):
+        intent = classify_intent(message)
+        assert intent.type == IntentType.GENERAL
+        assert intent.action_type is None
+        assert intent.details.get("_semantic_guard") is True
+        assert intent.details.get("_semantic_guard_reason") == "negated_or_refusal_action"
+        assert intent.server_endpoint == ServerEndpoint.TURN
+
+    @pytest.mark.parametrize("message, expected_type", [
+        ("tell Aldric I don't want to go to the woods", IntentType.TALK),
+        ("ask Aldric if I should avoid the woods", IntentType.TALK),
+        ("say to Aldric I dont want to go", IntentType.TALK),
+        ("I want to go to the woods", IntentType.MOVE),
+        ("go to the woods", IntentType.MOVE),
+    ])
+    def test_dialogue_and_positive_actions_are_not_guarded(self, message, expected_type):
+        intent = classify_intent(message)
+        assert intent.details.get("_semantic_guard") is not True
+        assert intent.type == expected_type
+
+    def test_descriptive_world_statement_is_not_guarded(self):
+        intent = classify_intent("the door dont open easily")
+        assert intent.details.get("_semantic_guard") is not True
+
+    @pytest.mark.asyncio
+    async def test_router_skips_approval_and_rules_for_semantic_guard(self):
+        from app.services.intent_router import IntentRouter
+
+        class MockClient:
+            def __init__(self):
+                self.calls = []
+
+            async def check_approval(self, *args, **kwargs):
+                self.calls.append("approval")
+                return {"needs_approval": False}
+
+            async def get_combat(self, *args, **kwargs):
+                self.calls.append("combat")
+                return None
+
+            async def submit_action(self, *args, **kwargs):
+                self.calls.append("action")
+                return {}
+
+            async def start_turn(self, *args, **kwargs):
+                self.calls.append("turn")
+                return {}
+
+        client = MockClient()
+        result = await IntentRouter(client).route("char-1", "I don't want to go to the woods")
+        assert result.endpoint_called == "semantic-guard"
+        assert result.raw_response.get("semantic_guard") is True
+        assert client.calls == []
+
 # =============================================================================
 # _keyword_in_message — boundary matching
 # =============================================================================

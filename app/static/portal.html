@@ -38,7 +38,56 @@
     .error { margin:40px auto; max-width:760px; border:1px solid rgba(166,61,47,.52); background:rgba(111,29,29,.18); padding:24px; }
     @media(max-width:900px){ .grid,.digest,.titlebar{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}.stamp{width:max-content}.char{grid-template-columns:1fr}.portrait{width:100%;height:150px} }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; } }
-  </style>
+  
+  /* Portal nearby NPCs horizontal strip */
+  .npc-strip {
+    grid-column: 1 / -1;
+    margin-top: 1rem;
+    border-top: 1px solid var(--line);
+    padding-top: 0.75rem;
+  }
+  .npc-strip h3 {
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .npc-cards-horz {
+    display: flex;
+    gap: 0.75rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+  }
+  .npc-card-sm {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 0.6rem;
+    width: 120px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .npc-card-sm.available { border-color: var(--green); }
+  .npc-card-sm.unavailable { opacity: 0.6; border-color: var(--ember); }
+  .npc-img-wrap {
+    width: 100%; height: 60px;
+    background: var(--panel2);
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+  .npc-img-wrap img { width: 100%; height: 100%; object-fit: cover; border-radius: 4px; }
+  .npc-card-sm .emoji-fallback { font-size: 1.75rem; color: var(--muted); }
+  .npc-card-sm .npc-name { font-family: var(--font-display); font-size: 0.85rem; color: var(--gold); margin: 0; }
+  .npc-card-sm .npc-archetype { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .npc-card-sm .npc-status { font-size: 0.65rem; padding: 0.1rem 0.3rem; border-radius: 3px; text-align: center; font-family: var(--font-display); }
+  .npc-card-sm.available .npc-status { background: rgba(130,163,111,0.2); color: var(--green); }
+  .npc-card-sm.unavailable .npc-status { background: rgba(166,61,47,0.2); color: var(--ember); }
+</style>
 </head>
 <body>
   <header><div class="wrap nav"><a href="/portal/">← Portal</a><span id="refreshStatus">Loading journal…</span><a href="/demo">Demo</a></div></header>
@@ -63,6 +112,9 @@
       const quests = data.quests || data.active_quests || [];
       const inv = data.inventory || data.items || [];
       const doom = data.doom_clock || data.fronts || {};
+      const npcs_at_location = data.npcs_at_location || [];
+      const npcs_available = new Set((data.npcs_available || []).map(n => n.id));
+      const npcs_unavailable = (data.npcs_unavailable || []).map(n => n.id);
       const name = getCharName(character);
       const locName = location.name || character.current_location_name || character.location_id || 'Unknown road';
       const hp = character.hp ?? character.hit_points ?? character.current_hp ?? '—';
@@ -75,13 +127,181 @@
         <section class="titlebar"><div><div class="eyebrow">Field Journal</div><h1>${esc(name)}</h1><p class="subtitle">${esc(getClass(character))} · Level ${esc(lvl)} · currently at ${esc(locName)}</p></div><div class="stamp">auto-refresh 30s</div></section>
         <section class="grid">
           <article class="panel digest"><div class="digest-main"><div class="eyebrow">Since you last checked</div><p>${esc(digest)}</p></div><div class="gate"><b>Decision pressure</b><p>The next meaningful choice should pause for human review: push deeper, rest first, or return to safety.</p><div class="btn-row"><button type="button">Approve later</button><button type="button">Ask for plan</button><button type="button">Set gate</button></div></div></article>
-          <article class="panel"><h2>Character state</h2><div class="char"><div class="portrait">${esc(name.charAt(0) || '?')}</div><div><div class="eyebrow">Sheet snapshot</div><p style="color:#d8c7a7;margin:0">${esc(getClass(character))}. View-only state from the rules server.</p></div></div><div class="stats"><div class="stat"><span>HP</span><b>${esc(hp)}/${esc(maxHp)}</b></div><div class="stat"><span>AC</span><b>${esc(ac)}</b></div><div class="stat"><span>Level</span><b>${esc(lvl)}</b></div><div class="stat"><span>Mark</span><b>${esc(character.mark_stage ?? character.corruption_stage ?? 0)}</b></div></div></article>
-          <article class="panel"><h2>Current location</h2><img class="mapimg" src="${esc(img)}" alt="${esc(locName)}" onerror="this.src='/static/pixel-art/thornhold.png'"/><div class="kv"><div class="row"><span>Location</span><b>${esc(locName)}</b></div><div class="row"><span>Terrain</span><b>${esc(location.biome || location.terrain || 'frontier')}</b></div><div class="row"><span>Hostility</span><b>${esc(location.hostility || location.danger || 'unknown')}</b></div></div></article>
-          <article class="panel"><h2>Agent decision trace</h2><div class="trace-step"><span>Situation</span><p>Low certainty near ${esc(locName)}; campaign pressure remains active.</p></div><div class="trace-step"><span>Options</span><p>Explore, rest, return to Thornhold, or ask for human approval before advancing.</p></div><div class="trace-step"><span>Chosen</span><p>Hold at the next gate until the player reviews risk.</p></div><div class="trace-step"><span>Why</span><p>Human-in-the-loop decisions are reserved for irreversible story movement.</p></div></article>
-          <article class="panel"><h2>Doom clock</h2><div class="kv"><div class="row"><span>Stage</span><b>${esc(doom.stage ?? doom.current_stage ?? 'active')}</b></div><div class="row"><span>Pressure</span><b>${esc(doom.pressure ?? doom.status ?? 'rising')}</b></div><div class="row"><span>Next portent</span><b>${esc(doom.next_portent || doom.next || 'unknown')}</b></div></div></article>
-          <article class="panel"><h2>Quests</h2>${quests.length ? `<div class="events">${quests.map(q=>`<div class="event"><b>${esc(q.title || q.name || 'Quest')}</b><p>${esc(q.description || q.status || 'Active objective')}</p></div>`).join('')}</div>` : `<p class="empty">No quest is pinned. Rumors are still gathering at the Rusty Tankard.</p>`}</article>
-          <article class="panel"><h2>Inventory & loot</h2>${inv.length ? `<div class="items">${inv.map(i=>`<span class="item">${esc(i.name || i.item_name || i)}</span>`).join('')}</div>` : `<p class="empty">No carried loot returned by the portal state.</p>`}</article>
-          <article class="panel"><h2>Recent events</h2><div class="events">${events.length ? events.slice(0,8).map(e=>`<div class="event"><b>${esc(eventTitle(e))}</b><p>${esc(eventText(e))}</p></div>`).join('') : `<div class="event"><b>Journal quiet</b><p>No recent events were returned. The next agent turn will appear here.</p></div>`}</div></article>
+          <div class="npc-strip">
+            <h3>People nearby</h3>
+            ${npcs_at_location.length > 0 ? `
+              <div class="npc-cards-horz">
+                ${npcs_at_location.map(npc => {
+                  const isAvail = npcs_available.has(npc.id);
+                  const availClass = isAvail ? 'available' : 'unavailable';
+                  const imgHtml = npc.image_url
+                    ? `<img src="${esc(npc.image_url)}" alt="${esc(npc.name)}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=emoji-fallback>🧙</span>'">`
+                    : `<span class="emoji-fallback">🧙</span>`;
+                  return `
+                    <div class="npc-card-sm ${availClass}" data-id="${esc(npc.id)}">
+                      <div class="npc-img-wrap">${imgHtml}</div>
+                      <div class="npc-info">
+                        <div class="npc-name">${esc(npc.name)}</div>
+                        <div class="npc-archetype">${esc(npc.archetype || 'Unknown')}</div>
+                        <div class="npc-status">${isAvail ? 'Available' : 'Unavailable'}</div>
+                      </div>
+                    </div>`;
+                }).join('')}
+              </div>
+            ` : '<em style="color:var(--muted)">No one here</em>'}
+          </div>
+
+                    <article class="panel"><h2>Character state</h2><div class="char"><div class="portrait">${esc(name.charAt(0) || '?')}</div><div><div class="eyebrow">Sheet snapshot</div><p style="color:#d8c7a7;margin:0">${esc(getClass(character))}. View-only state from the rules server.</p></div></div><div class="stats"><div class="stat"><span>HP</span><b>${esc(hp)}/${esc(maxHp)}</b></div><div class="stat"><span>AC</span><b>${esc(ac)}</b></div><div class="stat"><span>Level</span><b>${esc(lvl)}</b></div><div class="stat"><span>Mark</span><b>${esc(character.mark_stage ?? character.corruption_stage ?? 0)}</b></div></div></article>
+          <div class="npc-strip">
+            <h3>People nearby</h3>
+            ${npcs_at_location.length > 0 ? `
+              <div class="npc-cards-horz">
+                ${npcs_at_location.map(npc => {
+                  const isAvail = npcs_available.has(npc.id);
+                  const availClass = isAvail ? 'available' : 'unavailable';
+                  const imgHtml = npc.image_url
+                    ? `<img src="${esc(npc.image_url)}" alt="${esc(npc.name)}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=emoji-fallback>🧙</span>'">`
+                    : `<span class="emoji-fallback">🧙</span>`;
+                  return `
+                    <div class="npc-card-sm ${availClass}" data-id="${esc(npc.id)}">
+                      <div class="npc-img-wrap">${imgHtml}</div>
+                      <div class="npc-info">
+                        <div class="npc-name">${esc(npc.name)}</div>
+                        <div class="npc-archetype">${esc(npc.archetype || 'Unknown')}</div>
+                        <div class="npc-status">${isAvail ? 'Available' : 'Unavailable'}</div>
+                      </div>
+                    </div>`;
+                }).join('')}
+              </div>
+            ` : '<em style="color:var(--muted)">No one here</em>'}
+          </div>
+
+                    <article class="panel"><h2>Current location</h2><img class="mapimg" src="${esc(img)}" alt="${esc(locName)}" onerror="this.src='/static/pixel-art/thornhold.png'"/><div class="kv"><div class="row"><span>Location</span><b>${esc(locName)}</b></div><div class="row"><span>Terrain</span><b>${esc(location.biome || location.terrain || 'frontier')}</b></div><div class="row"><span>Hostility</span><b>${esc(location.hostility || location.danger || 'unknown')}</b></div></div></article>
+          <div class="npc-strip">
+            <h3>People nearby</h3>
+            ${npcs_at_location.length > 0 ? `
+              <div class="npc-cards-horz">
+                ${npcs_at_location.map(npc => {
+                  const isAvail = npcs_available.has(npc.id);
+                  const availClass = isAvail ? 'available' : 'unavailable';
+                  const imgHtml = npc.image_url
+                    ? `<img src="${esc(npc.image_url)}" alt="${esc(npc.name)}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=emoji-fallback>🧙</span>'">`
+                    : `<span class="emoji-fallback">🧙</span>`;
+                  return `
+                    <div class="npc-card-sm ${availClass}" data-id="${esc(npc.id)}">
+                      <div class="npc-img-wrap">${imgHtml}</div>
+                      <div class="npc-info">
+                        <div class="npc-name">${esc(npc.name)}</div>
+                        <div class="npc-archetype">${esc(npc.archetype || 'Unknown')}</div>
+                        <div class="npc-status">${isAvail ? 'Available' : 'Unavailable'}</div>
+                      </div>
+                    </div>`;
+                }).join('')}
+              </div>
+            ` : '<em style="color:var(--muted)">No one here</em>'}
+          </div>
+
+                    <article class="panel"><h2>Agent decision trace</h2><div class="trace-step"><span>Situation</span><p>Low certainty near ${esc(locName)}; campaign pressure remains active.</p></div><div class="trace-step"><span>Options</span><p>Explore, rest, return to Thornhold, or ask for human approval before advancing.</p></div><div class="trace-step"><span>Chosen</span><p>Hold at the next gate until the player reviews risk.</p></div><div class="trace-step"><span>Why</span><p>Human-in-the-loop decisions are reserved for irreversible story movement.</p></div></article>
+          <div class="npc-strip">
+            <h3>People nearby</h3>
+            ${npcs_at_location.length > 0 ? `
+              <div class="npc-cards-horz">
+                ${npcs_at_location.map(npc => {
+                  const isAvail = npcs_available.has(npc.id);
+                  const availClass = isAvail ? 'available' : 'unavailable';
+                  const imgHtml = npc.image_url
+                    ? `<img src="${esc(npc.image_url)}" alt="${esc(npc.name)}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=emoji-fallback>🧙</span>'">`
+                    : `<span class="emoji-fallback">🧙</span>`;
+                  return `
+                    <div class="npc-card-sm ${availClass}" data-id="${esc(npc.id)}">
+                      <div class="npc-img-wrap">${imgHtml}</div>
+                      <div class="npc-info">
+                        <div class="npc-name">${esc(npc.name)}</div>
+                        <div class="npc-archetype">${esc(npc.archetype || 'Unknown')}</div>
+                        <div class="npc-status">${isAvail ? 'Available' : 'Unavailable'}</div>
+                      </div>
+                    </div>`;
+                }).join('')}
+              </div>
+            ` : '<em style="color:var(--muted)">No one here</em>'}
+          </div>
+
+                    <article class="panel"><h2>Doom clock</h2><div class="kv"><div class="row"><span>Stage</span><b>${esc(doom.stage ?? doom.current_stage ?? 'active')}</b></div><div class="row"><span>Pressure</span><b>${esc(doom.pressure ?? doom.status ?? 'rising')}</b></div><div class="row"><span>Next portent</span><b>${esc(doom.next_portent || doom.next || 'unknown')}</b></div></div></article>
+          <div class="npc-strip">
+            <h3>People nearby</h3>
+            ${npcs_at_location.length > 0 ? `
+              <div class="npc-cards-horz">
+                ${npcs_at_location.map(npc => {
+                  const isAvail = npcs_available.has(npc.id);
+                  const availClass = isAvail ? 'available' : 'unavailable';
+                  const imgHtml = npc.image_url
+                    ? `<img src="${esc(npc.image_url)}" alt="${esc(npc.name)}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=emoji-fallback>🧙</span>'">`
+                    : `<span class="emoji-fallback">🧙</span>`;
+                  return `
+                    <div class="npc-card-sm ${availClass}" data-id="${esc(npc.id)}">
+                      <div class="npc-img-wrap">${imgHtml}</div>
+                      <div class="npc-info">
+                        <div class="npc-name">${esc(npc.name)}</div>
+                        <div class="npc-archetype">${esc(npc.archetype || 'Unknown')}</div>
+                        <div class="npc-status">${isAvail ? 'Available' : 'Unavailable'}</div>
+                      </div>
+                    </div>`;
+                }).join('')}
+              </div>
+            ` : '<em style="color:var(--muted)">No one here</em>'}
+          </div>
+
+                    <article class="panel"><h2>Quests</h2>${quests.length ? `<div class="events">${quests.map(q=>`<div class="event"><b>${esc(q.title || q.name || 'Quest')}</b><p>${esc(q.description || q.status || 'Active objective')}</p></div>`).join('')}</div>` : `<p class="empty">No quest is pinned. Rumors are still gathering at the Rusty Tankard.</p>`}</article>
+          <div class="npc-strip">
+            <h3>People nearby</h3>
+            ${npcs_at_location.length > 0 ? `
+              <div class="npc-cards-horz">
+                ${npcs_at_location.map(npc => {
+                  const isAvail = npcs_available.has(npc.id);
+                  const availClass = isAvail ? 'available' : 'unavailable';
+                  const imgHtml = npc.image_url
+                    ? `<img src="${esc(npc.image_url)}" alt="${esc(npc.name)}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=emoji-fallback>🧙</span>'">`
+                    : `<span class="emoji-fallback">🧙</span>`;
+                  return `
+                    <div class="npc-card-sm ${availClass}" data-id="${esc(npc.id)}">
+                      <div class="npc-img-wrap">${imgHtml}</div>
+                      <div class="npc-info">
+                        <div class="npc-name">${esc(npc.name)}</div>
+                        <div class="npc-archetype">${esc(npc.archetype || 'Unknown')}</div>
+                        <div class="npc-status">${isAvail ? 'Available' : 'Unavailable'}</div>
+                      </div>
+                    </div>`;
+                }).join('')}
+              </div>
+            ` : '<em style="color:var(--muted)">No one here</em>'}
+          </div>
+
+                    <article class="panel"><h2>Inventory & loot</h2>${inv.length ? `<div class="items">${inv.map(i=>`<span class="item">${esc(i.name || i.item_name || i)}</span>`).join('')}</div>` : `<p class="empty">No carried loot returned by the portal state.</p>`}</article>
+          <div class="npc-strip">
+            <h3>People nearby</h3>
+            ${npcs_at_location.length > 0 ? `
+              <div class="npc-cards-horz">
+                ${npcs_at_location.map(npc => {
+                  const isAvail = npcs_available.has(npc.id);
+                  const availClass = isAvail ? 'available' : 'unavailable';
+                  const imgHtml = npc.image_url
+                    ? `<img src="${esc(npc.image_url)}" alt="${esc(npc.name)}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=emoji-fallback>🧙</span>'">`
+                    : `<span class="emoji-fallback">🧙</span>`;
+                  return `
+                    <div class="npc-card-sm ${availClass}" data-id="${esc(npc.id)}">
+                      <div class="npc-img-wrap">${imgHtml}</div>
+                      <div class="npc-info">
+                        <div class="npc-name">${esc(npc.name)}</div>
+                        <div class="npc-archetype">${esc(npc.archetype || 'Unknown')}</div>
+                        <div class="npc-status">${isAvail ? 'Available' : 'Unavailable'}</div>
+                      </div>
+                    </div>`;
+                }).join('')}
+              </div>
+            ` : '<em style="color:var(--muted)">No one here</em>'}
+          </div>
+
+                    <article class="panel"><h2>Recent events</h2><div class="events">${events.length ? events.slice(0,8).map(e=>`<div class="event"><b>${esc(eventTitle(e))}</b><p>${esc(eventText(e))}</p></div>`).join('') : `<div class="event"><b>Journal quiet</b><p>No recent events were returned. The next agent turn will appear here.</p></div>`}</div></article>
         </section>`;
     }
     async function load(){

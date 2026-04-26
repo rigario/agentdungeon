@@ -135,10 +135,6 @@ class Intent:
         return RoutingPolicy.get_endpoint(self.type)
 
 
-MONSTER_STATS: dict[str, dict] = {
-    "cultist":      {"type": "Cultist",        "hp": 9,  "ac": 12, "attack_bonus": 3, "damage": "1d6+1", "initiative_mod": 1},
-}
-
 # Keyword groups with priority ordering (first match wins)
 _INTENT_PATTERNS: list[tuple[IntentType, str, list[str]]] = [
     # (intent_type, action_type, keywords)
@@ -189,6 +185,24 @@ _ABSURD_PATTERNS = [
     r'\b(kill|defeat|damage)\b.*\b(dm\b|the dm\b)',
 ]
 
+# Player-agent semantic guard: negated/refusal statements must not be treated as
+# permission to execute the embedded verb. Example: "I don't want to go to the
+# woods" contains "go to", but it means "do not go". These patterns block rules
+# server mutation before approval/routing. Speech acts directed at NPCs are
+# exempt so "tell Aldric I don't want to go" remains valid dialogue.
+_NEGATED_ACTION_PATTERNS = [
+    r"(?:^|\b(?:i|we|you|please)\s+)(?:do\s+not|don't|dont|never)\s+(?:go|move|travel|head|enter|visit|return|walk|rest|sleep|camp)\b",
+    r"(?:^|\b(?:i|we|you|please)\s+)(?:do\s+not|don't|dont|never)\s+(?:attack|fight|hit|strike|shoot|cast|use|open|take|grab|touch|press|pull|push|read)\b",
+    r"\b(?:i|we)\s+(?:do\s+not|don't|dont)\s+want\s+to\s+(?:go|move|travel|head|enter|visit|return|walk|rest|sleep|camp|attack|fight|cast|use|open|take|grab|touch|press|pull|push)\b",
+    r"\b(?:i|we)\s+(?:refuse|decline)\s+to\s+(?:go|move|travel|head|enter|visit|return|walk|rest|sleep|camp|attack|fight|cast|use|open|take|grab|touch|press|pull|push)\b",
+    r"\b(?:i|we)\s+will\s+not\s+(?:go|move|travel|head|enter|visit|return|walk|rest|sleep|camp|attack|fight|cast|use|open|take|grab|touch|press|pull|push)\b",
+    r"\blet\s+us\s+not\s+(?:go|move|travel|head|enter|visit|return|walk|rest|sleep|camp|attack|fight|cast|use|open|take|grab|touch|press|pull|push)\b",
+    r"\b(?:avoid|stay\s+away\s+from|keep\s+away\s+from|steer\s+clear\s+of)\b",
+    r"\bnot\s+(?:going|entering|resting|sleeping|camping|attacking|fighting|casting|opening|taking|touching|pressing|pulling|pushing)\b",
+]
+
+_SPEECH_ACT_PREFIX = re.compile(r"^\s*(?:ask|tell|say\s+to|speak\s+to|speak\s+with|talk\s+to|chat\s+with|greet)\b")
+
 
 def _keyword_in_message(msg: str, keyword: str) -> bool:
     """Check if keyword appears as a word/phrase boundary match, not substring.
@@ -226,6 +240,24 @@ def classify_intent(player_message: str) -> Intent:
                 details={"intent": player_message, "_original_msg": player_message},
                 confidence=0.6,
             )
+
+    # Semantic guard: a negated/refusal utterance is not consent to perform the
+    # embedded action. This must happen before verb matching so "don't go to X"
+    # never becomes MOVE(target=X). Speech acts are allowed through as dialogue.
+    if not _SPEECH_ACT_PREFIX.match(msg):
+        for pattern in _NEGATED_ACTION_PATTERNS:
+            if re.search(pattern, msg):
+                return Intent(
+                    type=IntentType.GENERAL,
+                    action_type=None,
+                    details={
+                        "intent": player_message,
+                        "_original_msg": player_message,
+                        "_semantic_guard": True,
+                        "_semantic_guard_reason": "negated_or_refusal_action",
+                    },
+                    confidence=0.95,
+                )
 
     # Check absurd / physically impossible actions BEFORE precise verb matching
     # Ensures impossible actions (e.g., "attack the sun") aren't misrouted as valid combat
@@ -336,6 +368,23 @@ class IntentRouter:
         """
         # Step 1: Classify intent
         intent = classify_intent(player_message)
+
+        # Semantic guard — do not greenlight an action when the player-agent's
+        # own text negates/refuses the embedded verb (e.g. "I don't want to go
+        # to the woods"). This is a no-mutation guard before approval/routing.
+        if intent.details.get("_semantic_guard"):
+            return RouterResult(
+                success=True,
+                endpoint_called="semantic-guard",
+                narration="You hold. The instruction is a refusal or caution, not permission to act. No travel, combat, item use, or other state-changing action is taken.",
+                events=[{
+                    "type": "semantic_guard",
+                    "description": "Action blocked before server mutation because the player message negated/refused the embedded action.",
+                    "reason": intent.details.get("_semantic_guard_reason"),
+                    "player_message": player_message,
+                }],
+                raw_response={"semantic_guard": True, "reason": intent.details.get("_semantic_guard_reason")},
+            )
 
         # Approval gate — check before routing to rules server
         try:

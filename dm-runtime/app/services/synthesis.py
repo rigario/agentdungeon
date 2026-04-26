@@ -130,6 +130,11 @@ async def synthesize_narration(server_result: dict, intent: dict, world_context:
     # Defensive: world_context can be None from some call paths
     world_context = world_context or {}
 
+    # Semantic guard: player-agent text negated/refused an action. Do not call
+    # LLM or mutate/progress story; return an explicit no-op clarification.
+    if intent.get("details", {}).get("_semantic_guard"):
+        return _build_semantic_guard(intent, world_context)
+
     # Handle absurd / impossible actions flagged by intent router
     if intent.get("details", {}).get("_absurd"):
         return _build_absurd_refusal(intent, world_context)
@@ -148,6 +153,31 @@ async def synthesize_narration(server_result: dict, intent: dict, world_context:
             return _build_passthrough(server_result, intent, world_context)
     else:
         return _build_passthrough(server_result, intent, world_context)
+
+
+def _build_semantic_guard(intent: dict, world_context: dict) -> dict:
+    """Build a no-op response when player text negates/refuses an embedded action."""
+    player_msg = intent.get("details", {}).get("_original_msg") or intent.get("details", {}).get("intent", "")
+    return {
+        "narration": {
+            "scene": (
+                f"You pause on the instruction: '{player_msg}'. That is not consent to act; it is a refusal, warning, or boundary. "
+                "No travel, combat, item use, or other state-changing action is taken."
+            ),
+            "npc_lines": [],
+            "tone": "neutral",
+        },
+        "mechanics": {
+            "what_happened": ["Action held: player message negated or refused the embedded action."],
+            "hp": _extract_hp(world_context),
+            "location": world_context.get("location", {}).get("id", "unknown"),
+        },
+        "choices": _extract_choices({}, world_context),
+        "server_trace": {
+            "intent_used": intent,
+            "refusal_reason": "semantic_guard_negated_or_refusal_action",
+        },
+    }
 
 
 def _build_absurd_refusal(intent: dict, world_context: dict) -> dict:

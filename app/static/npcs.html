@@ -177,6 +177,37 @@
     color: var(--text-muted);
     font-size: 2rem;
   }
+
+  .npc-filters {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+    padding: 0.75rem 1rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+  .npc-filters label {
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-right: 0.25rem;
+  }
+  .npc-filters select {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.4rem 2rem 0.4rem 0.75rem;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+  .npc-filters select:focus {
+    outline: none;
+    border-color: var(--accent-gold);
+  }
 </style>
 </head>
 <body>
@@ -200,62 +231,85 @@ const BIOME_ICONS = {
   dungeon: '💀', plains: '🌾', swamp: '🐊', ruin: '🏚️', meadow: '🌿'
 };
 function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function titleize(s) { return (s||'').replace(/[_-]/g,' ').replace(/\b\w/g,c=>c.toUpperCase()); }
+
+let all_npcs = [];  // cached full list
+
 async function init() {
   const el = document.getElementById('content');
+  const filterSelect = document.getElementById('location-filter');
   try {
     const res = await fetch('/npcs');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    const npcs = data.npcs || data;
-    if (!npcs || npcs.length === 0) {
+    all_npcs = data.npcs || data;
+    if (!all_npcs || all_npcs.length === 0) {
       el.innerHTML = '<div class="error-msg">No inhabitants found in the records.</div>';
       return;
     }
-    // Sort by biome then name
-    const biomeOrder = ['town','road','forest','mountain','cave'];
-    npcs.sort((a,b) => {
-      const ai = biomeOrder.indexOf(a.biome), bi = biomeOrder.indexOf(b.biome);
-      if (ai !== bi) return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
-      return (a.name||'').localeCompare(b.name||'');
+    // Populate location filter
+    const locations = [...new Set(all_npcs.map(n => n.current_location_id).filter(Boolean))].sort();
+    locations.forEach(loc => {
+      const opt = document.createElement('option');
+      opt.value = loc;
+      opt.textContent = esc(loc);
+      filterSelect.appendChild(opt);
     });
-    let html = '<div class="npc-grid">';
-    npcs.forEach(npc => {
-      const icon = BIOME_ICONS[npc.biome] || '👤';
-      const tags = [];
-      if (npc.is_quest_giver) tags.push('<span class="tag tag-quest">Quest Giver</span>');
-      if (npc.is_spirit) tags.push('<span class="tag tag-spirit">Spirit</span>');
-      if (npc.is_enemy) tags.push('<span class="tag tag-enemy">Enemy</span>');
-      tags.push(`<span class="tag tag-biome">${esc(npc.biome)}</span>`);
-      const imageHtml = npc.image_url
-        ? `<img src="${esc(npc.image_url)}" alt="${esc(npc.name)}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=emoji-fallback>${icon}</span>'">`
-        : `<span class="emoji-fallback">${icon}</span>`;
-      html += `
-        <div class="npc-card" data-id="${esc(npc.id)}">
-          <div class="npc-image-wrap">${imageHtml}</div>
-          <div class="npc-name">${esc(npc.name)}</div>
-          <div class="npc-archetype">${esc(npc.archetype)}</div>
-          <div class="npc-location">📍 ${esc(npc.current_location_id || npc.default_location_id || 'Unknown')}</div>
-          <div class="npc-personality">${esc((npc.personality||'').substring(0,120))}${(npc.personality||'').length > 120 ? '...' : ''}</div>
-          <div class="npc-tags">${tags.join('')}</div>
-          <div class="npc-detail">
-            <div class="npc-personality">${esc(npc.personality)}</div>
-            ${npc.notes ? `<div class="npc-notes">"${esc(npc.notes)}"</div>` : ''}
-          </div>
-        </div>`;
-    });
-    html += '</div>';
-    el.innerHTML = html;
-    // Toggle expand
-    el.querySelectorAll('.npc-card').forEach(card => {
-      card.addEventListener('click', () => {
-        const wasExpanded = card.classList.contains('expanded');
-        el.querySelectorAll('.npc-card.expanded').forEach(c => c.classList.remove('expanded'));
-        if (!wasExpanded) card.classList.add('expanded');
-      });
-    });
+    // Filter change handler
+    filterSelect.addEventListener('change', () => render(all_npcs));
+    // Initial render
+    render(all_npcs);
   } catch (err) {
     el.innerHTML = `<div class="error-msg">Failed to load inhabitants: ${esc(err.message)}</div>`;
   }
+}
+
+function render(npcs) {
+  const el = document.getElementById('content');
+  const filterVal = document.getElementById('location-filter').value;
+  const filtered = filterVal === 'all' ? npcs : npcs.filter(n => n.current_location_id === filterVal);
+  // Sort
+  const biomeOrder = ['town','road','forest','mountain','cave'];
+  filtered.sort((a,b) => {
+    const ai = biomeOrder.indexOf(a.biome), bi = biomeOrder.indexOf(b.biome);
+    if (ai !== bi) return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+    return (a.name||'').localeCompare(b.name||'');
+  });
+  let html = '<div class="npc-grid">';
+  filtered.forEach(npc => {
+    const icon = BIOME_ICONS[npc.biome] || '👤';
+    const tags = [];
+    if (npc.is_quest_giver) tags.push('<span class="tag tag-quest">Quest Giver</span>');
+    if (npc.is_spirit) tags.push('<span class="tag tag-spirit">Spirit</span>');
+    if (npc.is_enemy) tags.push('<span class="tag tag-enemy">Enemy</span>');
+    tags.push(`<span class="tag tag-biome">${esc(npc.biome)}</span>`);
+    const imageHtml = npc.image_url
+      ? `<img src="${esc(npc.image_url)}" alt="${esc(npc.name)}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=emoji-fallback>${icon}</span>'">`
+      : `<span class="emoji-fallback">${icon}</span>`;
+    html += `
+      <div class="npc-card" data-id="${esc(npc.id)}">
+        <div class="npc-image-wrap">${imageHtml}</div>
+        <div class="npc-name">${esc(npc.name)}</div>
+        <div class="npc-archetype">${esc(npc.archetype)}</div>
+        <div class="npc-location">📍 ${esc(npc.current_location_id || npc.default_location_id || 'Unknown')}</div>
+        <div class="npc-personality">${esc((npc.personality||'').substring(0,120))}${(npc.personality||'').length > 120 ? '...' : ''}</div>
+        <div class="npc-tags">${tags.join('')}</div>
+        <div class="npc-detail">
+          <div class="npc-personality">${esc(npc.personality)}</div>
+          ${npc.notes ? `<div class="npc-notes">"${esc(npc.notes)}"</div>` : ''}
+        </div>
+      </div>`;
+  });
+  html += '</div>';
+  el.innerHTML = html;
+  // Toggle expand
+  el.querySelectorAll('.npc-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const wasExpanded = card.classList.contains('expanded');
+      el.querySelectorAll('.npc-card.expanded').forEach(c => c.classList.remove('expanded'));
+      if (!wasExpanded) card.classList.add('expanded');
+    });
+  });
 }
 init();
 </script>

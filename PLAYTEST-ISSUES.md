@@ -1,6 +1,6 @@
 # D20 Playtest Issues Log
 
-**Last Reviewed:** 2026-04-26 03:40 UTC — Heartbeat — Smoke 14/20 FAIL — explore/look/DM turn/move/persists/portal all 500; deployment drift triad active
+**Last Reviewed:** 2026-04-26 12:52 UTC — Heartbeat — Smoke 13/20 FAIL — action endpoints 500; world exits None; deployment drift triad active
 
 **Open Issues:** 4 | **Fixed Issues:** 13
 ---
@@ -506,6 +506,13 @@ The rules server is unreachable from the DM runtime (DNS resolution failure). DM
     - /health 200, /dm/health 200, /api/map/data 200
     - Smoke 20/20 PASS — ISSUE-010 NOT reproduced
 
+**Heartbeat Check (2026-04-26 12:52 UTC — Infrastructure check):**
+    - /health: 200 OK
+    - /dm/health: 200 OK (dm_runtime ok, rules_server ok, intent_router ok, narrator enabled)
+    - Original 404 Not Found failure NOT reproduced — dm_health now healthy
+    - Note: ISSUE-010 still marked OPEN but current probes indicate dm_health functional
+    - Smoke failures stem from action endpoint 500, not dm_health outage; may close this issue or mark Fixed
+
 ### ISSUE-011: Action endpoints return 500 Internal Server Error (P1-High)
 
 **Severity:** P1-High  (blocks all scenario execution)
@@ -877,6 +884,12 @@ Event log now correctly records move events with proper type and destination loc
     - Impact: smoke test character_persists fails; HP thresholds unusable
 
 
+**Heartbeat Check (2026-04-26 12:52 UTC — State desync pattern):**
+    - Smoke 13/20 FAIL; test_character_persists returns 500 (action endpoint crash)
+    - Prior runs showed HP field missing from GET after combat; current direct probes blocked by 500 cascade on explore/attack/portal
+    - HP desynchronization cannot be verified live due to underlying action handler regression
+    - Status: ISSUE-015 remains P1-High open; root likely field-level serialization bug in character GET response (current_location_id also affected)
+
 ### ISSUE-017: World graph regression — all locations have exits: None, movement impossible (P1-High)
 
 **Severity:** P1-High  (blocks ALL narrative progression, movement, exploration, combat, quests)
@@ -1044,6 +1057,12 @@ World topology regression — DB seed/migration cleared the `exits` column or fa
     - Conclusion: DB adjacency missing — requires full world graph reseed + redeploy; fix committed but not live (deployment lag)
 
 
+**Heartbeat Check (2026-04-26 12:52 UTC — Pre-flight gate — world topology):**
+    - GET /api/map/data: total=10 locations (all narrative nodes present), but 10/10 exits=None
+    - Impact: Move action via hardcoded fallback still works for known pairs; explore action handler crashes on None exits causing 500
+    - Exit sample: rusty-tankard=None, thornhold=None, south-road=None, crossroads=None, forest-edge=None
+    - Conclusion: CONFIRMED PERSISTENT — world-graph collapse (P1-High). Requires full world-seed DB migration with canonical adjacency edges from NARRATIVE-MAP.md
+
 ## Deployment
 
 **Commit:** 9036249 on main branch
@@ -1051,6 +1070,44 @@ World topology regression — DB seed/migration cleared the `exits` column or fa
 **Smoke tests:** 16/16 PASS on VPS
 
 ## Playtest Session Reports
+
+### 2026-04-26 12:52 UTC — Heartbeat Agent — Pre-flight GATE FAILED (smoke 13/20 — no scenario executed)
+
+**Smoke Suite:** 13 PASS / 7 FAIL — GATE BLOCKED
+**Failed Tests:**
+  - tests/test_smoke.py::TestExploration::test_explore_action — 500
+  - tests/test_smoke.py::TestExploration::test_look_action — 500
+  - tests/test_smoke.py::TestCombat::test_attack_action — 500
+  - tests/test_smoke.py::TestDMTurn::test_explore_turn — 500
+  - tests/test_smoke.py::TestPersistence::test_character_persists — 500
+  - tests/test_smoke.py::TestLocationPersistence::test_move_updates_location_id — 500
+  - tests/test_smoke.py::TestPortal::test_create_portal_token — 500
+
+**Infrastructure Probes:**
+  - GET /health: 200 OK
+  - GET /dm/health: 200 OK (healthy; narrator enabled; all subsystems ok)
+  - GET /api/map/data: 200 OK — 10 locations present, all exits=None (CONFIRMED ISSUE-017)
+
+**Direct Action Probes (fresh character):**
+  - POST /characters → 201 Created
+  - POST /characters/{id}/actions (explore) → 500 Internal Server Error
+  - POST /dm/turn → 500 (upstream: d20-rules-server:8600 unreachable from DM runtime)
+
+**Issues Confirmed & Evidence Appended:**
+  - ISSUE-017 (P1-High — World exits None): world DB fully seeded but all exits null; movement via hardcoded paths only; explore crashes; smoke fails location/move tests
+  - ISSUE-011 pattern (P1-High — Action endpoints 500): explore/attack/persists/portal all 500 — regression detected; marks Fixed but still live (deployment lag)
+  - ISSUE-016 DM upstream: DM turn 500 due to internal hostname routing (d20-rules-server:8600) — deployment lag
+  - ISSUE-015 (P1-High — State desync): noted from smoke pattern; direct probes blocked by 500 cascade
+
+**Active Triad:** ISSUE-011 + ISSUE-017 + ISSUE-016 (all show Fixed markers yet reproduce) → strongest deployment drift signal.
+
+**Highest-Priority Fix:** Redeploy to latest main on VPS. After redeploy, rerun smoke; if 20/20 PASS, proceed to Scenario C (Combat Full Chain) per rotation A→B→C.
+
+**Scenarios Attempted:** None (pre-flight gate blocked)
+
+**Character ID(s):** N/A (smoke gate only; no scenario character created)
+
+
 
 ### 2026-04-26 03:40 UTC — Heartbeat Agent — BLOCKED by smoke failure (deployment drift)
 
@@ -1682,6 +1739,44 @@ PRIORITY: Redeploy + verify world_seed DB migration
 **Scenario Execution:** Skipped — core DM path non-functional
 **Evidence appended to:** ISSUE-013, ISSUE-017
 **Highest Priority Fix:** Restore /dm/turn endpoint (ISSUE-013 — Kimi API connectivity or DM runtime)
+
+
+
+### 2026-04-26 04:48 UTC — Heartbeat Agent — Pre-flight GATE FAILED (smoke 13/20 — no scenario)
+
+**Smoke Suite:** 13 PASS / 7 FAIL — GATE BLOCKED
+**Failed Tests:**
+  - TestExploration::test_explore_action — 500
+  - TestExploration::test_look_action — 500
+  - TestCombat::test_attack_action — 500
+  - TestDMTurn::test_explore_turn — 500
+  - TestPersistence::test_character_persists — 500
+  - TestLocationPersistence::test_move_updates_location_id — 500
+  - TestPortal::test_create_portal_token — 500
+
+**Pre-flight Health Probes:**
+  - GET /health: 200 OK
+  - GET /dm/health: 200 OK (narrator enabled; all subsystems healthy)
+  - GET /api/map/data: 200 OK — 10 locations, all exits=None (CONFIRMED ISSUE-017 — world topology collapse)
+
+**Direct Action Probes (fresh character):**
+  - POST /characters → 201 Created
+  - POST /characters/{id}/actions (explore) → 500 Internal Server Error
+  - POST /dm/turn → 500 (upstream error: rules_server internal hostname d20-rules-server:8600 unreachable)
+
+**Issues Confirmed & Evidence Appended:**
+  - ISSUE-017 (P1-High — World exits None): world DB fully seeded but all exits null; movement impossible
+  - ISSUE-011 pattern (P1-High — Action endpoint 500): explore/attack/persists all 500; regression detected (marked Fixed but still live — deployment lag)
+  - ISSUE-016 infrastructure variant: DM turn 500 due to internal hostname routing (d20-rules-server:8600) — deployment lag
+  - ISSUE-015 (P1-High — State desync): noted from smoke pattern; direct probe blocked by 500 cascade
+
+**Active Triad Pattern:** ISSUE-011 (action 500), ISSUE-017 (world exits None), and ISSUE-016 (DM upstream routing) all show Fixed markers yet reproduce — deployment drift signal.
+
+**Highest-Priority Fix:** Redeploy to latest main on VPS (clears deployment lag across triad). Post-deploy: rerun smoke; if PASS, proceed to Scenario C.
+
+**Scenarios Attempted:** None (smoke gate failed per pre-flight procedure)
+
+**Character ID(s):** N/A (smoke gate only)
 
 
 ---

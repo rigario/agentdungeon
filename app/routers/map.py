@@ -44,7 +44,9 @@ def get_map_data(character_id: str = None):
             ).fetchall()
             # NPCs filtered by campaign
             npc_rows = conn.execute(
-                "SELECT id, name, current_location_id FROM npcs "
+                "SELECT id, name, current_location_id, archetype, image_url, personality, "
+                "is_quest_giver, is_spirit, is_enemy "
+                "FROM npcs "
                 "WHERE current_location_id IS NOT NULL AND campaign_id = ?",
                 (campaign_id,),
             ).fetchall()
@@ -55,7 +57,9 @@ def get_map_data(character_id: str = None):
                 "FROM locations ORDER BY hostility_level, name"
             ).fetchall()
             npc_rows = conn.execute(
-                "SELECT id, name, current_location_id FROM npcs WHERE current_location_id IS NOT NULL"
+                "SELECT id, name, current_location_id, archetype, image_url, personality, "
+                "is_quest_giver, is_spirit, is_enemy "
+                "FROM npcs WHERE current_location_id IS NOT NULL"
             ).fetchall()
 
         npcs_by_location = {}
@@ -63,7 +67,16 @@ def get_map_data(character_id: str = None):
             loc_id = nr["current_location_id"]
             if loc_id not in npcs_by_location:
                 npcs_by_location[loc_id] = []
-            npcs_by_location[loc_id].append({"id": nr["id"], "name": nr["name"]})
+            npcs_by_location[loc_id].append({
+                "id": nr["id"],
+                "name": nr["name"],
+                "archetype": nr.get("archetype"),
+                "image_url": nr.get("image_url"),
+                "personality": nr.get("personality"),
+                "is_quest_giver": bool(nr.get("is_quest_giver", 0)),
+                "is_spirit": bool(nr.get("is_spirit", 0)),
+                "is_enemy": bool(nr.get("is_enemy", 0)),
+            })
 
         locations = []
         for r in rows:

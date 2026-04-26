@@ -967,7 +967,7 @@ NPCS = [
                 "image_url": "/static/pixel-art/npc-aldric.png",
                 "current_location_id": "rusty-tankard",
                 "default_location_id": "rusty-tankard",
-                "movement_rules_json": '{"can_visit": ["rusty-tankard", "thornhold"], "schedule": "static", "triggers": []}',
+                "movement_rules_json": '{"can_visit": ["rusty-tankard", "thornhold"], "schedule": "static", "triggers": [], "availability_hours": [6, 22]}',
     },
     {
         "id": "npc-ser-maren",
@@ -1040,7 +1040,7 @@ NPCS = [
                 "image_url": "/static/pixel-art/npc-ser-maren.png",
                 "current_location_id": "thornhold",
                 "default_location_id": "thornhold",
-                "movement_rules_json": '{"can_visit": ["thornhold", "south-road", "crossroads"], "schedule": "patrol", "triggers": [{"flag": "collateral_near_town", "target": "south-road", "description": "Maren rides out to investigate reports of danger near town"}]}',
+                "movement_rules_json": '{"can_visit": ["thornhold", "south-road", "crossroads"], "schedule": "patrol", "triggers": [{"flag": "collateral_near_town", "target": "south-road", "description": "Maren rides out to investigate reports of danger near town"}], "availability_hours": [8, 20]}',
     },
     {
         "id": "npc-marta",
@@ -1103,7 +1103,7 @@ NPCS = [
                 "image_url": "/static/pixel-art/npc-marta.png",
                 "current_location_id": "thornhold",
                 "default_location_id": "thornhold",
-                "movement_rules_json": '{"can_visit": ["thornhold", "crossroads"], "schedule": "static", "triggers": []}',
+                "movement_rules_json": '{"can_visit": ["thornhold", "crossroads"], "schedule": "static", "triggers": [], "availability_hours": [8, 18]}',
     },
 
     # ---- Road ----
@@ -1155,7 +1155,7 @@ NPCS = [
         "notes": "Kira is the passive intel gatherer. She's met the Hollow Eye, the orcs, and has seen Del. She connects the road to the larger narrative.",
                 "current_location_id": "crossroads",
                 "default_location_id": "crossroads",
-                "movement_rules_json": '{"can_visit": ["crossroads", "south-road", "thornhold"], "schedule": "travel", "triggers": []}',
+                "movement_rules_json": '{"can_visit": ["crossroads", "south-road", "thornhold"], "schedule": "travel", "triggers": [{"flag": "kira_road_assistance", "target": "thornhold", "description": "Kira travels to Thornhold after receiving assistance"}], "availability_hours": [7, 19]}',
     },
 
     # ---- Forest ----
@@ -1252,7 +1252,7 @@ NPCS = [
                 "image_url": "/static/pixel-art/npc-green-woman.png",
                 "current_location_id": "forest-edge",
                 "default_location_id": "forest-edge",
-                "movement_rules_json": '{"can_visit": ["forest-edge", "deep-forest", "moonpetal-glade"], "schedule": "progressive", "required_flags": [], "blocked_flags": ["green_woman_suppression_1", "green_woman_suppression_2", "green_woman_suppression_3"], "triggers": [{"flag": "green_woman_suppression_1", "target": "deep-forest", "description": "The Green Woman retreats deeper into Whisperwood"}, {"flag": "green_woman_suppression_2", "target": "moonpetal-glade", "description": "The Green Woman has withdrawn to the Moonpetal Glade"}, {"flag": "green_woman_suppression_3", "target": null, "description": "The Green Woman has vanished from the forest entirely"}]}',
+                "movement_rules_json": '{"can_visit": ["forest-edge", "deep-forest", "moonpetal-glade"], "schedule": "progressive", "required_flags": [], "blocked_flags": ["green_woman_suppression_1", "green_woman_suppression_2", "green_woman_suppression_3"], "triggers": [{"flag": "green_woman_suppression_1", "target": "deep-forest", "description": "The Green Woman retreats deeper into Whisperwood"}, {"flag": "green_woman_suppression_2", "target": "moonpetal-glade", "description": "The Green Woman has withdrawn to the Moonpetal Glade"}, {"flag": "green_woman_suppression_3", "target": null, "description": "The Green Woman has vanished from the forest entirely"}], "availability_hours": [5, 22]}',
     },
     {
         "id": "npc-del-ghost",
@@ -1321,7 +1321,7 @@ NPCS = [
                 "image_url": "/static/pixel-art/npc-torren.png",
                 "current_location_id": "rusty-tankard",
                 "default_location_id": "rusty-tankard",
-                "movement_rules_json": '{"can_visit": ["rusty-tankard"], "schedule": "static", "triggers": []}',
+                "movement_rules_json": '{"can_visit": ["rusty-tankard"], "schedule": "static", "triggers": [], "availability_hours": [0, 23]}',
         "name": "Torren the Hunter",
         "archetype": "hermit",
         "biome": "mountain",
@@ -1425,7 +1425,7 @@ NPCS = [
                 "image_url": "/static/pixel-art/npc-brother-kol.png",
                 "current_location_id": "cave-depths",
                 "default_location_id": "cave-depths",
-                "movement_rules_json": '{"can_visit": ["cave-depths", "seal-chamber", "moonpetal-glade"], "schedule": "static", "triggers": [{"flag": "kol_backstory_known", "target": "moonpetal-glade", "description": "Kol appears at Moonpetal Glade seeking the marked one"}, {"flag": "seal_keys_placed", "target": "seal-chamber", "description": "Brother Kol moves to the Seal Chamber for the final ritual"}]}',
+                "movement_rules_json": '{"can_visit": ["cave-depths", "seal-chamber", "moonpetal-glade"], "schedule": "static", "triggers": [{"flag": "kol_backstory_known", "target": "moonpetal-glade", "description": "Kol appears at Moonpetal Glade seeking the marked one"}, {"flag": "seal_keys_placed", "target": "seal-chamber", "description": "Brother Kol moves to the Seal Chamber for the final ritual"}], "availability_hours": [0, 23]}',
     },
     {
         "id": "npc-sister-drenna",
@@ -1498,8 +1498,34 @@ NPCS = [
                 "image_url": "/static/pixel-art/npc-sister-drenna.png",
                 "current_location_id": "south-road",
                 "default_location_id": "south-road",
-                "movement_rules_json": '{"can_visit": ["south-road", "crossroads", "forest-edge"], "schedule": "static", "triggers": [{"quest_complete": "quest-save-drenna-child", "target": "thornhold", "description": "Drenna returns to Thornhold with her child, grateful for rescue"}]}',
+                "movement_rules_json": '{"can_visit": ["south-road", "crossroads", "forest-edge"], "schedule": "static", "triggers": [{"quest_complete": "quest-save-drenna-child", "target": "thornhold", "description": "Drenna returns to Thornhold with her child, grateful for rescue"}], "availability_hours": [6, 21]}',
     },
+    {
+        "id": "npc-harren",
+        "name": "Old Harren",
+        "archetype": "hermit",
+        "biome": "road",
+        "personality": (
+            "Wise but paranoid old hermit who knows the road secrets. "
+            "Warns travelers of Hollow Eye patrols and knows the secret paths."
+        ),
+        "dialogue_templates": json.dumps([
+            {
+                "template": "The road's not safe, traveler. Masked figures patrol the pass...",
+                "context": "hollow_eye_warning", "requires_flag": None,
+            },
+        ]),
+        "trades_json": json.dumps([]),
+        "quests_json": json.dumps([]),
+        "is_quest_giver": 0,
+        "is_spirit": 0,
+        "is_enemy": 0,
+        "image_url": "/static/pixel-art/npc-hermit.png",
+        "current_location_id": "mountain-pass",
+        "default_location_id": "mountain-pass",
+        "movement_rules_json": '{"can_visit": ["mountain-pass", "moonpetal-glade"], "schedule": "seasonal", "availability_hours": [0, 23], "triggers": [{"flag": "green_woman_suppression_1", "target": "moonpetal-glade", "description": "Harren retreats to sacred grove"}, {"flag": "kol_backstory_known", "target": "mountain-pass", "description": "Harren returns to pass watching for cult activity"}]}',
+    },
+
 ]
 
 

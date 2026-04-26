@@ -7,7 +7,9 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "dm-runtime"))
 
-from app.services.synthesis import _extract_mechanics, _extract_choices, _is_combat_response
+import pytest
+
+from app.services.synthesis import _extract_mechanics, _extract_choices, _is_combat_response, synthesize_narration
 
 
 def test_is_combat_response_detects_nested_combat_key():
@@ -124,3 +126,21 @@ def test_extract_choices_from_asks_and_connections():
     assert "Go to Whisperwood Cave" in labels
     assert "explore" in ids
     assert "move_on" in ids
+
+
+@pytest.mark.asyncio
+async def test_synthesize_semantic_guard_returns_noop_without_story_progression():
+    intent = {
+        "type": "general",
+        "details": {
+            "_semantic_guard": True,
+            "_semantic_guard_reason": "negated_or_refusal_action",
+            "_original_msg": "I don't want to go to the woods",
+        },
+    }
+    result = await synthesize_narration({}, intent, {})
+    assert "No travel" in result["narration"]["scene"]
+    assert result["narration"]["npc_lines"] == []
+    assert "Action held" in result["mechanics"]["what_happened"][0]
+    assert result["server_trace"]["refusal_reason"] == "semantic_guard_negated_or_refusal_action"
+    assert "session_id" not in result
