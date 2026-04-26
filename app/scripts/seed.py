@@ -1252,7 +1252,7 @@ NPCS = [
                 "image_url": "/static/pixel-art/npc-green-woman.png",
                 "current_location_id": "forest-edge",
                 "default_location_id": "forest-edge",
-                "movement_rules_json": '{"can_visit": ["forest-edge", "deep-forest", "moonpetal-glade"], "schedule": "progressive", "triggers": [{"flag": "green_woman_suppression_1", "target": "deep-forest", "description": "The Green Woman retreats deeper into Whisperwood"}, {"flag": "green_woman_suppression_2", "target": "moonpetal-glade", "description": "The Green Woman has withdrawn to the Moonpetal Glade"}, {"flag": "green_woman_suppression_3", "target": null, "description": "The Green Woman has vanished from the forest entirely"}]}',
+                "movement_rules_json": '{"can_visit": ["forest-edge", "deep-forest", "moonpetal-glade"], "schedule": "progressive", "required_flags": [], "blocked_flags": ["green_woman_suppression_1", "green_woman_suppression_2", "green_woman_suppression_3"], "triggers": [{"flag": "green_woman_suppression_1", "target": "deep-forest", "description": "The Green Woman retreats deeper into Whisperwood"}, {"flag": "green_woman_suppression_2", "target": "moonpetal-glade", "description": "The Green Woman has withdrawn to the Moonpetal Glade"}, {"flag": "green_woman_suppression_3", "target": null, "description": "The Green Woman has vanished from the forest entirely"}]}',
     },
     {
         "id": "npc-del-ghost",

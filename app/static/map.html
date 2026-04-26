@@ -187,6 +187,54 @@
       font-style: italic;
     }
 
+    .token-notice {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      background: linear-gradient(90deg, rgba(200,160,64,0.11), rgba(122,74,154,0.08));
+      border: 1px solid rgba(200,160,64,0.26);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.25rem;
+      color: var(--text-secondary);
+      font-size: 0.88rem;
+    }
+
+    .token-notice strong {
+      color: var(--accent-gold);
+      font-family: var(--font-display);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-right: 0.5rem;
+    }
+
+    .token-notice input {
+      min-width: 220px;
+      padding: 0.45rem 0.65rem;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font-body);
+    }
+
+    .token-notice button {
+      padding: 0.45rem 0.75rem;
+      border-radius: 5px;
+      border: 1px solid var(--accent-gold);
+      background: rgba(200,160,64,0.12);
+      color: var(--accent-gold);
+      font-family: var(--font-display);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+    }
+
+    .token-notice button:hover { background: rgba(200,160,64,0.2); }
+
     /* Main layout */
     .map-body {
       display: flex;
@@ -207,6 +255,8 @@
       display: block;
       width: 100%;
       height: auto;
+      position: relative;
+      z-index: 2;
     }
 
     /* Map canvas: subtle atmospheric texture */
@@ -224,6 +274,8 @@
     .loc-node {
       cursor: pointer;
       transition: opacity 0.3s ease;
+      transform-box: fill-box;
+      transform-origin: center;
     }
 
     .loc-node.fogged {
@@ -236,11 +288,11 @@
     }
 
     .loc-node:not(.fogged) {
-      transition: transform 0.15s ease, opacity 0.3s ease;
+      transition: opacity 0.3s ease;
     }
 
     .loc-node:not(.fogged):hover {
-      transform: scale(1.12);
+      transform: none;
     }
 
     .loc-node circle.outer {
@@ -249,7 +301,13 @@
 
     .loc-node:not(.fogged):hover circle.outer {
       stroke: var(--accent-gold);
-      stroke-width: 3;
+      stroke-width: 4;
+      filter: drop-shadow(0 0 9px rgba(200, 160, 64, 0.65));
+    }
+
+    .loc-node:not(.fogged):hover .loc-label {
+      fill: var(--accent-gold);
+      font-weight: 700;
     }
 
     .loc-node.current circle.outer {
@@ -294,10 +352,10 @@
 
     /* Edges */
     .edge-line {
-      stroke: var(--border);
-      stroke-width: 1.5;
-      stroke-dasharray: 4 3;
-      opacity: 0.5;
+      stroke: rgba(240, 211, 138, 0.38);
+      stroke-width: 2;
+      stroke-dasharray: 5 4;
+      opacity: 0.72;
       transition: opacity 0.3s;
     }
 
@@ -307,10 +365,10 @@
     }
 
     .edge-line.traveled {
-      stroke: #3a5a40;
-      stroke-width: 2;
+      stroke: rgba(106, 170, 106, 0.72);
+      stroke-width: 2.5;
       stroke-dasharray: none;
-      opacity: 0.6;
+      opacity: 0.82;
     }
 
     /* Mark overlay on node */
@@ -700,6 +758,7 @@ let character = null;
 let portentStage = 0;
 let visited = new Set();
 let traveledEdges = new Set();
+let hasShareToken = false;
 
 // ============================
 // INIT
@@ -708,56 +767,8 @@ let traveledEdges = new Set();
     try {
       // Check for portal share token in URL query
       const token = new URLSearchParams(window.location.search).get('token');
+      hasShareToken = Boolean(token);
 
-      // If no token and not dev mode, show token prompt as non-blocking modal overlay
-      if (!token && new URLSearchParams(window.location.search).get('dev') !== 'true') {
-        const modal = document.createElement('div');
-        modal.id = 'token-modal';
-        modal.innerHTML = `
-          <div style="
-            position:fixed;top:0;left:0;width:100%;height:100%;
-            background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:10000;
-            font-family:var(--font-display);color:var(--text-primary);">
-            <div style="
-              max-width:480px;padding:2.5rem;background:var(--bg-card);border:1px solid var(--border);border-radius_word:10px;text-align:center;box-shadow:0 0 30px rgba(0,0,0,0.5);">
-              <h1 style="color:var(--accent-gold);font-size:2rem;margin-bottom:0.5rem;">The Dreaming Hunger</h1>
-              <p style="color:var(--text-secondary);margin-bottom:1.5rem;font-style:italic;">Character-Scale World Map</p>
-              <p style="margin-bottom:1.5rem;line-height:1.7;">
-                This map is personalized to your character's journey — locations visited, paths traveled, and the forward march of the doom clock.
-                Token authentication is required for character-specific view. Enter your token below, or continue to the public world map.
-              </p>
-              <div style="display:flex;flex-direction:column;gap:0.75rem;margin-bottom:1rem;">
-                <input type="text" id="token-input" placeholder="Paste your d20pt_... token here"
-                  style="padding:0.75rem 1rem;border-radius:6px;border:1px solid var(--border);background:var(--bg-primary);color:var(--text-primary);font-family:var(--font-body);font-size:1rem;outline:none;transition:border-color 0.2s;"
-                  onfocus="this.style.borderColor='var(--accent-gold)'" onblur="this.style.borderColor='var(--border)'">
-                <button onclick="
-                  const t = document.getElementById('token-input').value.trim();
-                  if (t) window.location.search = '?token=' + encodeURIComponent(t);
-                  else alert('Please enter your share token.');
-                "
-                  style="
-                    padding:0.85rem 1.5rem;border-radius:6px;border:none;background:linear-gradient(135deg,var(--accent-gold),var(--accent-amber));color:#080810;font-family:var(--font-display);font-weight:700;cursor:pointer;font-size:1rem;letter-spacing:0.05em;text-transform:uppercase;transition:transform 0.2s,box-shadow 0.2s;"
-                  onmouseover="this.style.transform='scale(1.03)';this.style.boxShadow='0 0 12px rgba(200,160,64,0.4)'"
-                  onmouseout="this.style.transform='scale(1)';this.style.boxShadow='none'">
-                  Enter Token
-                </button>
-              </div>
-              <button id="close-token-modal" onclick="document.getElementById('token-modal').remove();"
-                style="
-                  padding:0.5rem 1rem;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-secondary);font-family:var(--font-body);font-size:0.9rem;cursor:pointer;transition:all 0.2s;"
-                onmouseover="this.style.borderColor='var(--accent-gold)';this.style.color='var(--accent-gold)'"
-                onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-secondary)'">
-                Continue to Public Map
-              </button>
-              <p style="margin-top:1.25rem;font-size:0.8rem;color:var(--text-muted);">
-                Tokens are generated by your DM or agent. They remain valid for 7 days by default.
-              </p>
-            </div>
-          </div>
-        `;
-        document.body.appendChild(modal);
-        // Continue to render public map in background
-      }   }
       let portalData = null;
 
       if (token) {
@@ -770,9 +781,12 @@ let traveledEdges = new Set();
 
       if (portalData && portalData.character && portalData.map) {
         // === TOKEN MODE: use portal state (character history-based fog-of-war) ===
-        character = portalData.character;
-        currentLocationId = character.current_location_id || portalData.location?.id;
-        mark_stage = character.mark_of_dreamer_stage || 0;
+        character = {
+          ...portalData.character,
+          mark_stage: portalData.character.mark_stage ?? portalData.character.mark_of_dreamer_stage ?? 0,
+          current_location: portalData.character.current_location_id || portalData.location?.id
+        };
+        currentLocationId = character.current_location;
         portentStage = portalData.doom_clock?.portents_triggered || 0;
 
         // Load all world locations from portal payload
@@ -856,6 +870,7 @@ function render() {
     <div class="map-container">
       ${buildCharBar()}
       ${buildFrontsBar()}
+      ${buildTokenNotice()}
       <div class="map-body">
         <div class="map-svg-wrap">
           ${buildSVG()}
@@ -941,6 +956,22 @@ function buildFrontsBar() {
   `;
 }
 
+function buildTokenNotice() {
+  if (hasShareToken) return '';
+  return `
+    <div class="token-notice">
+      <span><strong>Public map</strong> Add a share token to reveal character-specific paths, fog of war, and doom-clock history.</span>
+      <span style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+        <input id="token-inline-input" type="text" placeholder="d20pt_... token">
+        <button onclick="
+          const t = document.getElementById('token-inline-input').value.trim();
+          if (t) window.location.search = '?token=' + encodeURIComponent(t);
+        ">Use token</button>
+      </span>
+    </div>
+  `;
+}
+
 function isVisited(locId) {
   return visited.has(locId);
 }
@@ -977,14 +1008,9 @@ function buildSVG() {
     </filter>
   </defs>`;
   svg += `<rect width="780" height="570" fill="url(#bg-grad)"/>`;
-
-  // Terrain hints (very subtle background shapes)
-  // Forest region
-  svg += `<ellipse cx="560" cy="250" rx="160" ry="130" fill="#0a1a0a" opacity="0.25"/>`;
-  // Mountain region  
-  svg += `<ellipse cx="90" cy="460" rx="80" ry="70" fill="#0a0a18" opacity="0.2"/>`;
-  // Town region
-  svg += `<ellipse cx="350" cy="120" rx="70" ry="50" fill="#141418" opacity="0.2"/>`;
+  svg += `<image href="/static/generated/dreaming-hunger-map-bg.png" x="0" y="0" width="780" height="570" preserveAspectRatio="xMidYMid slice" opacity="0.82" style="image-rendering: pixelated"/>`;
+  svg += `<rect width="780" height="570" fill="#05050a" opacity="0.20"/>`;
+  svg += `<rect width="780" height="570" fill="none" stroke="rgba(200,160,64,0.16)" stroke-width="2"/>`;
 
   // Draw edges
   edges.forEach(key => {

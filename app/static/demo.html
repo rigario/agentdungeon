@@ -3,56 +3,92 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>The Dreaming Hunger — 75 Second Demo</title>
+  <title>The Dreaming Hunger — Demo</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Spectral:wght@400;500;600;700&family=Source+Sans+3:wght@500;700;800&display=swap" rel="stylesheet">
   <style>
-    :root { --void:#050405; --gold:#d4a84f; --gold2:#f0d38a; --ember:#a63d2f; --blood:#6f1d1d; --text:#f3e6cf; --muted:#b8a78b; --line:rgba(212,168,79,.25); }
-    * { box-sizing:border-box; } body { margin:0; height:100vh; overflow:hidden; background:var(--void); color:var(--text); font-family:Spectral,Georgia,serif; }
-    .stage { position:relative; width:100vw; height:100vh; background:radial-gradient(circle at 50% 42%,rgba(166,61,47,.18),transparent 20rem),radial-gradient(circle at 50% 50%,rgba(212,168,79,.1),transparent 34rem),#050405; }
-    .scene { position:absolute; inset:0; opacity:0; pointer-events:none; transition:opacity .8s ease; display:grid; place-items:center; padding:6vw; }
+    :root { --void:#050405; --ink:#0d0908; --panel:#17100e; --gold:#d4a84f; --gold2:#f0d38a; --ember:#a63d2f; --blood:#6f1d1d; --text:#f3e6cf; --muted:#b8a78b; --line:rgba(212,168,79,.25); --green:#6aaa6a; }
+    * { box-sizing:border-box; }
+    body { margin:0; height:100vh; overflow:hidden; background:var(--void); color:var(--text); font-family:Spectral,Georgia,serif; }
+    .stage { position:relative; width:100vw; height:100vh; background:radial-gradient(circle at 50% 32%,rgba(166,61,47,.22),transparent 21rem),radial-gradient(circle at 70% 70%,rgba(212,168,79,.08),transparent 32rem),linear-gradient(180deg,#050405,#100908 70%,#050405); }
+    .stage::before { content:""; position:absolute; inset:0; pointer-events:none; opacity:.16; background-image:linear-gradient(rgba(212,168,79,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(212,168,79,.06) 1px,transparent 1px); background-size:58px 58px; mask-image:radial-gradient(circle at 50% 42%,black,transparent 78%); }
+    .scene { position:absolute; inset:0; opacity:0; pointer-events:none; transition:opacity .7s ease; display:grid; place-items:center; padding:clamp(42px,6vw,86px); }
     .scene.active { opacity:1; pointer-events:auto; }
-    h1,h2,h3 { font-family:Cinzel,Georgia,serif; margin:0; } h1 { font-size:clamp(54px,9vw,132px); line-height:.86; text-align:center; letter-spacing:.04em; } h2 { font-size:clamp(38px,6vw,82px); line-height:.95; } h3 { font-size:clamp(24px,3vw,42px); color:var(--gold2); }
-    p { color:#dccaa7; font-size:clamp(19px,2.1vw,28px); max-width:760px; }
+    h1,h2,h3 { font-family:Cinzel,Georgia,serif; margin:0; letter-spacing:.025em; }
+    h1 { font-size:clamp(54px,9vw,132px); line-height:.86; text-align:center; }
+    h2 { font-size:clamp(38px,6vw,82px); line-height:.95; }
+    h3 { font-size:clamp(24px,3vw,42px); color:var(--gold2); }
+    p { color:#dccaa7; font-size:clamp(19px,2.1vw,28px); max-width:780px; line-height:1.4; }
     .eyebrow { color:var(--gold); font:800 13px Source Sans 3,sans-serif; text-transform:uppercase; letter-spacing:.2em; margin-bottom:18px; }
-    .seal { width:min(52vw,520px); aspect-ratio:1; position:relative; display:grid; place-items:center; margin:0 auto 34px; }
-    .ring { position:absolute; border-radius:50%; border:1px solid rgba(212,168,79,.48); animation:pulse 5s ease-in-out infinite; } .r1{inset:0}.r2{inset:50px;border-color:rgba(166,61,47,.55);animation-delay:-1.3s}.r3{inset:98px;border-color:rgba(240,211,138,.62);animation-delay:-2.6s}
-    .sigil { width:36%; height:36%; border:2px solid var(--gold); border-radius:50%; display:grid; place-items:center; font:800 56px Cinzel,serif; color:var(--gold2); box-shadow:0 0 48px rgba(212,168,79,.25); }
-    @keyframes pulse { 50% { transform:scale(1.035); opacity:.68 } }
-    .two { display:grid; grid-template-columns:1fr 1fr; gap:clamp(22px,5vw,70px); align-items:center; width:min(1180px,100%); }
-    .panel { border:1px solid var(--line); background:linear-gradient(180deg,rgba(33,22,18,.88),rgba(10,7,6,.9)); padding:clamp(22px,3vw,38px); box-shadow:0 30px 90px rgba(0,0,0,.48); }
-    .log { font-family:Source Sans 3,sans-serif; display:grid; gap:14px; } .logline { border-left:2px solid var(--gold); padding:10px 0 10px 16px; color:#e6d4b2; font-size:20px; } .logline b { color:var(--gold2); }
-    .map { position:relative; min-height:430px; overflow:hidden; } .map img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; image-rendering:pixelated; opacity:.42; } .node { position:absolute; width:18px; height:18px; border-radius:50%; background:var(--gold); box-shadow:0 0 28px var(--gold); animation:node 2s ease-in-out infinite; } @keyframes node{50%{transform:scale(1.35)}}
-    .dice { width:170px; height:170px; transform:rotate(45deg); border:2px solid var(--gold); display:grid; place-items:center; margin:20px auto 40px; box-shadow:0 0 48px rgba(212,168,79,.2); } .dice span { transform:rotate(-45deg); font:800 56px Cinzel,serif; color:var(--gold2); }
-    .trace { display:grid; gap:13px; } .trace div { display:grid; grid-template-columns:120px 1fr; gap:16px; border-bottom:1px solid rgba(212,168,79,.14); padding-bottom:12px; } .trace span { color:var(--gold); font:800 11px Source Sans 3,sans-serif; text-transform:uppercase; letter-spacing:.13em; } .trace p { margin:0; font-size:20px; }
-    .gate { border:1px solid rgba(166,61,47,.55); background:rgba(111,29,29,.26); padding:34px; } .choices { display:flex; flex-wrap:wrap; gap:12px; margin-top:24px; } .choice { border:1px solid var(--line); padding:13px 16px; color:var(--gold2); font:800 12px Source Sans 3,sans-serif; letter-spacing:.12em; text-transform:uppercase; }
-    .portal { display:grid; grid-template-columns:1.1fr .9fr; gap:18px; } .mini { border:1px solid rgba(212,168,79,.18); background:rgba(8,6,8,.42); padding:18px; min-height:120px; } .mini b { display:block; color:var(--gold2); font-family:Cinzel,serif; margin-bottom:8px; }
+    .center { text-align:center; }
+    .demo-art { width:min(46vw,430px); aspect-ratio:1; object-fit:contain; image-rendering:pixelated; filter:drop-shadow(0 34px 70px rgba(0,0,0,.65)); margin:0 auto 28px; display:block; }
+    .art-frame { position:relative; width:min(52vw,520px); margin:0 auto 34px; display:grid; place-items:center; }
+    .art-frame::before { content:""; position:absolute; inset:12%; border:1px solid rgba(212,168,79,.16); transform:rotate(45deg); }
+    .art-frame::after { content:""; position:absolute; inset:0; background:radial-gradient(circle,transparent 0 48%,rgba(5,4,5,.62) 77%); pointer-events:none; }
+    .two { display:grid; grid-template-columns:1fr 1fr; gap:clamp(24px,5vw,70px); align-items:center; width:min(1180px,100%); position:relative; z-index:1; }
+    .panel { border:1px solid var(--line); background:linear-gradient(180deg,rgba(33,22,18,.9),rgba(10,7,6,.92)); padding:clamp(22px,3vw,38px); box-shadow:0 30px 90px rgba(0,0,0,.48); }
+    .log { font-family:Source Sans 3,sans-serif; display:grid; gap:14px; }
+    .logline { border-left:2px solid var(--gold); padding:10px 0 10px 16px; color:#e6d4b2; font-size:20px; line-height:1.32; }
+    .logline b { color:var(--gold2); display:inline-block; min-width:72px; }
+    .npc-card { position:relative; overflow:hidden; min-height:520px; display:flex; align-items:flex-end; padding:0; background:#080606; }
+    .npc-card img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; image-rendering:pixelated; opacity:.9; filter:saturate(.92) contrast(1.08); }
+    .npc-card::after { content:""; position:absolute; inset:0; background:linear-gradient(180deg,rgba(5,4,5,.02),rgba(5,4,5,.28) 45%,rgba(5,4,5,.9)); }
+    .npc-caption { position:relative; z-index:1; width:100%; padding:24px; border-top:1px solid rgba(212,168,79,.25); background:linear-gradient(180deg,rgba(12,8,6,.24),rgba(12,8,6,.86)); }
+    .npc-caption b { display:block; color:var(--gold2); font:800 22px Cinzel,Georgia,serif; margin-bottom:8px; }
+    .npc-caption span { display:block; color:#e6d4b2; font:600 18px Source Sans 3,sans-serif; line-height:1.35; }
+    .map { position:relative; min-height:440px; overflow:hidden; background:#080810; }
+    .map img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; image-rendering:pixelated; opacity:.76; filter:saturate(.9) contrast(1.08); }
+    .map::after { content:""; position:absolute; inset:0; background:linear-gradient(90deg,rgba(5,4,5,.18),rgba(5,4,5,.45)); pointer-events:none; }
+    .node { position:absolute; width:18px; height:18px; border-radius:50%; background:var(--gold); box-shadow:0 0 28px var(--gold); animation:node 2s ease-in-out infinite; z-index:2; }
+    .node.alt { background:var(--green); box-shadow:0 0 24px var(--green); }
+    @keyframes node{50%{transform:scale(1.25)}}
+    .dice { width:172px; height:172px; transform:rotate(45deg); border:2px solid var(--gold); display:grid; place-items:center; margin:20px auto 40px; box-shadow:0 0 48px rgba(212,168,79,.2); background:rgba(8,6,8,.5); }
+    .dice span { transform:rotate(-45deg); font:800 56px Cinzel,serif; color:var(--gold2); }
+    .trace { display:grid; gap:13px; }
+    .trace div { display:grid; grid-template-columns:122px 1fr; gap:16px; border-bottom:1px solid rgba(212,168,79,.14); padding-bottom:12px; }
+    .trace span { color:var(--gold); font:800 11px Source Sans 3,sans-serif; text-transform:uppercase; letter-spacing:.13em; }
+    .trace p { margin:0; font-size:20px; line-height:1.35; }
+    .gate { border:1px solid rgba(166,61,47,.55); background:linear-gradient(180deg,rgba(111,29,29,.34),rgba(33,22,18,.72)); padding:34px; box-shadow:0 0 70px rgba(111,29,29,.18); }
+    .choices { display:flex; flex-wrap:wrap; gap:12px; margin-top:24px; }
+    .choice { border:1px solid var(--line); padding:13px 16px; color:var(--gold2); background:rgba(8,6,8,.36); font:800 12px Source Sans 3,sans-serif; letter-spacing:.12em; text-transform:uppercase; }
+    .portal { display:grid; grid-template-columns:1.1fr .9fr; gap:18px; width:min(1120px,100%); }
+    .mini { border:1px solid rgba(212,168,79,.18); background:rgba(8,6,8,.42); padding:18px; min-height:120px; }
+    .mini b { display:block; color:var(--gold2); font-family:Cinzel,serif; margin-bottom:8px; }
+    .mini span { color:#dccaa7; font-size:20px; }
     .progress { position:fixed; top:0; left:0; height:3px; background:var(--gold); width:0%; z-index:20; box-shadow:0 0 18px var(--gold); }
     .hud { position:fixed; left:24px; right:24px; bottom:20px; display:flex; justify-content:space-between; align-items:center; color:var(--muted); font:800 12px Source Sans 3,sans-serif; letter-spacing:.12em; text-transform:uppercase; z-index:20; }
     .dots { display:flex; gap:8px; } .dot { width:10px; height:10px; border-radius:50%; border:1px solid var(--gold); opacity:.45; cursor:pointer; } .dot.active { background:var(--gold); opacity:1; box-shadow:0 0 14px var(--gold); }
     .keys { color:var(--gold2); }
     .audio { position:fixed; top:18px; right:22px; z-index:30; border:1px solid var(--line); background:rgba(8,6,8,.7); color:var(--gold2); padding:9px 12px; cursor:pointer; font:800 11px Source Sans 3,sans-serif; letter-spacing:.12em; text-transform:uppercase; }
-    @media(max-width:850px){ .two,.portal{grid-template-columns:1fr}.map{min-height:300px}.trace div{grid-template-columns:1fr}.hud{font-size:10px}.seal{width:78vw} }
-  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; } }
+    a { color:var(--gold2); }
+    @media(max-width:850px){ .two,.portal{grid-template-columns:1fr}.map{min-height:300px}.trace div{grid-template-columns:1fr}.hud{font-size:10px}.art-frame{width:78vw}.demo-art{width:70vw} }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; scroll-behavior:auto !important; transition-duration:.01ms !important; } }
   </style>
 </head>
 <body>
   <div class="progress" id="progress"></div><button type="button" class="audio" id="audioBtn">sound</button>
   <main class="stage" id="stage">
-    <section class="scene active"><div><div class="seal"><div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div class="sigil">20</div></div><h1>The Dreaming Hunger</h1><p style="text-align:center;margin:28px auto 0">The ancient seal holds. For now.</p></div></section>
-    <section class="scene"><div class="two"><div><div class="eyebrow">The agent begins</div><h2>Your companion is already on the road.</h2><p>It can move through the world, resolve routine actions, and bring back a readable field report.</p></div><div class="panel log"><div class="logline"><b>08:12</b> Aegis Ward leaves Thornhold.</div><div class="logline"><b>08:19</b> Destination: Whisperwood Edge.</div><div class="logline"><b>Objective</b> Investigate recurring dreams.</div></div></div></section>
-    <section class="scene"><div class="two"><div class="panel map"><img src="/static/pixel-art/whisperwood-edge.png" alt="Whisperwood Edge"/><span class="node" style="left:28%;top:62%"></span><span class="node" style="left:58%;top:43%;animation-delay:.7s"></span></div><div><div class="eyebrow">The world reacts</div><h2>Thornhold does not pause.</h2><p>Fronts advance, paths change, and the doom clock turns while the agent travels.</p></div></div></section>
-    <section class="scene"><div><div class="eyebrow" style="text-align:center">The dice decide</div><div class="dice"><span>8</span></div><h2 style="text-align:center">WIS save failed.</h2><p style="text-align:center;margin-left:auto;margin-right:auto">7 on the die + 1. The Mark stirs. The next choice is no longer routine.</p></div></section>
-    <section class="scene"><div class="two"><div><div class="eyebrow">Traceable autonomy</div><h2>Not a black box.</h2><p>Every important action should explain its situation, options, choice, and reason.</p></div><div class="panel trace"><div><span>Situation</span><p>Low health near Whisperwood. Mark pressure active.</p></div><div><span>Options</span><p>Push deeper, rest, return to tavern, or ask human.</p></div><div><span>Chosen</span><p>Hold before entering the cave.</p></div><div><span>Why</span><p>Irreversible story movement requires player review.</p></div></div></div></section>
-    <section class="scene"><div class="two"><div class="gate"><div class="eyebrow">Human gate armed</div><h2>Step in when it counts.</h2><p>Enter the cave now, rest first, or return to Thornhold?</p><div class="choices"><span class="choice">Approve</span><span class="choice">Ask for plan</span><span class="choice">Override</span></div></div><div><h3>The agent handles the march. You choose the stakes.</h3><p>No passive autoplay. No hidden state. The portal shows what happened and why.</p></div></div></section>
-    <section class="scene"><div class="portal"><div class="panel"><div class="eyebrow">Field journal</div><h2>Since you last checked</h2><p>Aegis Ward left Thornhold, reached Whisperwood Edge, failed a Wisdom save, and is waiting at the next gate.</p></div><div class="panel"><div class="mini"><b>HP</b>8 / 12</div><div class="mini"><b>Location</b>Whisperwood Edge</div><div class="mini"><b>Doom pressure</b>Rising</div></div></div></section>
-    <section class="scene"><div><div class="seal"><div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div class="sigil">✦</div></div><h1>Play with your agent.</h1><p style="text-align:center;margin:28px auto 0"><a href="/portal/" style="color:var(--gold2)">Enter Thornhold</a> · <a href="/" style="color:var(--gold2)">Back to site</a></p></div></section>
+    <section class="scene active"><div class="center"><div class="art-frame"><img class="demo-art" src="/static/generated/demo-seal-journal.png" alt="Cracked field journal seal watching from the dark"></div><h1>The Dreaming Hunger</h1><p style="margin:28px auto 0">The seal is not decoration. It is the last thing between Thornhold and what keeps knocking from inside the dream.</p></div></section>
+
+    <section class="scene"><div class="two"><div><div class="eyebrow">The town has faces</div><h2>Aldric heard it before dawn.</h2><p>The agent is not just crossing scenery. It is asking innkeepers, reading silences, and carrying human suspicion back to the table.</p><div class="panel log"><div class="logline"><b>08:12</b> Aegis Ward finds Aldric awake, tankard untouched, shutters nailed from the inside.</div><div class="logline"><b>08:16</b> Rumor gained: three travelers dreamed the same black door.</div><div class="logline"><b>Lead</b> Whisperwood Edge. Aldric refuses to say the old name for it.</div></div></div><div class="panel npc-card"><img src="/static/pixel-art/npc-aldric.png" alt="Aldric, Thornhold innkeeper"/><div class="npc-caption"><b>Aldric of the Rusty Tankard</b><span>Friendly enough to pour. Too frightened to lie well.</span></div></div></div></section>
+
+    <section class="scene"><div class="two"><div class="panel map"><img src="/static/generated/dreaming-hunger-map-bg.png" alt="The Dreaming Hunger pixel map"/><span class="node" style="left:45%;top:36%"></span><span class="node alt" style="left:58%;top:48%;animation-delay:.7s"></span><span class="node" style="left:72%;top:72%;animation-delay:1.2s"></span></div><div><div class="eyebrow">The world reacts</div><h2>Thornhold does not pause.</h2><p>The tavern keeps its rumors warm. The road forgets yesterday's footprints. Somewhere past the trees, the doom clock takes another quiet bite.</p></div></div></section>
+
+    <section class="scene"><div class="center"><div class="eyebrow">The dice decide</div><div class="dice"><span>8</span></div><h2>WIS save failed.</h2><p style="margin-left:auto;margin-right:auto">7 on the die + 1. The torch guttered, the tree line leaned closer, and the Mark answered like a bruise pressed under armor.</p></div></section>
+
+    <section class="scene"><div class="two"><div><div class="eyebrow">Traceable autonomy</div><h2>Not a black box.</h2><p>The agent does not say "trust me." It returns with the mud on its boots, the roll that hurt, and the reason it stopped before the door.</p></div><div class="panel trace"><div><span>Situation</span><p>HP low. Whisperwood audible. Cave mouth visible through the rain.</p></div><div><span>Options</span><p>Press the trail, retreat to ale and bandages, or wake the player before crossing the threshold.</p></div><div><span>Chosen</span><p>Hold position at the old boundary stone. Lantern hooded. Weapon drawn.</p></div><div><span>Why</span><p>The next move can change the campaign, not just the travel log.</p></div></div></div></section>
+
+    <section class="scene"><div class="two"><div class="gate"><div class="eyebrow">Human gate armed</div><h2>Step in when it counts.</h2><p>The agent has reached a place where courage stops being routine automation. Enter now, rest first, or drag the truth back to Thornhold?</p><div class="choices"><span class="choice">Approve entry</span><span class="choice">Demand a plan</span><span class="choice">Return wounded</span></div></div><div><h3>The agent handles the march. You choose the stakes.</h3><p>No passive autoplay. No hidden state. When the road forks toward something permanent, the portal puts your hand back on the hilt.</p></div></div></section>
+
+    <section class="scene"><div class="portal"><div class="panel"><div class="eyebrow">Field journal</div><h2>Since you last checked</h2><p>Aegis Ward crossed the south road, reached Whisperwood Edge, failed the save, marked the cave, and refused to spend your courage without you.</p></div><div class="panel"><div class="mini"><b>HP</b><span>8 / 12 — bandage before bravado.</span></div><div class="mini"><b>Location</b><span>Whisperwood Edge — trees listening, path still open.</span></div><div class="mini"><b>Doom pressure</b><span>Rising — not catastrophic. Not quiet either.</span></div></div></div></section>
+
+    <section class="scene"><div class="center"><div class="art-frame"><img class="demo-art" src="/static/generated/demo-seal-journal.png" alt="Cracked field journal seal watching from the dark"></div><h1>Play with your agent.</h1><p style="margin:28px auto 0"><a href="/portal/">Enter Thornhold</a> · <a href="/">Back to site</a></p></div></section>
   </main>
   <div class="hud"><span id="timer">0:00</span><div class="dots" id="dots"></div><span class="keys">Space / arrows · P pause</span></div>
   <script>
     const scenes = [...document.querySelectorAll('.scene')];
-    const durations = [8,9,10,9,11,11,10,8];
+    const durations = [9,10,10,10,12,12,11,8];
     const dots = document.getElementById('dots'); const progress = document.getElementById('progress'); const timer = document.getElementById('timer');
     let cur = 0, sceneTime = 0, total = 0, paused = false, last = performance.now();
     let ambient = null;

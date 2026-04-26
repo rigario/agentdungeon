@@ -1,0 +1,84 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.15, pytest-9.0.2, pluggy-1.6.0 -- /home/rigario/.hermes/hermes-agent/venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/rigario/Projects/rigario-d20
+plugins: anyio-4.12.1, asyncio-1.3.0, xdist-3.8.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 20 items
+
+tests/test_smoke.py::TestHealth::test_rules_server_health PASSED         [  5%]
+tests/test_smoke.py::TestHealth::test_rules_server_root PASSED           [ 10%]
+tests/test_smoke.py::TestHealth::test_dm_runtime_health PASSED           [ 15%]
+tests/test_smoke.py::TestCharacterCreate::test_create_fighter PASSED     [ 20%]
+tests/test_smoke.py::TestCharacterCreate::test_create_wizard PASSED      [ 25%]
+tests/test_smoke.py::TestCharacterCreate::test_invalid_race_rejected PASSED [ 30%]
+tests/test_smoke.py::TestCharacterCreate::test_missing_class_rejected PASSED [ 35%]
+tests/test_smoke.py::TestCharacterCreate::test_fetch_character PASSED    [ 40%]
+tests/test_smoke.py::TestExploration::test_explore_action FAILED         [ 45%]
+tests/test_smoke.py::TestExploration::test_look_action FAILED            [ 50%]
+tests/test_smoke.py::TestCombat::test_attack_action FAILED               [ 55%]
+tests/test_smoke.py::TestDMTurn::test_explore_turn FAILED                [ 60%]
+tests/test_smoke.py::TestDMTurn::test_move_turn PASSED                   [ 65%]
+tests/test_smoke.py::TestDMTurn::test_missing_character_id PASSED        [ 70%]
+tests/test_smoke.py::TestPersistence::test_character_persists FAILED     [ 75%]
+tests/test_smoke.py::TestPersistence::test_event_log_since_filter PASSED [ 80%]
+tests/test_smoke.py::TestLocationPersistence::test_move_updates_location_id FAILED [ 85%]
+tests/test_smoke.py::TestCadence::test_cadence_status PASSED             [ 90%]
+tests/test_smoke.py::TestPortal::test_create_portal_token FAILED         [ 95%]
+tests/test_smoke.py::TestPortal::test_portal_token_view FAILED           [100%]
+
+=================================== FAILURES ===================================
+_____________________ TestExploration.test_explore_action ______________________
+tests/test_smoke.py:218: in test_explore_action
+    assert r.status_code == 200
+E   assert 500 == 200
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+_______________________ TestExploration.test_look_action _______________________
+tests/test_smoke.py:228: in test_look_action
+    assert r.status_code == 200
+E   assert 500 == 200
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+________________________ TestCombat.test_attack_action _________________________
+tests/test_smoke.py:252: in test_attack_action
+    assert r.status_code == 200
+E   assert 500 == 200
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+_________________________ TestDMTurn.test_explore_turn _________________________
+tests/test_smoke.py:271: in test_explore_turn
+    assert r.status_code in (200, 502)
+E   assert 500 in (200, 502)
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+___________________ TestPersistence.test_character_persists ____________________
+tests/test_smoke.py:308: in test_character_persists
+    assert r1.status_code == 201
+E   assert 500 == 201
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+____________ TestLocationPersistence.test_move_updates_location_id _____________
+tests/test_smoke.py:391: in test_move_updates_location_id
+    assert r_move.status_code == 200, f"Move action failed [{r_move.status_code}]: {r_move.text}"
+E   AssertionError: Move action failed [500]: Internal Server Error
+E   assert 500 == 200
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+_____________________ TestPortal.test_create_portal_token ______________________
+tests/test_smoke.py:444: in test_create_portal_token
+    assert r.status_code == 201, f"Expected 201, got {r.status_code}: {r.text}"
+E   AssertionError: Expected 201, got 500: Internal Server Error
+E   assert 500 == 201
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+______________________ TestPortal.test_portal_token_view _______________________
+tests/test_smoke.py:456: in test_portal_token_view
+    assert create_r.status_code == 201, f"Token creation failed: {create_r.text}"
+E   AssertionError: Token creation failed: Internal Server Error
+E   assert 500 == 201
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+=========================== short test summary info ============================
+FAILED tests/test_smoke.py::TestExploration::test_explore_action - assert 500...
+FAILED tests/test_smoke.py::TestExploration::test_look_action - assert 500 ==...
+FAILED tests/test_smoke.py::TestCombat::test_attack_action - assert 500 == 200
+FAILED tests/test_smoke.py::TestDMTurn::test_explore_turn - assert 500 in (20...
+FAILED tests/test_smoke.py::TestPersistence::test_character_persists - assert...
+FAILED tests/test_smoke.py::TestLocationPersistence::test_move_updates_location_id
+FAILED tests/test_smoke.py::TestPortal::test_create_portal_token - AssertionE...
+FAILED tests/test_smoke.py::TestPortal::test_portal_token_view - AssertionErr...
+=================== 8 failed, 12 passed in 88.36s (0:01:28) ====================
+

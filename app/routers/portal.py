@@ -96,6 +96,41 @@ def revoke_token(token: str):
     return result
 
 
+
+
+@router.get("/{token}", response_class=HTMLResponse)
+def portal_page(token: str):
+    """Serve the portal HTML page for a share token.
+    
+    This endpoint is the main human-facing portal — token-authenticated.
+    Renders portal.html with real-time state via client-side JavaScript
+    that polls /portal/{token}/state.
+    """
+    # Validate token (check exists, not revoked, not expired)
+    from app.services.database import get_db
+    db = get_db()
+    try:
+        row = db.execute(
+            "SELECT revoked, expires_at FROM share_tokens WHERE token = ?",
+            (token,)
+        ).fetchone()
+        if not row or row["revoked"]:
+            raise HTTPException(status_code=404, detail="Token not found or revoked")
+        if row["expires_at"]:
+            from datetime import datetime
+            if datetime.utcnow() > datetime.fromisoformat(row["expires_at"]):
+                raise HTTPException(status_code=404, detail="Token expired")
+    finally:
+        db.close()
+
+    static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
+    portal_html = os.path.join(static_dir, "portal.html")
+    if os.path.exists(portal_html):
+        from fastapi.responses import FileResponse
+        return FileResponse(portal_html)
+    return HTMLResponse("<h1>Portal page not found</h1>", status_code=500)
+
+
 @router.get("/{token}/state")
 def portal_state(token: str):
     """Get aggregated character state for portal view.

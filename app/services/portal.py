@@ -187,10 +187,12 @@ def get_portal_state(character_id: str) -> dict:
         import json
         sheet = json.loads(char["sheet_json"]) if char["sheet_json"] else {}
 
-        # Current location + nearby NPCs
+        # Current location + nearby NPCs (with availability filtering)
         location = None
         location_id = char["location_id"] if "location_id" in char.keys() else None
         npcs_at_location = []
+        npcs_available = []
+        npcs_unavailable = []
         if location_id:
             loc = db.execute(
                 "SELECT id, name, description, biome, hostility_level FROM locations WHERE id = ?",
@@ -198,12 +200,24 @@ def get_portal_state(character_id: str) -> dict:
             ).fetchone()
             if loc:
                 location = dict(loc)
-                # Fetch NPCs at this location
-                npc_rows = db.execute(
-                    "SELECT id, name, archetype, personality, is_quest_giver FROM npcs WHERE current_location_id = ? ORDER BY name",
-                    (location_id,),
+                # Build character context for availability filtering
+                game_hour = char["game_hour"] if "game_hour" in char.keys() and char["game_hour"] is not None else 8
+                flag_rows = db.execute(
+                    "SELECT flag_key, flag_value FROM narrative_flags WHERE character_id = ?",
+                    (character_id,),
                 ).fetchall()
-                npcs_at_location = [dict(r) for r in npc_rows]
+                narrative_flags = {r[0]: r[1] for r in flag_rows}
+                char_ctx = {
+                    "game_hour": game_hour,
+                    "narrative_flags": narrative_flags,
+                    "character_id": character_id,
+                }
+                # Use availability-filtered query
+                from app.services.npc_movement import get_available_npcs_at_location
+                avail_data = get_available_npcs_at_location(location_id, char_ctx)
+                npcs_at_location = avail_data["all_npcs"]
+                npcs_available = avail_data["available"]
+                npcs_unavailable = avail_data["unavailable"]
 
         # Active quests
         quests = db.execute(
@@ -298,6 +312,8 @@ def get_portal_state(character_id: str) -> dict:
             },
             "location": location,
             "npcs_at_location": npcs_at_location,
+            "npcs_available": npcs_available,
+            "npcs_unavailable": npcs_unavailable,
             "quests": [dict(q) for q in quests],
             "recent_events": [
                 {

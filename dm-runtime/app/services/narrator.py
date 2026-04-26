@@ -75,6 +75,7 @@ Always respond with valid JSON:
 - Present tense for active scenes, past tense for recaps
 - Sensory details (sight, sound, smell)
 - NPCs speak in first person with distinct mannerisms
+- When PLAYER MESSAGE is directed at an NPC, answer that actual utterance in character, grounded by the NPC's listed personality/dialogue and current state. Do not merely repeat the template line unless it is exactly the right response.
 - Keep mechanical references subtle (don't say "you rolled a 20", say "your blade strikes true")
 """
 
@@ -143,9 +144,13 @@ def _build_context_prompt(server_result: dict, intent: dict, world_context: dict
     if enemies:
         parts.append(f"ENEMIES: {json.dumps(enemies[:3])}")
 
-    # Player's intent
-    intent_desc = intent.get("details", {}).get("intent", intent.get("action_type", "unknown"))
-    parts.append(f"PLAYER INTENT: {intent_desc}")
+    # Player's original message and classified intent
+    details = intent.get("details", {}) or {}
+    original_msg = details.get("_original_msg") or details.get("intent") or ""
+    if original_msg:
+        parts.append(f"PLAYER MESSAGE: {original_msg}")
+    intent_desc = details.get("intent") or details.get("action_type") or intent.get("type") or intent.get("action_type", "unknown")
+    parts.append(f"CLASSIFIED INTENT: {intent_desc}")
 
     # Quest context
     quests = world_context.get("active_quests", [])
