@@ -1841,6 +1841,43 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
             npc = None
             if body.target:
                 target_lower = body.target.lower().strip()
+
+                # ─── 6cb970ec: absurd/nonsensical target validation ────────────────────
+                # Reject clearly non-social or impossible action targets BEFORE NPC matching.
+                # Returns refusal so absurd targets don't fall through to multi-NPC fallback.
+                # Examples: "punch horizon", "eat the sky", "jump off cliff", "lick the ground"
+                banned_verbs = {
+                    "punch", "hit", "kick", "slap", "bite", "eat", "lick", "chew", "swallow",
+                    "jump", "climb", "crawl", "run", "sprint", "dance", "sing", "yell", "shout",
+                    "drink", "taste", "smell", "sniff", "throw", "break", "smash", "crush",
+                }
+                absurd_objects = {
+                    "horizon", "sky", "moon", "sun", "stars", "clouds", "wind", "air",
+                    "cliff", "wall", "ground", "floor", "ceiling", "rock", "stone",
+                    "void", "darkness", "shadow", "nothing", "empty air",
+                }
+                # Tokenize target
+                target_tokens_raw = [t for t in re.findall(r"[a-z0-9]+", target_lower) if len(t) > 1]
+                # Check if any banned verb appears
+                has_banned_verb = any(tok in banned_verbs for tok in target_tokens_raw)
+                # Check if only absurd objects appear (and no social/agent/place words)
+                social_words = {"talk", "speak", "chat", "ask", "tell", "about", "with", "to", "the", "a", "npc", "person", "someone", "anyone", "innkeeper", "guard", "elder", "priest", "merchant"}
+                has_social = any(tok in social_words for tok in target_tokens_raw)
+                has_absurd_object = any(tok in absurd_objects for tok in target_tokens_raw)
+                # Absurd if: banned verb present, OR (only absurd objects present and no social words)
+                if has_banned_verb or (has_absurd_object and not has_social and len(target_tokens_raw) <= 2):
+                    conn2.close() if 'conn2' in locals() and conn2 else None
+                    conn.close()
+                    return {
+                        "success": False,
+                        "narration": "That's not a sensible thing to do here. You're here to gather information and allies, not cause meaningless chaos.",
+                        "events": [{"type": "absurd_action_rejected", "target": body.target}],
+                        "character_state": {
+                            "hp": {"current": char["hp_current"], "max": char["hp_max"]},
+                            "location_id": char["location_id"],
+                        },
+                    }
+                # ────────────────────────────────────────────────────────────────────────
                 target_tokens = {
                     t for t in re.findall(r"[a-z0-9]+", target_lower)
                     if t not in {"the", "a", "an", "to", "with", "about", "on", "of", "and", "ask", "tell", "say", "speak", "talk", "chat"}
