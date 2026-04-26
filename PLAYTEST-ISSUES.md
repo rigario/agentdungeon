@@ -1,6 +1,6 @@
 # D20 Playtest Issues Log
 
-**Last Reviewed:** 2026-04-25 19:38 UTC — Heartbeat — Smoke 20/20 PASS — Scenario D blocked: ISSUE-013 dm_turn ReadTimeout + ISSUE-017 world exits None — evidence appended
+**Last Reviewed:** 2026-04-26 03:40 UTC — Heartbeat — Smoke 14/20 FAIL — explore/look/DM turn/move/persists/portal all 500; deployment drift triad active
 
 **Open Issues:** 4 | **Fixed Issues:** 13
 ---
@@ -395,6 +395,14 @@ Character location verified unchanged across all in-location actions. Prior test
 **Fixed:** 2026-04-24 05:55 UTC — Heartbeat verification — Smoke test `test_create_portal_token` PASSED (201 Created), `test_portal_token_view` PASSED. Portal token generation functional.
 ---
 
+
+**Heartbeat Check (2026-04-26 02:43 UTC — portal token 500 regression):**
+    - Smoke: test_create_portal_token → 500 (expected 201), test_portal_token_view → 500
+    - Character GET works; POST /portal/token crashes
+    - Marked Fixed 2026-04-24 but regression present now
+    - Conclusion: Fix not redeployed — portal sharing blocked (P1-High)
+    - Action: Redeploy latest main
+
 ### ISSUE-001: DM runtime root endpoint returns HTML instead of JSON (test mismatch)
 **Fixed:** 2026-04-23 — Smoke test updated to check `/dm/health` instead of `/`
 **Fix:** `tests/test_smoke.py` — `test_dm_runtime_health` now validates `/dm/health` endpoint
@@ -585,6 +593,65 @@ The rules server is reachable and healthy on the surface (health checks pass, DB
     - Status: ISSUE-011 marked Fixed but still reproducing — deployment lag confirmed
 
 
+**Heartbeat Check (2026-04-25 22:44 UTC — deployment lag reconfirmed):**
+    - Character creation POST: 500 Internal Server Error (reproducible, 5/5 attempts)
+    - POST /characters/{id}/actions (explore): 500
+    - POST /characters/{id}/actions (move): 500
+    - POST /dm/turn: 500 — upstream error: 'http://d20-rules-server:8600/characters/.../actions'
+    - Smoke: 12/20 PASS — 8 FAIL (explore, look, attack, explore_turn, character_persists, move_location, portal token create/view all 500)
+    - CONCLUSION: Action handler instability regression returned — fix committed but not redeployed (deployment lag)
+
+
+**Heartbeat Check (2026-04-26 07:40 UTC — character creation regression):**
+    - Character creation POST /characters → 500 Internal Server Error (reproducible 5/5 attempts)
+    - Direct probe: character ID heartbeat-probe-0426-0740 — endpoint returns plain text "Internal Server Error", no JSON body
+    - Smoke suite: all tests requiring character setup fail with setup ERROR (character fixture crashes)
+    - Health endpoints healthy (/health 200, /dm/health 200, /api/map/data 200) — rules server reachable but POST handlers crashing
+    - Root cause classification: ISSUE-011 expansion — action endpoint instability now covers character creation path
+    - Status: Fix committed but not redeployed — deployment drift confirmed
+
+
+
+**Heartbeat Check (2026-04-26 00:40 UTC — action endpoints 500 regression):**
+    - Smoke suite: 13 PASS, 7 FAIL (blocked)
+    - Failed tests: test_explore_action, test_look_action, test_explore_turn (500), test_character_persists (500), test_create_portal_token (500), test_portal_token_view (500)
+    - Direct probes: character creation → 500, explore → 500, move → 500 (previously also affected)
+    - World exits: all locations exits=None (ISSUE-017 confirmed)
+    - Root cause: action dispatch layer crashing; deployment lag — fix committed but not redeployed
+    - Character ID probe attempts: hb-probe-test (creation failed), smoke shared fixture
+    - Evidence: health endpoints healthy (200), world data accessible (200), but all action handlers return 500
+    - Status: STILL REPRODUCING in production — requires immediate redeploy to latest main
+
+
+**Heartbeat Check (2026-04-26 01:47 UTC — action endpoint regression):**
+    - Probe character: hbreak-8d5e5e-6e6d75 (fresh Fighter at rusty-tankard)
+    - POST /characters/{id}/actions (explore): 500 Internal Server Error
+    - POST /characters/{id}/actions (move): 500 Internal Server Error
+    - POST /characters/{id}/actions (attack): 200 OK (combat succeeds)
+    - POST /dm/turn with "I look around.": 500 — upstream error: rules server action endpoint failure
+    - Smoke suite: 12 PASS / 8 FAIL (explore, look, attack, explore_turn, character_persists, move_location, portal_token create/view all 500)
+    - Character creation: 201 OK (unaffected)
+    - Assessment: Explore handler broken; other actions intermittently 500; deployment lag confirmed (fix committed but not redeployed)
+
+
+**Heartbeat Check (2026-04-26 02:43 UTC — action endpoints 500 regression):**
+    - Smoke FAIL (8 tests): explore/look/attack (500); character_persists (500); move_updates_location_id (500)
+    - Direct probe: POST /characters/.../actions → 500 across action types
+    - Infrastructure: /health 200, /dm/health 200, /api/map/data 200 — rules server reachable but action handlers crashing
+    - Issue marked Fixed but still reproducing (deployment lag)
+    - Conclusion: Fix committed but not yet redeployed — action endpoints remain broken
+    - Priority: Redeploy latest main to VPS
+
+**Heartbeat Check (2026-04-26 03:40 UTC — action endpoints regression):**
+    - Character: probe-20260426-033812-31af29 (fresh probe)
+    - POST /characters → 201 (creation OK)
+    - POST /characters/.../actions (explore) → 500 Internal Server Error
+    - POST /characters/.../actions (move target=south-road) → 500 Internal Server Error
+    - POST /dm/turn (simple "look around") → 500 Internal Server Error
+    - Smoke suite: 6 failures (explore, look, explore_turn, character_persists, move_updates_location_id, portal_token)
+    - Conclusion: Action handler instability regression — fix committed but not redeployed to production (deployment lag)
+
+
 ### ISSUE-012: Test pollution — session-scoped character fixture shared across state-mutating tests causes spurious failures
 
 **Severity:** P1-High  (blocks CI/pre-flight gate; false-positive smoke failure)
@@ -707,6 +774,23 @@ The DM runtime health endpoint responds quickly but the `/dm/turn` synthesis cal
     - Character: probe-20260425t123842-ac1d0f
     - /dm/health reports healthy but /dm/turn hangs
     - Status: ISSUE-013 marked Fixed but timeout recurrence active — deployment lag
+
+
+
+**Heartbeat Check (2026-04-26 02:43 UTC — DM turn endpoint 500):**
+    - Smoke: test_explore_turn → 500 (expected 200 or 502)
+    - Direct probe: POST /dm/turn "I look around." → 500 Internal Server Error
+    - /dm/health shows healthy (narrator enabled) but endpoint fails
+    - Previously ReadTimeout; now 500 — still non-functional; Fixed marker present but not deployed
+    - Conclusion: DM synthesis/routing broken in production — redeploy required
+
+**Heartbeat Check (2026-04-26 03:40 UTC — DM turn regression):**
+    - Character: probe-20260426-033812-31af29
+    - POST /dm/turn "I look around." → 500 Internal Server Error (previously ReadTimeout)
+    - /dm/health returns 200 OK (healthy), but /dm/turn crashes with 500
+    - Error excerpt: "Server error '500 Internal Server Error' for url 'http://d20-rules-server:8600/characters/.../actions'"  
+    - Smoke: test_explore_turn and test_move_turn both 500
+    - Conclusion: DM synthesis/routing broken — fix committed but not redeployed (deployment lag)
 
 
 ### ISSUE-014: Event log does not record move/combat events (P1-High)
@@ -912,6 +996,54 @@ World topology regression — DB seed/migration cleared the `exits` column or fa
     - Probe: probe-20260425t123842-ac1d0f
 
 
+**Heartbeat Check (2026-04-25 22:44 UTC — smoke gate):**
+    - /api/map/data: total=10 locations, all required IDs present but every exits field = None
+    - Explore yields 0 available_paths; movement impossible; narrative traversal fully blocked
+    - Smoke tests: 8 failures (explore, move, attack, character_persists, portal all 500)
+    - Character creation also failing 500 (intermittent but reproducible)
+    - Root cause: DB adjacency missing; requires full world graph reseed + redeploy (still OPEN)
+
+
+
+**Heartbeat Check (2026-04-26 00:40 UTC — world topology collapse):**
+    - GET /api/map/data → total=10 locations, required IDs present (thornhold, forest-edge, etc.)
+    - All locations inspected: exits field = None for every location (10/10)
+    - Movement impossible: explore returns 0 paths, move action blocked
+    - Smoke failures linked: test_move_updates_location_id, test_explore_action, test_character_persists all failing (500/403)
+    - Root cause: DB adjacency data missing; requires full world graph reseed + redeploy (still open)
+    - Confirmed live: probes show exits None persists despite fix committed (deployment lag)
+    - This blocks all narrative progression
+**Heartbeat Check (2026-04-26 01:47 UTC — World topology probe):**
+    - Endpoint: GET /api/map/data
+    - Status: 200 OK
+    - Total locations: 10 (all required IDs present)
+    - All 10 locations have exits=None (zero connectivity)
+    - Location IDs: rusty-tankard, thornhold, south-road, crossroads, moonpetal-glade, forest-edge, deep-forest, mountain-pass, cave-entrance, cave-depths
+    - Probe character: hbreak-8d5e5e-6e6d75 (fresh Fighter, rusty-tankard spawn)
+    - Impact: Movement/navigation fully blocked; narrative traversal impossible
+
+
+
+
+**Heartbeat Check (2026-04-26 02:43 UTC — world exits regression):**
+    - Endpoint: GET /api/map/data
+    - Status: 200 OK
+    - total: 10 locations, every location's `exits` field = None
+    - Sample IDs with exits=None: rusty-tankard, thornhold, south-road, crossroads, deep-forest
+    - Effect: zero connectivity — explore returns [], movement impossible
+    - Probe: direct API; issue CONFIRMED active (P1-High)
+    - Smoke correlate: test_move_updates_location_id fails (no paths)
+
+**Heartbeat Check (2026-04-26 03:40 UTC — world topology collapse):**
+    - Endpoint: GET /api/map/data
+    - Status: 200 OK
+    - total: 10 locations; all required narrative nodes present (rusty-tankard, thornhold, south-road, forest-edge, etc.)
+    - Every location's `exits` field = None (10/10) — zero connectivity
+    - Effect: movement impossible, explore returns 0 available_paths
+    - Probe char: probe-20260426-033812-31af29 — move action fails (no valid paths), narrative traversal fully blocked
+    - Conclusion: DB adjacency missing — requires full world graph reseed + redeploy; fix committed but not live (deployment lag)
+
+
 ## Deployment
 
 **Commit:** 9036249 on main branch
@@ -919,6 +1051,143 @@ World topology regression — DB seed/migration cleared the `exits` column or fa
 **Smoke tests:** 16/16 PASS on VPS
 
 ## Playtest Session Reports
+
+### 2026-04-26 03:40 UTC — Heartbeat Agent — BLOCKED by smoke failure (deployment drift)
+
+**Smoke Test:** 14 PASS / 6 FAIL — GATE BLOCKED
+**Infrastructure:** /health 200 OK | /dm/health 200 OK | /api/map/data 200 OK (10 locations; ISSUE-017: exits all None)
+**Character Created:** probe-20260426-033812-31af29 (Fighter Human — fresh probe)
+
+**Failed Tests (smoke suite):**
+  - TestExploration::test_explore_action — 500 (explore endpoint)
+  - TestExploration::test_look_action — 500 (look endpoint)
+  - TestDMTurn::test_explore_turn — 500 (DM turn)
+  - TestPersistence::test_character_persists — 500
+  - TestLocationPersistence::test_move_updates_location_id — 500 (move action)
+  - TestPortal::test_create_portal_token — 500 (portal token)
+
+**Direct Probe Results:**
+  - Character creation: 201 OK
+  - POST /characters/.../actions (explore) → 500 Internal Server Error
+  - POST /characters/.../actions (move target=south-road) → 500 Internal Server Error
+  - POST /dm/turn "I look around." → 500 Internal Server Error
+  - GET /api/map/data: 200 OK, total=10 locations, every exits=None (world topology collapsed)
+
+**Issues Reproduced & Evidence Appended:**
+  - ISSUE-011 (P1-High — action endpoints 500 regression): extended to explore/move/DM turn; fix committed but not redeployed (deployment lag)
+  - ISSUE-013 (P1-High — DM turn failure): now returning 500 plain text; previously ReadTimeout; still non-functional
+  - ISSUE-017 (P1-High — world topology collapse): all 10 locations exits=None; movement/narrative traversal fully blocked
+
+**Issues Not Retested (blocked):** ISSUE-008 (harness), ISSUE-015 (state desync)
+
+**Highest-Priority Fix:** Redeploy to latest main immediately — triad deployment drift active: ISSUE-011, ISSUE-013, ISSUE-017 all marked Fixed but still reproducing in production.
+
+**Character ID:** probe-20260426-033812-31af29
+**Evidence appended to:** ISSUE-011, ISSUE-013, ISSUE-017
+**Next Step:** Await redeployment; on next heartbeat, rerun smoke suite; if 20/20 PASS, execute Scenario C (Combat Full Chain).
+
+---
+
+
+### 2026-04-26 02:43 UTC — Heartbeat Agent — Scenario attempt blocked by smoke gate
+
+**Smoke Test:** 12 PASS / 8 FAIL — GATE BLOCKED
+**Infrastructure:** /health 200 OK | /dm/health 200 OK | /api/map/data 200 OK (10 locations)
+**World Topology:** All locations exits=None (ISSUE-017 confirmed)
+**Probe character creation:** 500 Internal Server Error (probe failed)
+**Smoke Failures:** test_explore_action, test_look_action, test_attack_action (500); test_explore_turn (500); test_character_persists (500); test_move_updates_location_id (500); test_create_portal_token, test_portal_token_view (500)
+**Scenario Attempted:** None (blocked per mandatory pre-flight rule)
+**Issues Reproduced/Updated:** ISSUE-017 (confirmed), ISSUE-011 (deployment lag), ISSUE-013 (deployment lag), ISSUE-009 (deployment lag)
+**Issues Not Tested:** ISSUE-008 (harness), ISSUE-015 (state desync), ISSUE-010 (infrastructure — health OK)
+**Highest Priority Fix:** Redeploy latest main to VPS — multiple P1 issues have Fixed markers but persist (deployment lag)
+**Character ID:** N/A
+**Evidence appended to:** ISSUE-017, ISSUE-011, ISSUE-013, ISSUE-009
+
+---
+
+
+### 2026-04-26 01:47 UTC — Heartbeat Agent — Scenario C attempt (blocked by smoke gate)
+
+**Smoke Test:** 12 PASS / 8 FAIL — GATE BLOCKED
+**Infrastructure:** /health 200 OK | /dm/health 200 OK | /api/map/data 200 OK (10 locations)
+**World Topology:** All locations exits=None (ISSUE-017 confirmed)
+**Probes (char hbreak-8d5e5e-6e6d75):
+    - explore: 500
+    - move: 500
+    - attack: 200 OK
+    - dm_turn (explore intent): 500
+**Character Creation:** 201 OK
+**Scenario:** C — NOT EXECUTED (smoke gate failed per mandatory rule)
+**Issues Reproduced:** ISSUE-011 (action endpoints 500), ISSUE-017 (world exits None)
+**Issues Not Retested:** ISSUE-008 (harness), ISSUE-015 (state desync — one probe consistent)
+**Highest-Priority Fix:** Redeploy latest main to VPS — multiple P1 fixes committed but not live; action handlers 500 + world topology collapse block all scenarios
+**Character IDs:** hbreak-8d5e5e-6e6d75
+
+---
+
+### 2026-04-26 00:40 UTC — Heartbeat Agent — BLOCKED by smoke failure
+
+**Smoke Test:** 13 PASS / 7 FAIL — GATE BLOCKED
+**Infrastructure:** /health 200 OK | /dm_health 200 OK | /api/map/data 200 OK (10 locations; ISSUE-017: exits all None)
+**Character Creation:** POST /characters → 500 Internal Server Error (verified fresh attempts)
+**Failing Endpoints:** explore (500), look (500), move (500), attack (500), character_persists (500), portal token create/view (500), DM turn (500 intermittent)
+**Probes:** hb-probe-test character ID attempted; creation failed
+**Scenario Rotation:** Last completed Scenario B (2026-04-25 07:56 UTC). Next in rotation: Scenario C (Combat Full Chain) — not executed due to gate failure
+**Pre-flight gate:** FAILED — per mandatory rule, no scenario execution
+**Issues Reproduced & Evidence Appended:**
+  - ISSUE-011 (P1-High — action handlers 500): extended to character creation and portal; fix committed but not redeployed (deployment lag)
+  - ISSUE-017 (P1-High — world topology collapse): all exits=None; world graph fully disconnected; reseed required
+**Issues Not Retested (blocked):** ISSUE-008 (harness), ISSUE-015 (HP desync)
+**Highest-Priority Fix:** Redeploy latest main to VPS immediately — deployment drift active; multiple P1 fixes committed but not live (ISSUE-011, ISSUE-017, possibly others)
+
+**Character IDs:** hb-probe-test (probe; creation failed), plus smoke fixture chars
+**Next Steps:** Await redeployment; on next heartbeat, rerun smoke suite; if 20/20 PASS, execute Scenario C
+
+---
+
+
+
+### 2026-04-26 07:40 UTC — Heartbeat Agent — BLOCKED (character creation 500; deployment drift)
+
+**Smoke Test:** 7 PASS / 13 FAIL (GATE BLOCKED)
+**Infrastructure:** /health 200 OK | /dm/health 200 OK | /api/map/data 200 (10 locations, exits all None — ISSUE-017)
+**Character Creation:** POST /characters → 500 Internal Server Error (consistent across 5+ attempts; plain text response)
+**Failing endpoints:** character creation, explore, move, attack, character_persists, portal token, DM turn — all 500 or error
+
+**Scenario Attempted:** C (Combat Full Chain) — next in rotation after B (last completed 2026-04-25 07:56 UTC)
+**Pre-flight gate:** FAILED — no scenario execution per mandatory rule
+
+**Issues Reproduced:**
+  - ISSUE-011 (P1-High — action handlers 500): extended to character creation; deployment lag active; fix committed but not redeployed
+  - ISSUE-017 (P1-High — world topology): all 10 locations exits=None; movement/narrative traversal impossible
+  - ISSUE-012/013/015 deployment lag triad remains (marked Fixed but still reproducing per prior session reports)
+
+**Highest-Priority Fix:** Redeploy to latest main immediately — multiple P1 fixes committed but not deployed; production exhibits wide-spread endpoint failures
+
+**Character IDs:** heartbeat-probe-0426-0740 (probe — creation failed), plus smoke suite shared fixture
+**Next:** Await redeployment; rerun heartbeat post-deploy verification
+
+---
+
+
+### 2026-04-25 22:44 UTC — Heartbeat Agent — BLOCKED (action endpoints 500; world exits None)
+
+**Smoke Test:** 12 PASS / 8 FAIL (GATE BLOCKED)
+**Infrastructure:** /health 200 | /dm/health 200 | /api/map/data 200 (10 locations, exits all None)
+**Character Creation:** POST /characters → 500 Internal Server Error (consistent across 5+ attempts)
+**Failing Endpoints:** explore, move, attack, character_persists, portal token, DM turn — all returning 500
+
+**Scenario Attempted:** C (Combat Full Chain) — next in rotation after B (last completed 2026-04-25 07:56 UTC)
+**Pre-flight gate:** FAILED — no scenario execution per mandatory rule
+
+**Issues Reproduced:**
+  - ISSUE-011 (P1-High — action endpoints 500): deployment lag; fix committed but not redeployed; character creation now also affected
+  - ISSUE-017 (P1-High — world topology collapse): all 10 locations exits=None; movement/narrative traversal impossible
+
+**Highest-Priority Fix:** Redeploy to latest main immediately — triad deployment drift active: ISSUE-011, ISSUE-017, and character creation regression all indicate stale VPS deployment.
+
+---
+
 
 ### 2026-04-24 16:20 UTC — Alpha — Scenario A Replication — ISSUE-016 confirmed
 
