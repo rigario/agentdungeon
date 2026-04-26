@@ -35,7 +35,8 @@ def _row_to_response(row) -> dict:
     """Convert a DB row to a community-compatible character response."""
     d = dict(row)
 
-    # Rename DB 'class' column
+    # Preserve 'class' for fallback before removing it to avoid key collision
+    _class_val = d.get("class")
     if "class" in d:
         d.pop("class")
 
@@ -67,7 +68,10 @@ def _row_to_response(row) -> dict:
         "player": {"name": d["player_id"]},
         "alignment": d.get("alignment", ""),
         "race": json.loads(d.get("race_json", "{}")) if d.get("race_json") else {"name": d["race"], "size": "Medium", "traits": []},
-        "classes": json.loads(d.get("classes_json", "[]")) if d.get("classes_json") else [{"name": d["class"], "level": d["level"], "hit_die": 8, "spellcasting": "", "features": []}],
+        "classes": json.loads(d.get("classes_json", "[]")) if d.get("classes_json") else (
+            [{"name": _class_val, "level": d["level"], "hit_die": 8, "spellcasting": "", "features": []}]
+            if _class_val and d.get("level") else []
+        ),
         "background": json.loads(d.get("background_json", "{}")) if d.get("background_json") else {"name": "Soldier"},
         "ability_scores": json.loads(d["ability_scores_json"]),
         "hit_points": {"max": d["hp_max"], "current": d["hp_current"], "temporary": d.get("hp_temporary", 0)},

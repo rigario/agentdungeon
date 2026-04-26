@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>The Dreaming Hunger — A Campaign That Moves Without You</title>
   <meta name="description" content="A living D&amp;D campaign where your agent carries the torch, the world keeps score, and you step in before the choices that leave scars.">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Spectral:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
@@ -79,8 +81,13 @@
     .seal-card { position: relative; min-height: 600px; border: 1px solid var(--line); background: radial-gradient(circle at 50% 30%, rgba(212,168,79,.18), transparent 13rem), radial-gradient(circle at 50% 45%, rgba(111,29,29,.26), transparent 20rem), linear-gradient(180deg, rgba(33,22,18,.9), rgba(8,6,8,.96)); box-shadow: var(--shadow); overflow: hidden; }
     .seal-card::before { content: ""; position: absolute; inset: 22px; border: 1px solid rgba(212,168,79,.18); background: linear-gradient(135deg, transparent 0 48%, rgba(212,168,79,.08) 49% 51%, transparent 52%); }
     .seal-card::after { content: ""; position: absolute; inset: -20%; background: radial-gradient(circle, transparent 0 42%, rgba(0,0,0,.38) 72%); pointer-events: none; }
-    .seal { position: absolute; inset: 30px 34px 156px; display: grid; place-items: center; }
-    .seal-art { width: min(100%, 455px); aspect-ratio: 1 / 1; object-fit: contain; image-rendering: pixelated; filter: drop-shadow(0 26px 50px rgba(0,0,0,.62)); opacity: .96; }
+    .seal { position: absolute; inset: 22px 24px 132px; display: grid; place-items: center; }
+    .seal-art { width: min(100%, 390px); aspect-ratio: 1 / 1; object-fit: contain; image-rendering: pixelated; filter: drop-shadow(0 26px 50px rgba(0,0,0,.62)); opacity: .30; transform: translate(-42px, -18px) rotate(-5deg); }
+    .player-art { position: absolute; right: clamp(0px, 3vw, 34px); bottom: 112px; height: min(74%, 500px); max-width: 68%; object-fit: contain; image-rendering: pixelated; z-index: 1; filter: drop-shadow(0 34px 60px rgba(0,0,0,.72)) drop-shadow(0 0 28px rgba(212,168,79,.16)); }
+    .hero-badge { position: absolute; top: 34px; left: 34px; z-index: 2; max-width: 245px; padding: 16px 16px 14px; background: rgba(8,6,8,.72); border: 1px solid rgba(212,168,79,.26); box-shadow: 0 18px 46px rgba(0,0,0,.32); }
+    .hero-badge span { display: block; font: 800 10px Source Sans 3, sans-serif; color: var(--gold); letter-spacing: .16em; text-transform: uppercase; margin-bottom: 8px; }
+    .hero-badge b { display: block; font: 700 22px/1 Cinzel, serif; color: var(--gold-2); }
+    .hero-badge small { display: block; margin-top: 7px; color: var(--muted); font-size: 14px; line-height: 1.35; }
     .seal-svg { width: min(100%, 455px); height: auto; filter: drop-shadow(0 26px 50px rgba(0,0,0,.52)); }
     .seal-orbit { transform-origin: 250px 250px; animation: slow-turn 34s linear infinite; opacity: .72; }
     .seal-counter { transform-origin: 250px 250px; animation: slow-turn 48s linear infinite reverse; opacity: .62; }
@@ -90,9 +97,9 @@
     @keyframes slow-turn { to { transform: rotate(360deg); } }
     @keyframes seal-pulse { 50% { transform: scale(1.035); opacity: .78; } }
     @keyframes crack-draw { 35%, 70% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -250; } }
-    .field-note { position: absolute; left: 36px; right: 36px; bottom: 36px; padding: 24px; background: rgba(8,6,8,.78); border-left: 2px solid var(--gold); z-index: 2; box-shadow: 0 20px 60px rgba(0,0,0,.32); }
-    .field-note strong { display: block; font: 700 15px Cinzel, serif; color: var(--gold-2); margin-bottom: 10px; }
-    .field-note p { margin: 0; color: var(--muted); }
+    .field-note { position: absolute; left: 36px; right: 36px; bottom: 36px; padding: 20px 22px; background: rgba(8,6,8,.82); border-left: 2px solid var(--gold); z-index: 2; box-shadow: 0 20px 60px rgba(0,0,0,.32); }
+    .field-note strong { display: block; font: 700 15px Cinzel, serif; color: var(--gold-2); margin-bottom: 8px; }
+    .field-note p { margin: 0; color: var(--muted); font-size: 16px; line-height: 1.42; }
     .proof { padding: 36px 0 20px; }
     .pulse { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--line); background: rgba(23,16,14,.72); box-shadow: var(--shadow); }
     .pulse-item { padding: 22px; border-right: 1px solid var(--line); min-height: 124px; }
@@ -128,15 +135,21 @@
     .journal h3, .builders h3 { color: var(--gold-2); font-size: 28px; margin-bottom: 16px; }
     .journal ol { margin: 0; padding-left: 24px; color: #dccaa7; font-size: 18px; }
     .journal li { margin: 12px 0; }
-    .pills { display: flex; flex-wrap: wrap; gap: 10px; }
+    .build-stack { display: grid; gap: 12px; margin-top: 18px; }
+    .build-choice { display: grid; grid-template-columns: 138px 1fr; gap: 16px; align-items: start; padding: 14px 0; border-top: 1px solid rgba(212,168,79,.16); }
+    .build-choice b { color: var(--gold-2); font: 800 12px Source Sans 3, sans-serif; letter-spacing: .12em; text-transform: uppercase; }
+    .build-choice span { color: #d8c5a4; font-size: 17px; line-height: 1.38; }
+    .pills { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
     .pill { border: 1px solid rgba(212,168,79,.2); color: var(--muted); padding: 8px 12px; border-radius: 999px; font: 700 12px Source Sans 3, sans-serif; letter-spacing: .08em; text-transform: uppercase; }
     footer { border-top: 1px solid var(--line); color: var(--muted); padding: 34px 0; font-family: Source Sans 3, sans-serif; }
     footer .wrap { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
     footer a { color: var(--gold-2); text-decoration: none; margin-left: 16px; }
     @media (max-width: 860px) {
       .hero-grid, .section-head, .world, .split { grid-template-columns: 1fr; }
-      .seal-card { min-height: 520px; }
+      .seal-card { min-height: 560px; }
       .seal { inset: 24px 24px 146px; }
+      .player-art { height: 420px; max-width: 66%; bottom: 118px; }
+      .hero-badge { top: 28px; left: 28px; max-width: 220px; }
       .pulse { grid-template-columns: 1fr 1fr; }
       .pulse-item:nth-child(2) { border-right: 0; }
       .pulse-item { border-bottom: 1px solid var(--line); }
@@ -144,7 +157,7 @@
       .beat .proofline { grid-column: 2; border-left: 0; padding-left: 0; }
       .navlinks { display: none; }
     }
-    @media (max-width: 560px) { .pulse { grid-template-columns: 1fr; } .pulse-item { border-right: 0; } .location { grid-template-columns: 1fr; } .location img { width: 100%; height: 150px; } }
+    @media (max-width: 560px) { .pulse { grid-template-columns: 1fr; } .pulse-item { border-right: 0; } .location { grid-template-columns: 1fr; } .location img { width: 100%; height: 150px; } .seal-card { min-height: 590px; } .player-art { right: -12px; height: 390px; max-width: 78%; bottom: 132px; } .hero-badge { max-width: calc(100% - 56px); } .build-choice { grid-template-columns: 1fr; gap: 6px; } }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; } }
   </style>
 </head>
@@ -172,13 +185,19 @@
             <a class="btn ghost" href="/demo">Watch the omen</a>
           </div>
         </div>
-        <aside class="seal-card" aria-label="Ancient seal status">
+        <aside class="seal-card" aria-label="Aegis Ward, player character ready at the failing seal">
           <div class="seal" aria-hidden="true">
             <img class="seal-art" src="/static/generated/dreaming-hunger-seal.png" alt="Cracked pixel-art binding seal over an awakening eye">
           </div>
+          <div class="hero-badge" aria-hidden="true">
+            <span>Player character // Fighter</span>
+            <b>Aegis Ward</b>
+            <small>Lantern lit. Sword drawn. At your command.</small>
+          </div>
+          <img class="player-art" src="/static/generated/aegis-ward-hero.png" alt="A powerful armored player character holding a lantern and sword before a haunted forest">
           <div class="field-note">
-            <strong>The seal still holds. Barely.</strong>
-            <p>Aegis Ward stands where Whisperwood begins. The road behind is safe enough to remember. The trees ahead are listening.</p>
+            <strong>Not scenery. A hero under your command.</strong>
+            <p>Aegis enters Thornhold with your agent at his shoulder. You decide when the lantern becomes a blade.</p>
           </div>
         </aside>
       </div>
@@ -250,10 +269,16 @@
         </div>
         <div class="builders">
           <div class="eyebrow">For builders</div>
-          <h3>Real machinery under the ritual.</h3>
-          <p style="color: var(--muted); font-size: 18px; margin-top: 0;">The candles are theatrical. The stack is not: open-source rules server, tokenized portal, agent auth, visible rolls, and a self-hostable loop built on Hermes Agent.</p>
+          <h3>Technical choices with teeth.</h3>
+          <p style="color: var(--muted); font-size: 18px; margin-top: 0;">The ritual is theatrical. The architecture is the point: human players and autonomous agents share the same world through explicit auth, traceable rules, and a DM that can evolve without becoming a black box.</p>
+          <div class="build-stack">
+            <div class="build-choice"><b>Agentic auth</b><span>Humanless accounts can hold scoped authority, act through signed permissions, and stop before irreversible campaign state changes.</span></div>
+            <div class="build-choice"><b>Hermes DM</b><span>The DM layer runs as a Hermes agent: narrating, parsing intent, remembering context, and improving the campaign loop over time.</span></div>
+            <div class="build-choice"><b>FastAPI surface</b><span>One service exposes human portal routes and agent-facing endpoints, so browsers, player agents, and the DM runtime negotiate with the same rules server.</span></div>
+            <div class="build-choice"><b>Rules trace</b><span>D&amp;D SRD data, visible rolls, SQLite state, and Docker deployment make the magic inspectable instead of hand-waved.</span></div>
+          </div>
           <div class="pills">
-            <span class="pill">Hermes Agent</span><span class="pill">FastAPI</span><span class="pill">D&amp;D SRD 5.2</span><span class="pill">Ed25519 Auth</span><span class="pill">SQLite WAL</span><span class="pill">Doom Clock</span><span class="pill">Docker</span><span class="pill">MIT Licensed</span>
+            <span class="pill">Agent API keys</span><span class="pill">Hermes Agent DM</span><span class="pill">FastAPI</span><span class="pill">D&amp;D SRD 5.2</span><span class="pill">SQLite WAL</span><span class="pill">Docker</span><span class="pill">MIT Licensed</span>
           </div>
         </div>
       </div>

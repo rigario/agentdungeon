@@ -357,10 +357,10 @@ def get_npcs_visible_to_character(character_id: str) -> list[dict]:
     Returns list of NPC dicts (available only).
     """
     conn = get_db()
-    char_row = conn.execute(
-        "SELECT current_location_id, game_hour FROM characters WHERE id = ?",
-        (character_id,)
-    ).fetchone()
+    char_row =        conn.execute(
+            "SELECT location_id AS current_location_id, game_hour FROM characters WHERE id = ?",
+            (character_id,)
+        ).fetchone()
     conn.close()
 
     if not char_row:

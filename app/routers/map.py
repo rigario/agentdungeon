@@ -64,18 +64,19 @@ def get_map_data(character_id: str = None):
 
         npcs_by_location = {}
         for nr in npc_rows:
-            loc_id = nr["current_location_id"]
+            npc = dict(nr)
+            loc_id = npc["current_location_id"]
             if loc_id not in npcs_by_location:
                 npcs_by_location[loc_id] = []
             npcs_by_location[loc_id].append({
-                "id": nr["id"],
-                "name": nr["name"],
-                "archetype": nr.get("archetype"),
-                "image_url": nr.get("image_url"),
-                "personality": nr.get("personality"),
-                "is_quest_giver": bool(nr.get("is_quest_giver", 0)),
-                "is_spirit": bool(nr.get("is_spirit", 0)),
-                "is_enemy": bool(nr.get("is_enemy", 0)),
+                "id": npc["id"],
+                "name": npc["name"],
+                "archetype": npc.get("archetype"),
+                "image_url": npc.get("image_url"),
+                "personality": npc.get("personality"),
+                "is_quest_giver": bool(npc.get("is_quest_giver", 0)),
+                "is_spirit": bool(npc.get("is_spirit", 0)),
+                "is_enemy": bool(npc.get("is_enemy", 0)),
             })
 
         locations = []
@@ -135,7 +136,7 @@ def _build_character_context(character_id: str, existing_conn=None) -> dict | No
     conn = existing_conn if existing_conn else get_db()
     try:
         char_row = conn.execute(
-            "SELECT current_location_id, game_hour FROM characters WHERE id = ?",
+            "SELECT location_id AS current_location_id, game_hour FROM characters WHERE id = ?",
             (character_id,)
         ).fetchone()
         if not char_row:

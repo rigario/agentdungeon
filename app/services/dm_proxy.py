@@ -29,6 +29,7 @@ import httpx
 from app.services.database import get_db
 from app.services.key_items import KEY_ITEMS
 from app.services import affinity
+from app.services import hub_rumors
 
 logger = logging.getLogger(__name__)
 
@@ -258,6 +259,7 @@ async def build_world_context(character_id: str) -> Dict[str, Any]:
             "affinities": social_affinities,
             "milestones": milestones,
             "loot_history": loot_history,
+            "hub_social": hub_rumors.get_hub_social_state(character_id, location['id']),
         },
     }
 

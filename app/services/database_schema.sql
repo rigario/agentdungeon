@@ -378,6 +378,25 @@ CREATE TABLE IF NOT EXISTS characters (
             UNIQUE(character_id, milestone_type, threshold)
         );
 
+        -- =========================================================
+        -- HUB RUMORS — Cross-NPC social state (fbe3830a)
+        -- =========================================================
+        CREATE TABLE IF NOT EXISTS hub_rumors (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            character_id TEXT NOT NULL,
+            location_id TEXT NOT NULL,
+            rumor_key TEXT NOT NULL,
+            sentiment INTEGER NOT NULL,          -- -1=negative, 0=neutral, 1=positive
+            source_npc_id TEXT,
+            first_seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            spread_count INTEGER DEFAULT 1,
+            UNIQUE(character_id, location_id, rumor_key),
+            FOREIGN KEY (character_id) REFERENCES characters(id),
+            FOREIGN KEY (location_id) REFERENCES locations(id),
+            FOREIGN KEY (source_npc_id) REFERENCES npcs(id)
+        );
+
         -- Track exploration loot finds (prevents duplicate unique items)
         CREATE TABLE IF NOT EXISTS exploration_loot_log (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

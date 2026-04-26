@@ -26,6 +26,7 @@ from app.services.character_lock import acquire_character_lock, release_characte
 from app.services.character_validation import validate_char_state
 from app.services import affinity
 from app.services import milestones
+from app.services import hub_rumors
 from app.services import loot as loot_service
 from app.services.atmosphere import get_atmospheric_description
 
@@ -1019,9 +1020,12 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
                 new_loc_row = conn.execute("SELECT * FROM locations WHERE id = ?", (result["new_location"],)).fetchone()
                 if new_loc_row:
                     new_loc = dict(new_loc_row)
-                    portent_row = conn.execute(
-                        "SELECT current_portent_index FROM campaign_fronts WHERE COALESCE(is_active, 1) = 1 ORDER BY id LIMIT 1"
-                    ).fetchone()
+                    try:
+                        portent_row = conn.execute(
+                            "SELECT current_portent_index FROM campaign_fronts WHERE COALESCE(is_active, 1) = 1 ORDER BY id LIMIT 1"
+                        ).fetchone()
+                    except sqlite3.OperationalError:
+                        portent_row = None
                     portent_index = portent_row[0] if portent_row else 0
                     overlay = get_atmospheric_description(
                         result["new_location"],
@@ -1589,9 +1593,12 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
             rest_minutes = get_action_time_cost("rest_long") if rest_type == "long" else get_action_time_cost("rest_short")
             time_info = advance_time(character_id, rest_minutes, conn)
             # Atmospheric overlay for rest location
-            portent_row = conn.execute(
-                "SELECT current_portent_index FROM campaign_fronts WHERE COALESCE(is_active, 1) = 1 ORDER BY id LIMIT 1"
-            ).fetchone()
+            try:
+                portent_row = conn.execute(
+                    "SELECT current_portent_index FROM campaign_fronts WHERE COALESCE(is_active, 1) = 1 ORDER BY id LIMIT 1"
+                ).fetchone()
+            except sqlite3.OperationalError:
+                portent_row = None
             portent_index = portent_row[0] if portent_row else 0
             atmosphere = get_atmospheric_description(
                 location_id,
@@ -1693,9 +1700,12 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
             # Advance game clock (30 min for exploration)
             time_info = advance_time(character_id, get_action_time_cost("explore"), conn)
             # Atmospheric overlay for current location
-            portent_row = conn.execute(
-                "SELECT current_portent_index FROM campaign_fronts WHERE COALESCE(is_active, 1) = 1 ORDER BY id LIMIT 1"
-            ).fetchone()
+            try:
+                portent_row = conn.execute(
+                    "SELECT current_portent_index FROM campaign_fronts WHERE COALESCE(is_active, 1) = 1 ORDER BY id LIMIT 1"
+                ).fetchone()
+            except sqlite3.OperationalError:
+                portent_row = None
             portent_index = portent_row[0] if portent_row else 0
             atmosphere = get_atmospheric_description(
                 location_id,
@@ -1777,9 +1787,12 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
             # Minimal time cost (5 minutes for a glance)
             time_info = advance_time(character_id, get_action_time_cost("look"), conn)
             # Atmospheric overlay for current location
-            portent_row = conn.execute(
-                "SELECT current_portent_index FROM campaign_fronts WHERE COALESCE(is_active, 1) = 1 ORDER BY id LIMIT 1"
-            ).fetchone()
+            try:
+                portent_row = conn.execute(
+                    "SELECT current_portent_index FROM campaign_fronts WHERE COALESCE(is_active, 1) = 1 ORDER BY id LIMIT 1"
+                ).fetchone()
+            except sqlite3.OperationalError:
+                portent_row = None
             portent_index = portent_row[0] if portent_row else 0
             atmosphere = get_atmospheric_description(
                 location_id,
@@ -1991,6 +2004,16 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
                         },
                     }
 
+            # --- fbe3830a: Apply cross-NPC rumor affinity bonus ---
+            # If other NPCs have spoken well (or ill) of the player, that
+            # social sentiment follows the character within the hub and boosts
+            # (or penalizes) this NPC's affinity before dialogue selection.
+            _reaction = hub_rumors.get_reaction_modifiers(character_id, location_id, npc['id'])
+            _bonus = _reaction.get('affinity_bonus', 0)
+            if _bonus:
+                affinity.update_affinity(character_id, npc['id'], _bonus)
+            # -----------------------------------------------------------
+
             # Load character's narrative flags for dialogue gating
             char_flags = {}
             if dialogues:
@@ -2063,6 +2086,35 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
 
             # Check for milestone rewards (function does its own DB commit)
             new_milestones = milestones.check_npc_milestones(character_id)
+            # ----------------------------------------------------------------
+
+            # --- fbe3830a: Record hub rumors for cross-NPC social state ---
+            # Significant dialogue outcomes can generate rumors that spread within
+            # the hub, affecting other NPCs' reactions on subsequent interactions.
+            rumor_key = None
+            sentiment = None
+
+            # Aldric confesses about Hollow Eye → positive rumor (truth, trust)
+            if npc['id'] == 'npc-aldric' and isinstance(selected_dialogue, dict):
+                reward = selected_dialogue.get('clue_reward')
+                if reward and reward.get('flag') == 'aldric_confessed':
+                    rumor_key = 'aldric_confessed'
+                    sentiment = 1  # positive
+
+            # Marta reveals Hollow Eye grudge/warning → cautionary rumor
+            elif npc['id'] == 'npc-marta':
+                if isinstance(selected_dialogue, dict):
+                    reward = selected_dialogue.get('clue_reward')
+                    if reward and reward.get('flag') == 'marta_hollow_eye_grudge':
+                        rumor_key = 'marta_hollow_eye_grudge'
+                        sentiment = -1  # warning
+                # Also detect via dialogue text if reward not present
+                if not rumor_key and dialogue and ('hollow eye' in dialogue.lower() or 'brother kol' in dialogue.lower()):
+                    rumor_key = 'marta_hollow_eye_grudge'
+                    sentiment = -1
+
+            if rumor_key and sentiment is not None:
+                hub_rumors.record_rumor(character_id, location_id, rumor_key, sentiment, npc['id'])
             # ----------------------------------------------------------------
 
             # Advance game clock (15 min for NPC interaction)

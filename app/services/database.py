@@ -80,6 +80,12 @@ CREATE TABLE IF NOT EXISTS characters (
             FOREIGN KEY (campaign_id) REFERENCES campaigns(id)
         );
 
+        CREATE TABLE IF NOT EXISTS campaign_fronts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            current_portent_index INTEGER DEFAULT 0,
+            is_active BOOLEAN DEFAULT 1
+        );
+
         CREATE TABLE IF NOT EXISTS locations (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
@@ -400,6 +406,25 @@ CREATE TABLE IF NOT EXISTS characters (
             reward_data TEXT,              -- JSON: item_id, hint_text, etc.
             FOREIGN KEY (character_id) REFERENCES characters(id),
             UNIQUE(character_id, milestone_type, threshold)
+        );
+
+        -- =========================================================
+        -- HUB RUMORS — Cross-NPC social state (fbe3830a)
+        -- =========================================================
+        CREATE TABLE IF NOT EXISTS hub_rumors (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            character_id TEXT NOT NULL,
+            location_id TEXT NOT NULL,
+            rumor_key TEXT NOT NULL,
+            sentiment INTEGER NOT NULL,          -- -1=negative, 0=neutral, 1=positive
+            source_npc_id TEXT,
+            first_seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            spread_count INTEGER DEFAULT 1,
+            UNIQUE(character_id, location_id, rumor_key),
+            FOREIGN KEY (character_id) REFERENCES characters(id),
+            FOREIGN KEY (location_id) REFERENCES locations(id),
+            FOREIGN KEY (source_npc_id) REFERENCES npcs(id)
         );
 
         -- Track exploration loot finds (prevents duplicate unique items)

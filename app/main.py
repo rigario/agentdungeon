@@ -59,6 +59,12 @@ static_dir = os.path.join(os.path.dirname(__file__), "static")
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 
+@app.get("/favicon.ico", include_in_schema=False)
+def serve_favicon():
+    """Serve browser favicon."""
+    return FileResponse(os.path.join(static_dir, "favicon.ico"), media_type="image/x-icon")
+
+
 # Character sheet routes
 @app.get("/")
 def serve_index():

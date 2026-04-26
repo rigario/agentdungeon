@@ -7,7 +7,7 @@ services:
     ports:
       - '127.0.0.1:8600:8600'
     volumes:
-      - d20-data:/app/data
+      - ./data:/app/data
     environment:
       - 'D20_DB_PATH=/app/data/d20.db'
       - 'D20_PORT=8600'
