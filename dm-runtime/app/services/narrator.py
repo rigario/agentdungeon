@@ -188,7 +188,23 @@ def _build_context_prompt(server_result: dict, intent: dict, world_context: dict
                 f"- Found {l.get('item_name','?')} (rarity: {l.get('rarity','common')}) at {l.get('location_id','?')}"
                 for l in loot_history[:5]
             ]
-            parts.append("EXPLORATION LOOT HISTORY:\\n" + "\\n".join(loot_lines))
+            parts.append("EXPLORATION LOOT HISTORY:\n" + "\n".join(loot_lines))
+
+        # Hub social — cross-NPC rumors/reactions
+        hub_social = social.get("hub_social", {})
+        if hub_social:
+            hub_rumors = hub_social.get("rumors", [])
+            if hub_rumors:
+                rumor_lines = []
+                for r in hub_rumors[:5]:
+                    key = r.get('key', '?')
+                    sentiment = r.get('sentiment', 0)
+                    spread = r.get('spread', 0)
+                    rumor_lines.append(f"- {key}: sentiment={sentiment} spread={spread}")
+                parts.append("HUB RUMORS (cross-NPC awareness):\n" + "\n".join(rumor_lines))
+            summary = hub_social.get("summary_text", "")
+            if summary:
+                parts.append(f"HUB ATMOSPHERE: {summary}")
 
     return "\n\n".join(parts)
 

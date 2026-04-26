@@ -137,6 +137,7 @@ Short excerpts may go in `PLAYTEST-ISSUES.md`, but prose review requires the ful
 - Production endpoints: `https://d20.holocronlabs.ai` (rules: :8600, DM: :8610)
 - Test character: fresh character per scenario (avoid cross-contamination)
 - Playtest harness: `scripts/full_playthrough_with_gates.py` (recommended; writes full DM prose logs)
+- **Readiness gate:** `scripts/production_smoke_gate.py` — run BEFORE any invited playtest to verify loop integrity
 - Session report: always append to `PLAYTEST-ISSUES.md`
 
 ### Character Build Recommendations

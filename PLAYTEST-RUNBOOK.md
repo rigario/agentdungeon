@@ -239,7 +239,51 @@ D20_COMBAT=0 python3 scripts/agentic_harness.py
 |--------|---------|----------|
 | `agentic_harness.py` | Full autonomous test | `scripts/` |
 | `full_playthrough_with_gates.py` | Human-gated test | `scripts/` |
+| `production_smoke_gate.py` | **Production readiness gate** — end-to-end loop validation | `scripts/` |
 | `smoke_test.py` | Quick health check | `scripts/` |
+
+### Production Readiness Smoke Gate
+
+**Script:** `scripts/production_smoke_gate.py`
+
+**Gate purpose:** Detect "false green" where health endpoints pass but the actual
+playtest loop is broken (character create → actions → move → DM turn).
+
+**Usage:**
+```bash
+# Against production
+export SMOKE_RULES_URL=https://d20.holocronlabs.ai
+export SMOKE_DM_URL=https://d20.holocronlabs.ai  # if exposed
+python3 scripts/production_smoke_gate.py
+
+# Against local dev
+export SMOKE_RULES_URL=http://localhost:8600
+export SMOKE_DM_URL=http://localhost:8610
+python3 scripts/production_smoke_gate.py
+```
+
+**Exit codes:**
+- `0` — all critical checks passed (go/no-go for playtest)
+- `1` — one or more checks failed (do not proceed to external playtest)
+
+**Output format:**
+```
+[PASS] Rules server /health
+[PASS] POST /characters (create)
+[PASS] POST /actions (explore)
+[PASS] POST /dm/turn (look)
+...
+=== SUMMARY: 7/7 passed ===
+Gate: PASSED ✓
+```
+
+**Heavy checks skipped automatically:**
+- `POST /portal/token` returns 404 → SKIP (not deployed yet)
+
+**Related:** This gate is wired into the D20 IMPLEMENTER heartbeat (ALPHA) and
+MUST pass before any invited external playtest task (`53871fd5`) is considered
+ready for human coordination. History: added c65cb86d to close the false-green
+gap found in 2026-04-26 Alpha audit.
 
 ### Mission Control Project
 

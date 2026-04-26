@@ -60,7 +60,7 @@ services:
       - 'DM_HERMES_PROFILE=d20-dm'
       - 'HERMES_HOME=/root/.hermes'
       - 'KIMI_API_KEY=${KIMI_API_KEY:-}'
-      - 'KIMI_BASE_URL=https://api.kimi.com/coding'
+      - 'KIMI_BASE_URL=https://api.moonshot.cn/v1'
       - 'DM_FIRE_PASS_API_KEY=${DM_FIRE_PASS_API_KEY:-}'
     networks:
       - d20-net
