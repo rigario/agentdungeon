@@ -65,6 +65,18 @@ def _row_to_response(row) -> dict:
             sheet["provenance"]["signature"] = d.get("sheet_signature", "")
             sheet["provenance"]["created_at"] = d.get("created_at", "")
             sheet["provenance"]["repaired_from_corruption"] = True
+            # Overlay mutable progression state from flat columns so XP/gold/HP updates are visible
+            sheet["xp"] = d["xp"]
+            sheet["level"] = d["level"]
+            sheet["hit_points"] = {
+                "max": d["hp_max"],
+                "current": d["hp_current"],
+                "temporary": d.get("hp_temporary", 0),
+            }
+            try:
+                sheet["treasure"] = json.loads(d.get("treasure_json", '{"gp": 10, "sp": 0, "cp": 0, "pp": 0, "ep": 0}'))
+            except (json.JSONDecodeError, TypeError):
+                sheet["treasure"] = {"gp": 10, "sp": 0, "cp": 0, "pp": 0, "ep": 0}
             return sheet
 
     # Fallback: construct from flat columns
