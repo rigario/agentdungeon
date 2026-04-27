@@ -111,6 +111,30 @@ def test_cadence_multi_tick_progression():
     assert tick_results[0]["last_tick_at"] is not None
     assert tick_results[2]["last_tick_at"] >= tick_results[0]["last_tick_at"]
 
+    # 6. Verify front advancement: /narrative/fronts should show active fronts
+    # This is the key fix — don't just check portents_triggered integer
+    fronts = curl_get(f"/narrative/fronts?character_id={char_id}")
+    assert len(fronts) > 0, "Character should have at least one active narrative front after initialization"
+    # Verify front state structure
+    first_front = fronts[0]
+    assert "id" in first_front
+    assert "name" in first_front
+    assert "current_portent_index" in first_front
+    assert "is_active" in first_front
+
+    # 7. Verify front advancement occurred at threshold (3 ticks → 1 portent)
+    third_tick = tick_results[2]
+    triggered = third_tick.get("triggered_events", [])
+    # The Dreaming Hunger front should have advanced
+    advancement_events = [e for e in triggered if e.get("type") == "front_portent_advanced"]
+    assert len(advancement_events) > 0, \
+        "Tick 3 should emit front_portent_advanced event when doom_ticks_per_portent=3 and fronts exist"
+    # Verify the front's current_portent_index reflects the advancement
+    dh_front = next((f for f in fronts if f["id"] == "dreaming_hunger"), None)
+    assert dh_front is not None, "Dreaming Hunger front must exist for test character"
+    assert dh_front["current_portent_index"] >= 1, \
+        f"Dreaming Hunger portent index should be at least 1 after 3 ticks, got {dh_front['current_portent_index']}"
+
 
 @pytest.mark.integration
 def test_cadence_status_coherence():
@@ -193,7 +217,8 @@ def test_cadence_event_log_entries():
     # Verify event type
     cadence_events = [e for e in after.get("events", []) if e["event_type"] == "cadence_tick"]
     assert len(cadence_events) >= 1
-    assert "tick" in new_event["description"].lower()
+    assert len(cadence_events) >= 1
+    assert "tick" in cadence_events[-1]["description"].lower()
 
 
 # ---------------------------------------------------------------------------
@@ -264,6 +289,24 @@ if __name__ == "__main__":
     cadence_events = [e for e in events.get("events", []) if e["event_type"] == "cadence_tick"]
     print(f"\n[6] Event log: {len(cadence_events)} cadence_tick events found")
     assert len(cadence_events) >= 3, "Expected at least 3 cadence_tick events"
+
+    # Front advancement verification — critical for narrative integration
+    print("\n[7] Narrative front state check...")
+    fronts = curl_get(f"/narrative/fronts?character_id={char_id}")
+    print(f"    Active fronts: {len(fronts)}")
+    assert len(fronts) > 0, "Character must have at least one active narrative front after seeding"
+    for f in fronts:
+        print(f"    • {f['name']}: portent_index={f['current_portent_index']}, active={f['is_active']}")
+    # Verify Dreaming Hunger front advanced after 3 ticks crossing threshold
+    dh = next((f for f in fronts if f["id"] == "dreaming_hunger"), None)
+    assert dh is not None, "Dreaming Hunger front must exist"
+    assert dh["current_portent_index"] >= 1, \
+        f"Dreaming Hunger should be at portent index >=1 after 3 ticks (threshold=3), got {dh['current_portent_index']}"
+    # Also verify tick result emitted the advancement event
+    third_tick = tick_results[2]
+    triggered = third_tick.get("triggered_events", [])
+    adv_events = [e for e in triggered if e.get("type") == "front_portent_advanced"]
+    assert len(adv_events) > 0, "Tick 3 must emit front_portent_advanced event"
 
     print("\n" + "=" * 60)
     print("ALL LIVE MATRIX CHECKS PASSED")

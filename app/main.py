@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse, FileResponse
 from app.config import HOST, PORT
-from app.services.database import init_db
+from app.scripts.seed import seed
 from app.services.auth_middleware import AuthMiddleware
 from app.routers import health, characters, events, actions, combat, turns, narrative, items, auth, npcs, map as map_router, encounters
 from app.routers.actions import global_actions_router
@@ -22,8 +22,8 @@ from app.services.cadence_scheduler import start_scheduler, stop_scheduler
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize database and start background cadence scheduler."""
-    init_db()
-    print(f"[D20] Database initialized")
+    seed()
+    print(f"[D20] Database seeded and initialized")
 
     # Clean up stale active combats from previous crashes
     from app.services.combat_cleanup import cleanup_stale_combats
