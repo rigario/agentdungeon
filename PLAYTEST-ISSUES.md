@@ -1,8 +1,8 @@
 # D20 Playtest Issues Log
 
-**Last Reviewed:** 2026-04-26 19:40 UTC — Heartbeat — Semantic guard LIVE verified; 102 tests pass; infra healthy
+**Last Reviewed:** 2026-04-27 03:47 UTC — Heartbeat Triage (79675dbc) — Production smoke gate 10/10 PASS; ISSUE-010/011/013 resolved — Heartbeat — Semantic gate 16/16 PASS — narrate guard true — local tests 102/102 PASS
 
-**Open Issues:** 4 | **Fixed Issues:** 13
+**Open Issues:** 1 | **Fixed Issues:** 16
 ---
 
 ## Open Issues
@@ -513,6 +513,16 @@ The rules server is unreachable from the DM runtime (DNS resolution failure). DM
     - Note: ISSUE-010 still marked OPEN but current probes indicate dm_health functional
     - Smoke failures stem from action endpoint 500, not dm_health outage; may close this issue or mark Fixed
 
+
+---
+
+**Fixed:** 2026-04-27 — Heartbeat verification — Production smoke gate 10/10 PASS. Infrastructure healthy across the board:
+- GET /health → 200 OK
+- GET /dm/health → 200 OK, subsystems healthy (rules_server ok, dm_runtime ok)
+- GET /api/map/data → 200 OK (12 locations)
+- No DNS/network degradation observed
+**Evidence:** Smoke gate run char `smokegate-triage-1486-88f530` on https://d20.holocronlabs.ai, 2026-04-27 11:45 UTC. All 10/10 checks pass.
+**MC Task:** 79675dbc
 ### ISSUE-011: Action endpoints return 500 Internal Server Error (P1-High)
 
 **Severity:** P1-High  (blocks all scenario execution)
@@ -659,6 +669,12 @@ The rules server is reachable and healthy on the surface (health checks pass, DB
     - Conclusion: Action handler instability regression — fix committed but not redeployed to production (deployment lag)
 
 
+
+---
+
+**Fixed:** 2026-04-27 — Re-verified live: POST /characters/{id}/actions (explore) → 200 ✓, (move) → 200 ✓. Earlier 500 regressions resolved. Production smoke gate 10/10 PASS confirms action pipeline functional.
+**Evidence:** char `smokegate-triage-1486-88f530`, explore & move actions both return 200 with correct state updates. Smoke gate checks 4–7 all pass.
+**MC Task:** 79675dbc
 ### ISSUE-012: Test pollution — session-scoped character fixture shared across state-mutating tests causes spurious failures
 
 **Severity:** P1-High  (blocks CI/pre-flight gate; false-positive smoke failure)
@@ -800,6 +816,12 @@ The DM runtime health endpoint responds quickly but the `/dm/turn` synthesis cal
     - Conclusion: DM synthesis/routing broken — fix committed but not redeployed (deployment lag)
 
 
+
+---
+
+**Fixed:** 2026-04-27 — Verified live: POST /dm/turn returns 200 with full narration + choices (latency ~31s; TIMEOUT=60s acceptable). Earlier ReadTimeout/500 resolved.
+**Evidence:** char `smokegate-triage-1486-88f530`, /dm/turn returns narration (non-empty) + 4 choices. DM contract/health green. Smoke gate check 8 passes.
+**MC Task:** 79675dbc
 ### ISSUE-014: Event log does not record move/combat events (P1-High)
 
 **Severity:** P1-High  (blocks verification, breaks audit trail)
@@ -1070,6 +1092,64 @@ World topology regression — DB seed/migration cleared the `exits` column or fa
 **Smoke tests:** 16/16 PASS on VPS
 
 ## Playtest Session Reports
+### 2026-04-27 03:39 UTC — Heartbeat Agent — Semantic Coherence Guard Revalidation — PASS
+
+**Infrastructure:**
+  /health:       200 OK
+  /dm/health:    200 OK (dm_runtime ok, narrator kimi-k2.5, intent_router ok)
+  /api/map/data: 200 OK (total locations: 11)
+
+**Semantic Gate Probes (POST /dm/intent/analyze):**
+  Block-cases (11/11): all guarded (type=general, action_type=null, _semantic_guard=true, reason=negated_or_refusal_action)
+  Allow-cases (5/5): all passed without guard (action_type resolved, _semantic_guard absent)
+  Messages: full list verified via live HTTP probes
+
+**No-Mutation Narrate Check (POST /dm/narrate):**
+  player_message="I don't want to go to the woods"
+  server_trace.intent_used.details._semantic_guard: true
+  npc_lines: []  (empty)
+  narration excerpt: "You pause on the instruction: 'I don't want to go to the woods'. That is not consent to act..."
+  Result: PASS — guard engaged, zero state mutation
+
+**Local Regression Tests:**
+  tests/test_intent_router.py + tests/test_dm_runtime_synthesis.py: 102 PASS
+  Includes semantic guard unit tests
+
+**Outcome:** Semantic coherence guard fully operational — zero regressions.
+
+**Character ID:** semanticguard-probe-autogen
+
+---
+
+### 2026-04-27 02:45 UTC — Heartbeat Agent — Semantic Coherence Guard Validation — ALL CLEAR
+
+**Infrastructure:**
+  /health:       200 OK
+  /dm/health:    200 OK (dm_runtime ok, narrator kimi-k2.5, intent_router ok)
+  /api/map/data: 200 OK (total locations: 11, all narrative nodes present, exits properly connected)
+
+**Semantic Gate Probes (POST /dm/intent/analyze):**
+  Block-cases (11/11): all guarded (type=general, action_type=null, _semantic_guard=true, reason=negated_or_refusal_action)
+  Allow-cases (5/5): all passed without guard (action_type resolved, _semantic_guard absent)
+  Messages verified: full list confirmed via live HTTP probes
+
+**No-Mutation Narrate Check:**
+  player_message="I don't want to go to the woods"
+  server_trace.intent_used.details._semantic_guard: true
+  npc_lines: []  (empty)
+  narration excerpt: "You pause on the instruction: 'I don't want to go to the woods'. That is not consent to act..."
+  Result: PASS — no state mutation, guard engaged
+
+**Local Regression Tests:**
+  tests/test_intent_router.py + tests/test_dm_runtime_synthesis.py: 102 PASS
+  Includes semantic guard unit tests (test_synthesize_semantic_guard_returns_noop_without_story_progression)
+
+**Outcome:** Semantic coherence guard fully operational — no regressions detected.
+
+**Character ID:** semanticguard-probe-autogen
+
+---
+
 
 ### 2026-04-26 19:40 UTC — Heartbeat Agent — SemanticGuard Verified Scenario SKIP — Infra Healthy, Semantic Guard Verified
 
