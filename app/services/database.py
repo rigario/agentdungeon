@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS characters (
             race TEXT NOT NULL,
             class TEXT NOT NULL,
             level INTEGER DEFAULT 1,
+            game_hour INTEGER DEFAULT 8,
             hp_current INTEGER NOT NULL,
             hp_max INTEGER NOT NULL,
             hp_temporary INTEGER DEFAULT 0,
