@@ -351,6 +351,75 @@ class IntentRouter:
             pass  # Non-blocking — keep existing context on failure
         return current_wc or {}
 
+    def _normalize_target(self, intent, world_context: dict) -> str:
+        """
+        Map natural language target phrases to canonical game object IDs
+        using the current world_context.
+
+        - For MOVE: maps location display names/aliases to canonical location IDs.
+        - For INTERACT/TALK: maps NPC name fragments to canonical NPC IDs.
+        Returns the normalized target string, or the original if no match found.
+        """
+        if not intent or not intent.target:
+            return intent.target if intent else None
+
+        target = intent.target.lower().strip()
+        wc = world_context or {}
+
+        # --- Location normalization for MOVE intents ---
+        if intent.action_type == "move":
+            locations = wc.get("locations", [])
+            for loc in locations:
+                loc_id = loc.get("id", "").lower()
+                loc_name = loc.get("name", "").lower()
+                # Exact canonical ID match
+                if target == loc_id:
+                    return loc_id
+                # Target is a substring of location name (e.g. "thornhold town square" contains "thornhold")
+                if loc_id and loc_id in target:
+                    return loc_id
+                # Location name contains target or vice versa
+                if loc_name and (target in loc_name or loc_name in target):
+                    return loc_id
+                # Also check connected location IDs
+            # Check connections from current_location
+            current = wc.get("current_location", {})
+            connections = current.get("connections", []) if current else []
+            for conn in connections:
+                conn_id = conn.get("id", "").lower() if isinstance(conn, dict) else str(conn).lower()
+                conn_name = conn.get("name", "").lower() if isinstance(conn, dict) else ""
+                if target == conn_id or (conn_id and target in conn_id):
+                    return conn_id
+                if conn_name and (target in conn_name or conn_name in target):
+                    return conn_id
+
+        # --- NPC normalization for INTERACT/TALK intents ---
+        if intent.action_type == "interact" or intent.type == IntentType.TALK:
+            npcs = wc.get("npcs", [])
+            target_lower = target
+            best_match = None
+            for npc in npcs:
+                npc_id = npc.get("id", "").lower()
+                npc_name = npc.get("name", "").lower()
+                # Prefer exact match on id first
+                if target_lower == npc_id:
+                    return npc_id
+                # Exact match on name
+                if target_lower == npc_name:
+                    return npc_id
+                # Substring match: "aldric" in "aldric the innkeeper"
+                if npc_id and npc_id in target_lower:
+                    best_match = npc_id
+                elif npc_name and npc_name in target_lower:
+                    best_match = npc_id
+                elif target_lower in npc_name:
+                    best_match = npc_id
+            if best_match:
+                return best_match
+
+        # No normalization found — return original
+        return intent.target
+
     async def check_active_combat(self, character_id: str) -> Optional[dict]:
         """Check if a character has active combat. Returns combat state or None.
 
@@ -388,7 +457,15 @@ class IntentRouter:
                 latest_turn = await self._client.get_latest_turn(character_id)
                 world_context = latest_turn.get("world_context", {}) or {}
             except Exception:
-                pass  # No previous turn / rules server unavailable — proceed without context
+                pass  # No previous turn / rules server unavailable — try scene-context fallback
+
+            # Fallback: if no turn history (fresh character), fetch live scene-context
+            if not world_context:
+                try:
+                    scene_data = await self._client.get_scene_context(character_id)
+                    world_context = scene_data
+                except Exception:
+                    pass  # Scene-context unavailable — proceed without context
 
             if world_context:
                 plan = await self._planner.plan(character_id, player_message, world_context)
@@ -399,22 +476,37 @@ class IntentRouter:
                         success=success,
                         endpoint_called=f"planner-{plan.decision.value}",
                         narration=plan.clarifying_question or plan.reason or "That action isn't available here.",
-                        events=[{
-                            "type": "affordance_planner",
-                            "decision": plan.decision.value,
-                            "reason": plan.reason,
-                            "confidence": plan.confidence,
-                            "clarifying_question": plan.clarifying_question,
-                            "narration_hint": plan.narration_hint,
-                        }],
+                        events=[
+                            {
+                                "type": "affordance_planner",
+                                "decision": plan.decision.value,
+                                "reason": plan.reason,
+                                "confidence": plan.confidence,
+                                "clarifying_question": plan.clarifying_question,
+                                "narration_hint": plan.narration_hint,
+                            }
+                        ],
                         raw_response=plan.model_dump(),
                     )
         except Exception:
             # Planner errors should NOT block the main flow — fall through to standard classification
             pass
-
-        # Step 1b: Classify intent (fallback/augmented)
         intent = classify_intent(player_message)
+
+        # Canonicalize natural language targets to known IDs using scene context
+        if intent.target and world_context:
+            try:
+                normalized = self._normalize_target(intent, world_context)
+                if normalized and normalized != intent.target:
+                    intent = Intent(
+                        type=intent.type,
+                        target=normalized,
+                        action_type=intent.action_type,
+                        details=dict(intent.details),
+                        confidence=intent.confidence,
+                    )
+            except Exception:
+                pass  # Non-blocking — send original target on normalization failure
 
         # Semantic guard — do not greenlight an action when the player-agent's
         # own text negates/refuses the embedded verb (e.g. "I don't want to go
