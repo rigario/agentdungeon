@@ -11,6 +11,7 @@ from fastapi import APIRouter, HTTPException, Depends, Request, Query
 from pydantic import BaseModel
 from typing import Optional
 from app.services.key_items import get_key_items, has_key_item
+from app.services.scene_context import get_scene_context
 from app.services.portal import create_share_token
 from app.models.schemas import CharacterCreate, CharacterResponse, CharacterUpdate
 from app.services.database import get_db, init_character_fronts
@@ -752,6 +753,32 @@ def list_key_items(character_id: str, request: Request):
         "key_items": items,
         "count": len(items),
     }
+
+@router.get("/{character_id}/scene-context")
+def get_scene_context_endpoint(character_id: str, request: Request):
+    """Get complete narrative scene context for a character.
+
+    Aggregates character state, location details, NPCs (with availability),
+    narrative flags, key items, active quests, combat status, fronts, doom clock,
+    hub rumors, and computed allowed/disallowed actions into a single bounded
+    payload for DM runtime decision-making.
+
+    This is the unified source-of-truth for what the player can see and do
+    in the current scene — eliminates stale/partial context reconstruction.
+    """
+    auth = get_auth(request)
+    # Verify character exists
+    conn = get_db()
+    try:
+        existing = conn.execute("SELECT id FROM characters WHERE id = ?", (character_id,)).fetchone()
+        if not existing:
+            raise HTTPException(404, f"Character not found: {character_id}")
+        context = get_scene_context(character_id)
+        return context
+    finally:
+        conn.close()
+
+
 
 
 # =========================================================
