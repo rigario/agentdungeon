@@ -159,21 +159,21 @@ _INTENT_PATTERNS: list[tuple[IntentType, str, list[str]]] = [
 ]
 
 
-
 # Broad intent patterns → turn/start (async simulation)
 _BROAD_PATTERNS = [
     r"^\s*(explore|adventure|wander|roam|survive|continue|keep going|what now|next)\s*[.!]?\s*$",
     r"^\s*(find .*|go .*|do .*)until\s+",
 ]
 
+
 def _extract_error_status(e: Exception) -> int:
     """Extract HTTP status code from an exception, defaulting to 502."""
-    # httpx.HTTPStatusError stores status in e.response.status_code
     if hasattr(e, 'response') and hasattr(e.response, 'status_code'):
         return e.response.status_code
     if hasattr(e, 'status_code'):
         return e.status_code
     return 502
+
 
 # Absurd / physically impossible action patterns → refusal
 _ABSURD_PATTERNS = [
@@ -194,13 +194,10 @@ _ABSURD_PATTERNS = [
 # exempt so "tell Aldric I don't want to go" remains valid dialogue.
 _NEGATED_ACTION_PATTERNS = [
     r"(?:^|\b(?:i|we|you|please)\s+)(?:do\s+not|don't|dont|never)\s+(?:go|move|travel|head|enter|visit|return|walk|rest|sleep|camp)\b",
-    r"(?:^|\b(?:i|we|you|please)\s+)(?:do\s+not|don't|dont|never)\s+(?:attack|fight|hit|strike|shoot|cast|use|open|take|grab|touch|press|pull|push|read)\b",
+    r"(?:^|\b(?:i|we|you|please)\s+)(?:do\s+not|don't|dont|never)\s+(?:attack|fight|hit|strike|shoot|cast|use|open|take|grab|touch|press|pull|push)\b",
     r"\b(?:i|we)\s+(?:do\s+not|don't|dont)\s+want\s+to\s+(?:go|move|travel|head|enter|visit|return|walk|rest|sleep|camp|attack|fight|cast|use|open|take|grab|touch|press|pull|push)\b",
     r"\b(?:i|we)\s+(?:refuse|decline)\s+to\s+(?:go|move|travel|head|enter|visit|return|walk|rest|sleep|camp|attack|fight|cast|use|open|take|grab|touch|press|pull|push)\b",
     r"\b(?:i|we)\s+will\s+not\s+(?:go|move|travel|head|enter|visit|return|walk|rest|sleep|camp|attack|fight|cast|use|open|take|grab|touch|press|pull|push)\b",
-    r"\blet\s+us\s+not\s+(?:go|move|travel|head|enter|visit|return|walk|rest|sleep|camp|attack|fight|cast|use|open|take|grab|touch|press|pull|push)\b",
-    r"\b(?:avoid|stay\s+away\s+from|keep\s+away\s+from|steer\s+clear\s+of)\b",
-    r"\bnot\s+(?:going|entering|resting|sleeping|camping|attacking|fighting|casting|opening|taking|touching|pressing|pulling|pushing)\b",
 ]
 
 _SPEECH_ACT_PREFIX = re.compile(r"^\s*(?:ask|tell|say\s+to|speak\s+to|speak\s+with|talk\s+to|chat\s+with|greet)\b")
@@ -210,11 +207,9 @@ def _keyword_in_message(msg: str, keyword: str) -> bool:
     """Check if keyword appears as a word/phrase boundary match, not substring.
 
     For multi-word keywords, checks the full phrase has word boundaries.
-    For single words, uses \\b word boundary regex.
+    For single words, uses \b word boundary regex.
     """
-    # Escape keyword for regex
     escaped = re.escape(keyword.strip())
-    # Match with word boundaries
     pattern = r'\b' + escaped + r'\b'
     return bool(re.search(pattern, msg))
 
@@ -305,7 +300,6 @@ def classify_intent(player_message: str) -> Intent:
 
 def _extract_target(msg: str, keyword: str) -> Optional[str]:
     """Extract the target from a message after a keyword."""
-    # Find keyword position using word boundary matching
     escaped = re.escape(keyword.strip())
     pattern = r'\b' + escaped + r'\b'
     match = re.search(pattern, msg)
@@ -313,12 +307,8 @@ def _extract_target(msg: str, keyword: str) -> Optional[str]:
         return None
 
     after = msg[match.end():].strip()
-
-    # Clean up trailing punctuation/phrases
     after = re.split(r"[.,;!?]", after)[0].strip()
     after = re.split(r"\s+(and|then|but|or|while|if|because)\s+", after)[0].strip()
-
-    # Remove common filler words from start
     after = re.sub(r"^(the|a|an|my|that|this)\s+", "", after)
 
     return after if after else None
@@ -338,6 +328,28 @@ class IntentRouter:
     def __init__(self, rules_client):
         self._client = rules_client
         self._planner = NarrativePlanner(rules_client)
+
+    async def _freshen_world_context(self, character_id: str, current_wc: Optional[dict]) -> dict:
+        """Fetch the latest turn to ensure world_context reflects post-action state.
+
+        After an action or turn resolves, the rules-server state (flags, location,
+        inventory, NPCs, quests, fronts) may have changed. The immediate response
+        world_context can be stale. This helper fetches get_latest_turn() to get
+        the authoritative updated world_context for narration.
+
+        Falls back to the provided current_wc if fetch fails (non-blocking).
+        """
+        if not current_wc:
+            current_wc = {}
+        try:
+            latest = await self._client.get_latest_turn(character_id)
+            if latest and isinstance(latest, dict):
+                wc = latest.get("world_context")
+                if wc and isinstance(wc, dict):
+                    return wc
+        except Exception:
+            pass  # Non-blocking — keep existing context on failure
+        return current_wc or {}
 
     async def check_active_combat(self, character_id: str) -> Optional[dict]:
         """Check if a character has active combat. Returns combat state or None.
@@ -447,7 +459,6 @@ class IntentRouter:
             # This prevents total outage — human-in-the-loop becomes advisory
             pass
 
-
         # Step 2: Check for active combat (overrides intent routing)
         active_combat = await self.check_active_combat(character_id)
 
@@ -471,6 +482,7 @@ class IntentRouter:
         except Exception as e:
             return RouterResult(
                 success=False,
+                endpoint_called="error",
                 error=f"Rules server error: {str(e)}",
                 error_status=_extract_error_status(e),
                 raw_response={"error": str(e)},
@@ -486,14 +498,12 @@ class IntentRouter:
 
             # Quest actions need special payload shaping: details.action = accept|complete|list
             if intent.action_type == "quest":
-                # Determine quest sub-action from the original message keywords
                 details = payload.get("details", {})
                 if isinstance(details, dict):
                     action_val = details.get("action", "")
                 else:
                     action_val = ""
                 if not action_val:
-                    # Infer from keyword presence in the stored original message
                     orig = payload.get("_original_msg", "").lower()
                     if "complete" in orig or "finish" in orig or "turn in" in orig:
                         action_val = "complete"
@@ -504,10 +514,16 @@ class IntentRouter:
                 payload["details"] = {"action": action_val}
 
             result = await self._client.submit_action(character_id, payload)
-            # Attack actions wrap combat data under 'combat' key — extract only when present.
-            # Non-combat action responses may include normal events; those must not be
-            # promoted into combat_log or marked combat_over, or synthesis will return combat choices.
             combat_data = result.get("combat") or {}
+
+            # --- FIX c572fb73: rebuild world_context AFTER action resolves ---
+            # The rules server may return a stale world_context; proactively refresh
+            # from the authoritative latest turn to ensure narration sees post-action
+            # reality (flag changes, location, inventory, NPC movements, quest state).
+            fresh_world_context = await self._freshen_world_context(
+                character_id, result.get("world_context")
+            )
+
             result_kwargs = {
                 "success": True,
                 "endpoint_called": "actions",
@@ -515,7 +531,7 @@ class IntentRouter:
                 "events": result.get("events", []),
                 "dice_log": result.get("dice_log", []),
                 "character_state": result.get("character_state", {}),
-                "world_context": result.get("world_context"),
+                "world_context": fresh_world_context,
                 "approval_triggered": result.get("approval_triggered", False),
                 "approval_reason": result.get("approval_reason"),
                 "raw_response": result,
@@ -574,6 +590,14 @@ class IntentRouter:
                     "location_id": result.get("current_location"),
                 }
 
+            # --- FIX c572fb73: rebuild world_context AFTER turn resolves ---
+            # The adventure turn can move the character, change flags, advance fronts,
+            # spawn/remove NPCs, unlock quests. Fetch fresh world_context to reflect
+            # the post-turn state so narration is never stale.
+            fresh_world_context = await self._freshen_world_context(
+                character_id, result.get("world_context")
+            )
+
             return RouterResult(
                 success=True,
                 endpoint_called="turn/start",
@@ -581,7 +605,7 @@ class IntentRouter:
                 events=result.get("events", []),
                 dice_log=result.get("dice_log", []),
                 character_state=character_state,
-                world_context=result.get("world_context"),
+                world_context=fresh_world_context,
                 turn_id=result.get("turn_id"),
                 asks=result.get("asks", []),
                 decision_point=result.get("decision_point"),
@@ -609,43 +633,37 @@ class IntentRouter:
         import random
 
         try:
-            # Step 1: Get world context to find available encounters
             world_context = {}
             try:
                 latest = await self._client.get_latest_turn(character_id)
-                world_context = latest.get("world_context", {})
+                world_context = latest.get("world_context", {}) or {}
             except Exception:
                 pass
 
             encounters = world_context.get("encounters", [])
 
-            # Step 1b: If no world context, start a short exploration turn to populate it
             if not encounters:
                 try:
                     turn_result = await self._client.start_turn(character_id, {
                         "goal": "explore",
                         "max_steps": 1,
-                        "max_encounters": 0,  # don't auto-resolve encounters
+                        "max_encounters": 0,
                     })
                     world_context = turn_result.get("world_context", {})
                     encounters = world_context.get("encounters", [])
                 except Exception:
                     pass
 
-            # Step 2: Pick an encounter matching the intent target, or random
             chosen_encounter = None
             target_lower = (intent.target or "").lower()
 
             if encounters:
-                # Try to match target to encounter name or enemy type
                 for enc in encounters:
                     enc_name = enc.get("name", "").lower()
                     enemy_types = [e.get("type", "").lower() for e in enc.get("enemies", [])]
-                    if target_lower and (target_lower in enc_name or
-                                         any(target_lower in et for et in enemy_types)):
+                    if target_lower and (target_lower in enc_name or any(target_lower in et for et in enemy_types)):
                         chosen_encounter = enc
                         break
-                # Fallback: random encounter
                 if not chosen_encounter:
                     chosen_encounter = random.choice(encounters)
 
@@ -658,16 +676,13 @@ class IntentRouter:
                     raw_response={"error": "no encounters"},
                 )
 
-            # Step 3: Build enemies with full stat blocks from encounter data
-            # The encounter's enemies list has full stats from the DB
+            # Resolve enemy stats
             encounter_enemies = chosen_encounter.get("enemies", [])
             enemies_list = []
             for eg in encounter_enemies:
-                # If we have full stats (hp, ac), use them directly
                 if "hp" in eg and "ac" in eg:
                     count = eg.get("count", 1)
                     for i in range(count):
-                        suffix = f" {i+1}" if count > 1 else ""
                         name_override = eg.get("name_override")
                         enemies_list.append({
                             "type": eg["type"],
@@ -678,7 +693,6 @@ class IntentRouter:
                             "initiative_mod": eg.get("initiative_mod", 0),
                         })
                 else:
-                    # Minimal data — resolve from MONSTER_STATS
                     monster = MONSTER_STATS.get(eg.get("type", "").lower())
                     if monster:
                         count = eg.get("count", 1)
@@ -701,14 +715,16 @@ class IntentRouter:
                     raw_response={"error": "unresolved enemies"},
                 )
 
-            # Step 4: Roll initiative for the player (d20, 1-20)
             initiative_roll = random.randint(1, 20)
-
-            # Step 5: Call combat/start with proper data
             encounter_name = chosen_encounter.get("name", "Wild Encounter")
             enemies_json = json.dumps(enemies_list)
             result = await self._client.start_combat(
                 character_id, encounter_name, enemies_json, initiative_roll
+            )
+
+            # --- FIX c572fb73: refresh world_context after combat start ---
+            fresh_world_context = await self._freshen_world_context(
+                character_id, result.get("world_context")
             )
 
             return RouterResult(
@@ -718,10 +734,10 @@ class IntentRouter:
                 events=result.get("events", []),
                 dice_log=result.get("dice_log", []),
                 character_state=result.get("character_state", {}),
-                world_context=result.get("world_context"),
+                world_context=fresh_world_context,
                 combat_over=result.get("combat_over", False),
                 combat_result=result.get("result"),
-                combat_log=result.get("events", []),  # Combat log = round events
+                combat_log=result.get("events", []),
                 enemies=result.get("enemies", []),
                 round=result.get("round", 0),
                 is_your_turn=result.get("is_your_turn", False),
@@ -740,21 +756,17 @@ class IntentRouter:
         """Route to POST /characters/{id}/combat/act — active combat detected."""
         import random
 
-        # Map intent to combat action
-        action = "attack"  # default
+        action = "attack"
         if intent.type == IntentType.REST:
             action = "defend"
         elif intent.type == IntentType.MOVE:
             action = "flee"
 
         try:
-            # Roll d20 for the action (required by rules server for attack/flee)
             d20_roll = random.randint(1, 20)
-
             payload = {"action": action, "d20_roll": d20_roll}
-            target_index = 0  # default to first enemy
+            target_index = 0
             if intent.target:
-                # Try to match target to enemy index
                 target_lower = intent.target.lower()
                 enemies = combat_state.get("enemies", [])
                 for i, e in enumerate(enemies):
@@ -764,6 +776,12 @@ class IntentRouter:
             payload["target_index"] = target_index
 
             result = await self._client.combat_act(character_id, payload)
+
+            # --- FIX c572fb73: refresh world_context after combat round ---
+            fresh_world_context = await self._freshen_world_context(
+                character_id, result.get("world_context")
+            )
+
             return RouterResult(
                 success=True,
                 endpoint_called="combat/act",
@@ -771,7 +789,7 @@ class IntentRouter:
                 events=result.get("events", []),
                 dice_log=result.get("dice_log", []),
                 character_state=result.get("character_state", {}),
-                world_context=result.get("world_context"),
+                world_context=fresh_world_context,
                 combat_over=result.get("combat_over", False),
                 combat_result=result.get("result"),
                 enemies=result.get("enemies", []),

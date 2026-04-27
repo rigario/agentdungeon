@@ -1,0 +1,18 @@
+=== Production Playtest Readiness Gate ===
+
+
+=== Results ===
+  [PASS] Rules server /health
+  [PASS] DM runtime /dm/health
+  [PASS] GET /dm/contract
+  [PASS] POST /characters (create)
+  [PASS] GET /characters/{id} (fetch)
+  [PASS] POST /actions (explore)
+  [PASS] POST /actions (move)
+  [PASS] POST /dm/turn (look)
+  [PASS] POST /portal/token
+  [FAIL] GET /portal/{token}/state
+        missing character_id or mismatch
+
+=== SUMMARY: 9/10 passed ===
+Gate: FAILED ✗

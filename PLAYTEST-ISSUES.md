@@ -1,6 +1,6 @@
 # D20 Playtest Issues Log
 
-**Last Reviewed:** 2026-04-27 05:44 UTC — Heartbeat — multi-endpoint 500; world-graph collapse; smoke gate timeout
+**Last Reviewed:** 2026-04-27 06:43 UTC — Heartbeat — Smoke 20/20 PASS — ISSUE-017 confirmed
 
 **Open Issues:** 3 | **Fixed Issues:** 14
 ---
@@ -269,6 +269,15 @@ World topology regression — DB seed/migration cleared the `exits` column or fa
     - Probe char: tick-live-15cbf8-a1fd70 at rusty-tankard
     - Conclusion: ISSUE-017 CONFIRMED PERSISTENT — DB adjacency missing; requires full world-seed DB migration with canonical edges from NARRATIVE-MAP.md and redeploy.
 
+
+**Heartbeat Check (2026-04-27 06:43 UTC — World graph integrity):**
+    - Endpoint: GET /api/map/data
+    - Status: 200 OK, total = 10 (all required nodes present)
+    - All locations have exits=None; connected_to field populated correctly.
+    - Movement succeeded via connected_to; explore available_paths returns None.
+    - Conclusion: ISSUE-017 CONFIRMED PERSISTENT — world-graph topology inconsistent.
+
+
 ## Deployment
 
 **Commit:** 9036249 on main branch
@@ -276,6 +285,28 @@ World topology regression — DB seed/migration cleared the `exits` column or fa
 **Smoke tests:** 16/16 PASS on VPS
 
 ## Playtest Session Reports
+
+### 2026-04-27 06:43 UTC — Heartbeat Agent — Scenario A — BLOCKED
+
+**Infrastructure:**
+  /health:       200 OK
+  /dm/health:    200 OK (dm_runtime ok, rules_server ok, narrator enabled)
+  /api/map/data: 200 OK (10 locations, required nodes present)
+
+**World Graph:**
+  All locations exits=None; connected_to populated. Movement works; explore available_paths=None.
+  Matches ISSUE-017 pattern — world-graph collapse (exits field not seeded).
+
+**Smoke Suite:** 20/20 PASS
+
+**Cadence:**
+  Toggle→playtest (200), tick (total_ticks→1, is_active=1), toggle→normal (200).
+  Doom clock advanced; cadence mechanics confirmed functional.
+
+**Scenario:** A (Thornhold → forest-edge → cave-entrance chain)
+**Outcome:** BLOCKED — ISSUE-017 prevents reliable navigation.
+**Priority:** Redeploy with corrected world seed (populate exits from connected_to or regenerate adjacency from NARRATIVE-MAP.md).
+
 
 ### 2026-04-27 05:44 UTC — Heartbeat Agent — BLOCKED (multi-endpoint 500; world-graph collapse)
 
@@ -1868,7 +1899,6 @@ Event log now correctly records move events with proper type and destination loc
     - Fix committed (event type correction) but redeploy needed per issue body
     
 
----
 ---
 
 ## Template for New Issues
