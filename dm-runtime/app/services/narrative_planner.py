@@ -36,27 +36,77 @@ class NarrativePlanner:
         self._rules_client = rules_client
 
     def _extract_affordances(self, world_context: Dict[str, Any]) -> SceneAffordances:
-        npcs = world_context.get("npcs", [])
-        available_npcs = [
-            n for n in npcs
-            if n.get("is_available", True) and not n.get("asleep", False)
-        ]
+        """
+        Normalize world_context affordances across legacy turn-world_context and
+        fresh scene-context schemas.
+
+        Legacy (from get_latest_turn): contains 'npcs' (with is_available/asleep),
+        'location.connections', 'encounters', 'in_combat', etc.
+        Scene-context (from /characters/{id}/scene-context): contains 'npcs_here'
+        (availability merged), 'current_location' + 'exits', 'combat_state', etc.
+        """
+        # ---- NPCs: available (not asleep, available flag) ----
+        # Legacy path: npcs list with is_available/asleep
+        npcs_legacy = world_context.get("npcs", [])
+        if npcs_legacy:
+            available_npcs = [
+                n for n in npcs_legacy
+                if n.get("is_available", True) and not n.get("asleep", False)
+            ]
+        else:
+            # Scene-context: npcs_here list with 'available' boolean already computed
+            npcs_here = world_context.get("npcs_here", [])
+            available_npcs = [
+                n for n in npcs_here
+                if n.get("available", True) and not n.get("asleep", False)
+            ]
+
+        # ---- Movement destinations (exits / connections) ----
+        connections = []
+        # Try legacy location.connections first
         location = world_context.get("location", {})
-        connections = location.get("connections", [])
-        if isinstance(connections, str):
-            try:
-                import json as _json
-                connections = _json.loads(connections or "[]")
-            except Exception:
-                connections = []
+        if location:
+            conns = location.get("connections", [])
+            if isinstance(conns, str):
+                try:
+                    import json as _json
+                    conns = _json.loads(conns or "[]")
+                except Exception:
+                    conns = []
+            connections = conns if conns else []
+        # Scene-context fallback: direct 'exits' array (list of location dicts)
+        if not connections:
+            exits = world_context.get("exits", [])
+            if exits:
+                connections = exits
+
+        # ---- Combat detection ----
+        # Legacy: encounters list + in_combat flag
         encounters = world_context.get("encounters", [])
         active_combat = any(
             e.get("combat", {}).get("combat_id") for e in encounters
         ) or world_context.get("in_combat", False)
+        # Scene-context fallback: combat_state dict
+        if not active_combat:
+            combat_state = world_context.get("combat_state", {})
+            if combat_state and combat_state.get("combat_id"):
+                active_combat = True
+
+        # ---- Interactable objects ----
+        # Legacy: 'key_items' + 'interactables' separate
+        # Scene-context: key_items supplies interactables; no separate 'interactables'
+        key_items = world_context.get("key_items", [])
+        interactables = world_context.get("interactables", [])
+        if not interactables and key_items:
+            interactables = key_items
+
         return SceneAffordances(
             available_npcs=[{"name": n.get("name"), "id": n.get("id")} for n in available_npcs],
-            available_locations=[c.get("to") or c.get("location_id") for c in connections if c],
-            interactable_objects=world_context.get("key_items", []) + world_context.get("interactables", []),
+            available_locations=[
+                c.get("to") or c.get("location_id") or c.get("id")
+                for c in connections if c
+            ],
+            interactable_objects=interactables,
             active_quests=world_context.get("active_quests", []),
             active_combat=active_combat,
             can_rest=world_context.get("can_rest", True),

@@ -371,7 +371,11 @@ def _extract_choices(server_result: dict, world_context: dict) -> list:
         return choices
 
     # Non-combat: exploration + dialogue choices
-    for conn in world_context.get("connections", []):
+    # Gather movement choices from connections (legacy) or exits (scene-context)
+    connections = world_context.get("connections", [])
+    if not connections:
+        connections = world_context.get("exits", [])
+    for conn in connections:
         if isinstance(conn, dict):
             conn_id = conn.get("id", "")
             conn_name = conn.get("name", conn_id)
