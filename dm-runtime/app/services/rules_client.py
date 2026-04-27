@@ -143,3 +143,15 @@ async def get_world_context(character_id: str) -> dict:
     r = await _client.get(f"/characters/{character_id}/turn/latest")
     r.raise_for_status()
     return r.json().get("world_context", {})
+
+
+async def get_scene_context(character_id: str) -> dict:
+    """Get unified scene-context affordance payload for narrative planning.
+
+    Fetches current scene state including allowed_actions, NPCs, location,
+    interactables, quests, and flags. Used when no turn history exists or
+    as a fallback when get_latest_turn returns nothing.
+    """
+    r = await _client.get(f"/characters/{character_id}/scene-context")
+    r.raise_for_status()
+    return r.json()
