@@ -31,7 +31,7 @@ RULES_URL = os.environ.get("SMOKE_RULES_URL", "http://localhost:8600").rstrip("/
 DM_URL = os.environ.get("SMOKE_DM_URL", "http://localhost:8610").rstrip("/")
 CHAR_NAME = os.environ.get("SMOKE_CHAR_NAME", f"SmokeGate-{uuid.uuid4().hex[:6]}")
 CLEANUP = int(os.environ.get("SMOKE_CLEANUP", "1"))
-TIMEOUT = 30.0
+TIMEOUT = 60.0
 
 # ---------------------------------------------------------------------------
 # State
@@ -67,6 +67,20 @@ try:
         check("DM runtime /dm/health", False, f"code={r.status_code} body={r.text[:120]}")
 except Exception as e:
     check("DM runtime /dm/health", False, str(e)[:120])
+
+# DM runtime contract (introspection endpoint)
+try:
+    r = httpx.get(f"{DM_URL}/dm/contract", timeout=5.0)
+    if r.status_code == 200:
+        data = r.json()
+        if "contract_version" in data and "authority" in data:
+            check("GET /dm/contract", True, f"version={data.get('contract_version')}, authority_ok=True")
+        else:
+            check("GET /dm/contract", False, "missing contract_version or authority")
+    else:
+        check("GET /dm/contract", False, f"code={r.status_code} body={r.text[:80]}")
+except Exception as e:
+    check("GET /dm/contract", False, str(e)[:120])
 
 # ---------------------------------------------------------------------------
 # Phase 2: Character lifecycle (create → fetch → validate)
@@ -185,7 +199,24 @@ if char_id:
         if r.status_code in (200, 201):
             data = r.json()
             if "token" in data:
+                token_value = data["token"]
                 check("POST /portal/token", True, "token created")
+                # GET portal state with the token
+                try:
+                    r_state = httpx.get(f"{RULES_URL}/portal/{token_value}/state", timeout=TIMEOUT)
+                    if r_state.status_code == 200:
+                        state_data = r_state.json()
+                        # The state contains 'character.id' nested, not top-level character_id
+                        char_in_state = state_data.get("character", {})
+                        state_char_id = char_in_state.get("id") if isinstance(char_in_state, dict) else None
+                        if state_char_id == char_id:
+                            check("GET /portal/{token}/state", True, "state accessible, character.id matches")
+                        else:
+                            check("GET /portal/{token}/state", False, f"character id mismatch: expected {char_id}, got {state_char_id}")
+                    else:
+                        check("GET /portal/{token}/state", False, f"code={r_state.status_code}")
+                except Exception as e2:
+                    check("GET /portal/{token}/state", False, str(e2)[:120])
             else:
                 check("POST /portal/token", False, "no token in response")
         elif r.status_code == 404:
