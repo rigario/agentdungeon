@@ -35,8 +35,7 @@ class NarrativePlanner:
     def __init__(self, rules_client):
         self._rules_client = rules_client
 
-    @classmethod
-    def _extract_affordances(cls, world_context: Dict[str, Any]) -> SceneAffordances:
+    def _extract_affordances(self, world_context: Dict[str, Any]) -> SceneAffordances:
         npcs = world_context.get("npcs", [])
         available_npcs = [
             n for n in npcs
@@ -73,7 +72,7 @@ class NarrativePlanner:
         msg = player_message.lower().strip()
         if world_context is None:
             try:
-                turn = await get_latest_turn(character_id)
+                turn = await self._rules_client.get_latest_turn(character_id)
                 world_context = turn.get("world_context", {}) or {}
             except Exception:
                 world_context = {}
@@ -161,19 +160,21 @@ class NarrativePlanner:
     def _is_negated_or_refusal(self, msg: str) -> bool:
         msg = msg.lower().strip()
         patterns = [
-            r"^(?:i|we)\s+(?:do\s+not|don't|dont|never)\s+(?:go|move|travel|head|enter|attack|fight|cast|use|open|take)",
+            r"^(?:i|we)\s+(?:do\s+not|don't|dont|never)\s+(?:go|move|travel|head|enter|attack|fight|cast|use|open|take|grab|touch|press|pull|push)",
             r"^(?:i|we)\s+(?:do\s+not|don't|dont|never)\s+want\s+to",
             r"^(?:i|we)\s+(?:refuse|decline)\s+to",
             r"^\s*(?:let'?s\s+not|we\s+shouldn't|avoid|stay\s+away)\b",
-            r"\bnot\s+(?:going|entering|attacking|resting)\b",
+            r"\bnot\s+(?:going|entering|attacking|resting|opening)\b",
+            # will not / won't patterns — must allow word boundary before subject for mid-sentence
+            r"(?:^|\b)(?:i|we|you)\s+(?:will\s+not|won't)\s+(?:go|move|travel|head|enter|attack|fight|cast|use|open|take|grab|touch|press|pull|push)",
         ]
         return any(re.search(p, msg) for p in patterns)
 
     def _is_absurd_action(self, msg: str) -> bool:
         msg = msg.lower().strip()
         patterns = [
-            r"\b(attack|fight|hit|strike|punch|kick)\b.*\b(dm|dungeon\s+master|the\s+dm)\b",
-            r"\b(cast|use)\b.*\bat\b.*\b(dm|dungeon\s+master)\b",
+            r"\b(attack|fight|hit|strike|punch|kick)\b.*\b(dm|dungeon\s+master|the\s+dm|rules\s+server|smoke\s+test)\b",
+            r"\b(cast|use)\b.*\bat\b.*\b(dm|dungeon\s+master|test\s+suite)\b",
             r"\b(swallow|eat|devour)\b.*\b(statue|moon|sun|building|mountain|ocean)\b",
             r"\b(fly|teleport|walk\s+through\s+walls|breathe\s+underwater)\b",
         ]
@@ -230,6 +231,10 @@ class NarrativePlanner:
         if action_type == "talk" and target:
             npc_lower = [n.get("name", "").lower() for n in affordances.available_npcs]
             if target.lower() not in npc_lower:
+                # Single-NPC pronoun resolution: "her"/"him"/"them" with exactly 1 NPC → auto-resolve
+                PRONOUNS = {"her", "him", "them", "it", "that person", "the npc", "the person", "the guard", "the woman", "the man"}
+                if len(affordances.available_npcs) == 1 and target.lower() in PRONOUNS:
+                    return None  # unambiguous — pronoun refers to the only NPC
                 available = [n.get("name") for n in affordances.available_npcs]
                 m = f'"{target}" isn\'t here. Available: '
                 m += ', '.join(available) if available else 'no one'
