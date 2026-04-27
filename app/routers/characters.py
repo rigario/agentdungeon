@@ -231,68 +231,73 @@ def create_character(
 
     # Resolve ownership (auth middleware > explicit param > dev default)
     conn = get_db()
-    auth_user_id = getattr(request.state, "user_id", None)
-    resolved_user_id = auth_user_id or user_id or _ensure_default_user(conn)
-    auth_agent_id = getattr(request.state, "agent_id", None)
-    resolved_agent_id = auth_agent_id or agent_id
-    resolved_perm = "full" if agent_id else "none"
+    try:
+        auth_user_id = getattr(request.state, "user_id", None)
+        resolved_user_id = auth_user_id or user_id or _ensure_default_user(conn)
+        auth_agent_id = getattr(request.state, "agent_id", None)
+        resolved_agent_id = auth_agent_id or agent_id
+        resolved_perm = "full" if agent_id else "none"
 
-    # Insert into database
-    conn.execute(
-        """INSERT INTO characters
-           (id, player_id, user_id, agent_id, agent_permission_level,
-            name, race, class, level,
-            hp_current, hp_max, hp_temporary,
-            ac_value, ac_description,
-            ability_scores_json, speed_json, skills_json, saving_throws_json,
-            languages_json, weapon_proficiencies_json, armor_proficiencies_json,
-            equipment_json, treasure_json, spell_slots_json, spells_json, feats_json, conditions_json,
-            xp, location_id, campaign_id, sheet_json, sheet_signature, approval_config, aggression_slider)
-           VALUES (?, ?, ?, ?, ?,
-                   ?, ?, ?, 1,
-                   ?, ?, 0,
-                   ?, ?,
-                   ?, ?, ?, ?,
-                   ?, ?, ?,
-                   ?, ?, ?, ?, ?, ?,
-                   0, ?, ?, ?, ?, ?, 50)""",
-        (
-            char_id, player_id, resolved_user_id, resolved_agent_id, resolved_perm,
-            body.name, body.race, body.class_name,
-            hp["current"], hp["max"],
-            ac["value"], ac["description"],
-            json.dumps(stats), json.dumps(speed), json.dumps(sheet["skills"]),
-            json.dumps(sheet["saving_throws"]),
-            json.dumps(sheet["languages"]),
-            json.dumps(sheet["weapon_proficiencies"]),
-            json.dumps(sheet["armor_proficiencies"]),
-            json.dumps(sheet["equipment"]),
-            json.dumps(sheet["treasure"]),
-            json.dumps(sheet["spell_slots"]),
-            json.dumps(sheet["spells"]),
-            json.dumps(sheet["feats"]),
-            json.dumps(sheet["conditions"]),
-            starting_location,
-            'default',
-            sheet_json, signature,
-            json.dumps(approval_config),
+        # Insert into database
+        conn.execute(
+            """INSERT INTO characters
+               (id, player_id, user_id, agent_id, agent_permission_level,
+                name, race, class, level,
+                hp_current, hp_max, hp_temporary,
+                ac_value, ac_description,
+                ability_scores_json, speed_json, skills_json, saving_throws_json,
+                languages_json, weapon_proficiencies_json, armor_proficiencies_json,
+                equipment_json, treasure_json, spell_slots_json, spells_json, feats_json, conditions_json,
+                xp, location_id, campaign_id, sheet_json, sheet_signature, approval_config, aggression_slider)
+               VALUES (?, ?, ?, ?, ?,
+                       ?, ?, ?, 1,
+                       ?, ?, 0,
+                       ?, ?,
+                       ?, ?, ?, ?,
+                       ?, ?, ?,
+                       ?, ?, ?, ?, ?, ?,
+                       0, ?, ?, ?, ?, ?, 50)""",
+            (
+                char_id, player_id, resolved_user_id, resolved_agent_id, resolved_perm,
+                body.name, body.race, body.class_name,
+                hp["current"], hp["max"],
+                ac["value"], ac["description"],
+                json.dumps(stats), json.dumps(speed), json.dumps(sheet["skills"]),
+                json.dumps(sheet["saving_throws"]),
+                json.dumps(sheet["languages"]),
+                json.dumps(sheet["weapon_proficiencies"]),
+                json.dumps(sheet["armor_proficiencies"]),
+                json.dumps(sheet["equipment"]),
+                json.dumps(sheet["treasure"]),
+                json.dumps(sheet["spell_slots"]),
+                json.dumps(sheet["spells"]),
+                json.dumps(sheet["feats"]),
+                json.dumps(sheet["conditions"]),
+                starting_location,
+                'default',
+                sheet_json, signature,
+                json.dumps(approval_config),
+            )
         )
-    )
 
-    # Log creation event
-    conn.execute(
-        """INSERT INTO event_log (character_id, event_type, location_id, description, data_json)
-           VALUES (?, 'character_created', ?, ?, ?)""",
-        (char_id, starting_location,
-         f"{body.name}, a level 1 {body.race} {body.class_name}, awakens in The Rusty Tankard.",
-         json.dumps({"race": body.race, "class": body.class_name, "background": bg_name}))
-    )
+        # Log creation event
+        conn.execute(
+            """INSERT INTO event_log (character_id, event_type, location_id, description, data_json)
+               VALUES (?, 'character_created', ?, ?, ?)""",
+            (char_id, starting_location,
+             f"{body.name}, a level 1 {body.race} {body.class_name}, awakens in The Rusty Tankard.",
+             json.dumps({"race": body.race, "class": body.class_name, "background": bg_name}))
+        )
 
-    # Initialize per-character front state (multi-tenancy)
-    init_character_fronts(char_id, conn)
+        # Initialize per-character front state (multi-tenancy)
+        init_character_fronts(char_id, conn)
 
-    conn.commit()
-    conn.close()
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
     return get_character(char_id, request)
 

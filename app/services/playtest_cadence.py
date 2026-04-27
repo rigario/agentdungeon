@@ -136,80 +136,85 @@ def advance_tick(character_id: str) -> dict:
         return {"error": "Playtest cadence is not active. Toggle to playtest mode first."}
 
     conn = get_db()
-    # Upsert doom clock
-    conn.execute("""
-        INSERT INTO doom_clock (character_id, total_ticks, portents_triggered, last_tick_at, is_active)
-        VALUES (?, 1, 0, CURRENT_TIMESTAMP, 1)
-        ON CONFLICT(character_id) DO UPDATE SET
-            total_ticks = doom_clock.total_ticks + 1,
-            last_tick_at = CURRENT_TIMESTAMP,
-            is_active = 1
-    """, (character_id,))
-    conn.commit()
-
-    # Read updated state
-    row = conn.execute(
-        "SELECT * FROM doom_clock WHERE character_id = ?", (character_id,)
-    ).fetchone()
-    state = dict(row)
-
-    # Check if we should advance a front portent
     triggered_events = []
-    ticks_per_portent = config.get("doom_ticks_per_portent", DEFAULT_DOOM_TICKS_PER_PORTENT)
-    prev_portents = state["portents_triggered"]
-    new_portents = state["total_ticks"] // ticks_per_portent
+    try:
+        # Upsert doom clock
+        conn.execute("""
+            INSERT INTO doom_clock (character_id, total_ticks, portents_triggered, last_tick_at, is_active)
+            VALUES (?, 1, 0, CURRENT_TIMESTAMP, 1)
+            ON CONFLICT(character_id) DO UPDATE SET
+                total_ticks = doom_clock.total_ticks + 1,
+                last_tick_at = CURRENT_TIMESTAMP,
+                is_active = 1
+        """, (character_id,))
+        conn.commit()
 
-    if new_portents > prev_portents:
-        # Advance active fronts
-        fronts = conn.execute(
-            "SELECT cf.*, f.name as front_name, f.grim_portents_json "
-            "FROM character_fronts cf "
-            "JOIN fronts f ON f.id = cf.front_id "
-            "WHERE cf.character_id = ? AND cf.is_active = 1",
-            (character_id,)
-        ).fetchall()
+        # Read updated state
+        row = conn.execute(
+            "SELECT * FROM doom_clock WHERE character_id = ?", (character_id,)
+        ).fetchone()
+        state = dict(row)
 
-        for front in fronts:
-            portents = json.loads(front["grim_portents_json"])
-            current_idx = front["current_portent_index"]
-            if current_idx < len(portents) - 1:
-                new_idx = current_idx + 1
-                conn.execute(
-                    "UPDATE character_fronts SET current_portent_index = ?, advanced_at = CURRENT_TIMESTAMP "
-                    "WHERE character_id = ? AND front_id = ?",
-                    (new_idx, character_id, front["front_id"])
-                )
-                triggered_events.append({
-                    "type": "front_portent_advanced",
-                    "front_id": front["front_id"],
-                    "front_name": front["front_name"],
-                    "old_portent": current_idx,
-                    "new_portent": new_idx,
-                    "portent_text": portents[new_idx] if new_idx < len(portents) else None,
-                    "trigger": f"doom_clock_tick_{state['total_ticks']}",
-                })
+        # Check if we should advance a front portent
+        ticks_per_portent = config.get("doom_ticks_per_portent", DEFAULT_DOOM_TICKS_PER_PORTENT)
+        prev_portents = state["portents_triggered"]
+        new_portents = state["total_ticks"] // ticks_per_portent
 
-        # Update portents_triggered count
+        if new_portents > prev_portents:
+            # Advance active fronts
+            fronts = conn.execute(
+                "SELECT cf.*, f.name as front_name, f.grim_portents_json "
+                "FROM character_fronts cf "
+                "JOIN fronts f ON f.id = cf.front_id "
+                "WHERE cf.character_id = ? AND cf.is_active = 1",
+                (character_id,)
+            ).fetchall()
+
+            for front in fronts:
+                portents = json.loads(front["grim_portents_json"])
+                current_idx = front["current_portent_index"]
+                if current_idx < len(portents) - 1:
+                    new_idx = current_idx + 1
+                    conn.execute(
+                        "UPDATE character_fronts SET current_portent_index = ?, advanced_at = CURRENT_TIMESTAMP "
+                        "WHERE character_id = ? AND front_id = ?",
+                        (new_idx, character_id, front["front_id"])
+                    )
+                    triggered_events.append({
+                        "type": "front_portent_advanced",
+                        "front_id": front["front_id"],
+                        "front_name": front["front_name"],
+                        "old_portent": current_idx,
+                        "new_portent": new_idx,
+                        "portent_text": portents[new_idx] if new_idx < len(portents) else None,
+                        "trigger": f"doom_clock_tick_{state['total_ticks']}",
+                    })
+
+            # Update portents_triggered count
+            conn.execute(
+                "UPDATE doom_clock SET portents_triggered = ? WHERE character_id = ?",
+                (new_portents, character_id)
+            )
+
+        # Log tick event
         conn.execute(
-            "UPDATE doom_clock SET portents_triggered = ? WHERE character_id = ?",
-            (new_portents, character_id)
+            "INSERT INTO event_log (character_id, event_type, location_id, description, data_json) "
+            "VALUES (?, 'cadence_tick', ?, ?, ?)",
+            (
+                character_id,
+                None,
+                f"Playtest tick #{state['total_ticks']}. Doom clock: {state['total_ticks']} ticks, "
+                f"{new_portents} portents triggered.",
+                json.dumps({"tick": state["total_ticks"], "events": triggered_events}),
+            )
         )
 
-    # Log tick event
-    conn.execute(
-        "INSERT INTO event_log (character_id, event_type, location_id, description, data_json) "
-        "VALUES (?, 'cadence_tick', ?, ?, ?)",
-        (
-            character_id,
-            None,
-            f"Playtest tick #{state['total_ticks']}. Doom clock: {state['total_ticks']} ticks, "
-            f"{new_portents} portents triggered.",
-            json.dumps({"tick": state["total_ticks"], "events": triggered_events}),
-        )
-    )
-
-    conn.commit()
-    conn.close()
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
     # Return updated state
     final_state = get_doom_clock(character_id)
