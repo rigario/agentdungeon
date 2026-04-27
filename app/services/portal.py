@@ -259,7 +259,7 @@ def get_portal_state(character_id: str) -> dict:
         # === MAP STATE: derive fog-of-war from event_log ===
         # 1. Get all world locations for the base map
         all_locations_rows = db.execute(
-            "SELECT id, name, biome, hostility_level, connected_to FROM locations ORDER BY hostility_level, name"
+            "SELECT id, name, biome, description, hostility_level, connected_to, image_url FROM locations ORDER BY hostility_level, name"
         ).fetchall()
         all_locations = [dict(r) for r in all_locations_rows]
         for loc in all_locations:
@@ -267,6 +267,28 @@ def get_portal_state(character_id: str) -> dict:
                 loc["connected_to"] = json.loads(loc["connected_to"]) if loc["connected_to"] else []
             except (json.JSONDecodeError, TypeError):
                 loc["connected_to"] = []
+
+        # 1b. Enrich locations with per-location NPCs (for map.html loc.npcs compatibility)
+        npc_rows = db.execute(
+            "SELECT id, name, current_location_id, archetype, image_url, personality, is_quest_giver "
+            "FROM npcs WHERE current_location_id IS NOT NULL"
+        ).fetchall()
+        npcs_by_location = {}
+        for nr in npc_rows:
+            npc = dict(nr)
+            loc_id = npc["current_location_id"]
+            if loc_id not in npcs_by_location:
+                npcs_by_location[loc_id] = []
+            npcs_by_location[loc_id].append({
+                "id": npc["id"],
+                "name": npc["name"],
+                "archetype": npc.get("archetype"),
+                "image_url": npc.get("image_url"),
+                "personality": npc.get("personality"),
+                "is_quest_giver": bool(npc.get("is_quest_giver", 0)),
+            })
+        for loc in all_locations:
+            loc["npcs"] = npcs_by_location.get(loc["id"], [])
 
         # 2. Get character's visited_locations from move/explore/arrive events
         visit_rows = db.execute(
