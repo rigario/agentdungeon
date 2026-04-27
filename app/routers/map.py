@@ -26,13 +26,18 @@ def get_map_data(character_id: str = None):
     """
     conn = get_db()
     try:
-        # Derive campaign_id if character_id provided
+        # Derive campaign_id and character_location_id if character_id provided
         campaign_id = None
+        character_location_id = None
         if character_id:
-            cur = conn.execute("SELECT campaign_id FROM characters WHERE id = ?", (character_id,))
+            cur = conn.execute(
+                "SELECT campaign_id, location_id FROM characters WHERE id = ?",
+                (character_id,),
+            )
             row = cur.fetchone()
             if row:
                 campaign_id = row["campaign_id"]
+                character_location_id = row["location_id"]
 
         # Build location query
         if campaign_id:
@@ -44,7 +49,7 @@ def get_map_data(character_id: str = None):
             ).fetchall()
             # NPCs filtered by campaign
             npc_rows = conn.execute(
-                "SELECT id, name, current_location_id, archetype, image_url, personality, "
+                "SELECT id, name, current_location_id, archetype, image_url, personality, dialogue_templates, "
                 "is_quest_giver, is_spirit, is_enemy "
                 "FROM npcs "
                 "WHERE current_location_id IS NOT NULL AND campaign_id = ?",
@@ -57,7 +62,7 @@ def get_map_data(character_id: str = None):
                 "FROM locations ORDER BY hostility_level, name"
             ).fetchall()
             npc_rows = conn.execute(
-                "SELECT id, name, current_location_id, archetype, image_url, personality, "
+                "SELECT id, name, current_location_id, archetype, image_url, personality, dialogue_templates, "
                 "is_quest_giver, is_spirit, is_enemy "
                 "FROM npcs WHERE current_location_id IS NOT NULL"
             ).fetchall()
@@ -74,6 +79,7 @@ def get_map_data(character_id: str = None):
                 "archetype": npc.get("archetype"),
                 "image_url": npc.get("image_url"),
                 "personality": npc.get("personality"),
+                "dialogue_templates": json.loads(npc["dialogue_templates"]) if npc.get("dialogue_templates") else [],
                 "is_quest_giver": bool(npc.get("is_quest_giver", 0)),
                 "is_spirit": bool(npc.get("is_spirit", 0)),
                 "is_enemy": bool(npc.get("is_enemy", 0)),
@@ -120,7 +126,7 @@ def get_map_data(character_id: str = None):
 
         return {
             "locations": locations,
-            "current_location": "rusty-tankard",  # Default starting location
+            "current_location": character_location_id,  # actual character location (or None for legacy)
             "total": len(locations),
         }
     finally:

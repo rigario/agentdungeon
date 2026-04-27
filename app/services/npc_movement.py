@@ -28,7 +28,7 @@ def get_npcs_at_location(location_id: str) -> list[dict]:
     """Get all NPCs currently at a given location (full DB rows)."""
     conn = get_db()
     rows = conn.execute("""
-        SELECT id, name, archetype, personality, is_quest_giver, is_spirit, is_enemy,
+        SELECT id, name, archetype, personality, dialogue_templates, is_quest_giver, is_spirit, is_enemy,
                image_url, movement_rules_json, current_location_id, default_location_id
         FROM npcs
         WHERE current_location_id = ?
