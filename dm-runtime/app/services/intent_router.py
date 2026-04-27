@@ -16,6 +16,8 @@ from dataclasses import dataclass, field
 
 from fastapi import HTTPException
 from app.contract import IntentType, ServerEndpoint, RoutingPolicy
+from app.services.narrative_planner import NarrativePlanner
+from app.contract import AffordancePlannerResult, PlannerDecision
 
 
 # =============================================================================
@@ -335,6 +337,7 @@ class IntentRouter:
 
     def __init__(self, rules_client):
         self._client = rules_client
+        self._planner = NarrativePlanner(rules_client)
 
     async def check_active_combat(self, character_id: str) -> Optional[dict]:
         """Check if a character has active combat. Returns combat state or None.
@@ -366,7 +369,39 @@ class IntentRouter:
         Returns:
             RouterResult with normalized data from any endpoint
         """
-        # Step 1: Classify intent
+        # Step 1a: Affordance planning (pre-routing interpretation against scene affordances)
+        try:
+            world_context = {}
+            try:
+                latest_turn = await self._client.get_latest_turn(character_id)
+                world_context = latest_turn.get("world_context", {}) or {}
+            except Exception:
+                pass  # No previous turn / rules server unavailable — proceed without context
+
+            if world_context:
+                plan = await self._planner.plan(character_id, player_message, world_context)
+                if plan.decision != PlannerDecision.EXECUTE:
+                    # Short-circuit: planner says clarify/refuse/noop
+                    success = (plan.decision != PlannerDecision.REFUSE)
+                    return RouterResult(
+                        success=success,
+                        endpoint_called=f"planner-{plan.decision.value}",
+                        narration=plan.clarifying_question or plan.reason or "That action isn't available here.",
+                        events=[{
+                            "type": "affordance_planner",
+                            "decision": plan.decision.value,
+                            "reason": plan.reason,
+                            "confidence": plan.confidence,
+                            "clarifying_question": plan.clarifying_question,
+                            "narration_hint": plan.narration_hint,
+                        }],
+                        raw_response=plan.model_dump(),
+                    )
+        except Exception:
+            # Planner errors should NOT block the main flow — fall through to standard classification
+            pass
+
+        # Step 1b: Classify intent (fallback/augmented)
         intent = classify_intent(player_message)
 
         # Semantic guard — do not greenlight an action when the player-agent's

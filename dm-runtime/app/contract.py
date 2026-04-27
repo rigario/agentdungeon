@@ -47,11 +47,36 @@ class ServerEndpoint(str, Enum):
 
 
 class IntentClassification(BaseModel):
-    """Result of classifying a player message into a server-callable intent."""
+    """Result of classifying a player message into a structured intent."""
     type: IntentType
     target: Optional[str] = None
     details: dict = Field(default_factory=dict)
     server_endpoint: ServerEndpoint
+
+    model_config = {"frozen": True}
+
+
+# =============================================================================
+# Narrative Planner Output
+# =============================================================================
+
+class PlannerDecision(str, Enum):
+    """What the DM should do with the player's message."""
+    EXECUTE = "execute"       # Proceed with the inferred action
+    CLARIFY = "clarify"       # Ask for clarification (ambiguous)
+    REFUSE = "refuse"         # Cannot be done (off-scope, absurd)
+    NARRATE_NOOP = "narrate_noop"  # Narrate context only, no state change
+
+
+class AffordancePlannerResult(BaseModel):
+    """Result of LLM affordance planning against scene context."""
+    decision: PlannerDecision = Field(..., description="Action: execute|clarify|refuse|narrate_noop")
+    action_type: Optional[str] = Field(None, description="Inferred action type: move, talk, attack, rest, explore, etc.")
+    target: Optional[str] = Field(None, description="Resolved target name/ID from scene")
+    confidence: float = Field(0.0, ge=0.0, le=1.0, description="0.0–1.0 confidence in the parse")
+    reason: Optional[str] = Field(None, description="Reason for the decision (for trace/logging)")
+    clarifying_question: Optional[str] = Field(None, description="Question to ask player when ambiguous")
+    narration_hint: Optional[str] = Field(None, description="Narrative suggestion for framing")
 
     model_config = {"frozen": True}
 
