@@ -401,6 +401,94 @@ def _extract_choices(server_result: dict, world_context: dict) -> list:
                 "label": label,
                 "description": ask.get("description"),
             })
+
+    # --- ADDED: Generate choices from scene affordances (allowed_actions) ---
+    # This ensures the player sees all server-permitted actions for the current scene:
+    # talk to available NPCs, quest actions, rest, inspect items, etc.
+    # Movement choices come from connections above; we skip move to avoid duplicates.
+    allowed_actions = world_context.get("allowed_actions", [])
+    if allowed_actions:
+        # Track existing choice IDs to avoid duplicates
+        existing_ids = {c.get("id") for c in choices}
+
+        # Build lookup maps for rich labels
+        npcs_map = {
+            n.get("id"): n.get("name", "?")
+            for n in world_context.get("npcs_here", [])
+            if n.get("id")
+        }
+        # Quest lookup: quest_id -> title/name
+        quests_map = {}
+        for q in world_context.get("active_quests", []):
+            qid = q.get("quest_id") or q.get("id")
+            if qid:
+                quests_map[qid] = q.get("title") or q.get("name") or "Quest"
+
+        for act in allowed_actions:
+            a_type = act.get("action_type")
+            target = act.get("target")
+            reason = act.get("reason") or ""
+
+            # Skip move: already covered by connections loop above
+            if a_type == "move":
+                continue
+
+            # Build choice id/label per action type
+            if a_type == "interact" and target:
+                # Distinguish NPC interaction vs object inspection.
+                npc_name = npcs_map.get(target)
+                if npc_name:
+                    choice_id = f"interact_{target}"
+                    label = f"Talk to {npc_name}"
+                    desc = reason or f"Speak with {npc_name}"
+                else:
+                    # Not an NPC; treat as inspectable object/item from key_items or world items
+                    items_map = {
+                        i.get("id"): i.get("name", target)
+                        for i in world_context.get("key_items", [])
+                        if i.get("id")
+                    }
+                    item_name = items_map.get(target, target)
+                    choice_id = f"inspect_{target}"
+                    label = f"Inspect {item_name}"
+                    desc = reason or f"Examine {item_name}"
+            elif a_type == "quest":
+                # Quest action may have target=quest_id or target=None
+                quest_label = quests_map.get(target, "Advance quest") if target else "Advance quest"
+                choice_id = f"quest_{target}" if target else "quest"
+                label = quest_label
+                desc = reason or "Progress an active quest"
+            elif a_type == "rest":
+                choice_id = "rest"
+                label = "Rest here"
+                desc = reason or "Rest and recover"
+            elif a_type == "look":
+                choice_id = "look"
+                label = "Look around"
+                desc = reason or "Observe your surroundings"
+            elif a_type == "explore":
+                choice_id = "explore"
+                label = "Explore area"
+                desc = reason or "Search the location for resources"
+            elif a_type in ("attack", "cast", "use_item", "defend", "flee"):
+                # Combat-related choices; provide generic label but include reason
+                # These are also covered by combat hardcoded list above in combat mode;
+                # include here for non-combat availability (e.g., pre-empt attack)
+                verb = a_type.replace("_", " ").title()
+                choice_id = a_type
+                label = verb
+                desc = reason or f"Use {verb.lower()} action"
+            else:
+                # Unknown/other action types — include generically
+                choice_id = a_type or "unknown"
+                label = (a_type or "Unknown").replace("_", " ").title()
+                desc = reason or ""
+
+            # Deduplicate against existing IDs
+            if choice_id not in existing_ids:
+                choices.append({"id": choice_id, "label": label, "description": desc})
+                existing_ids.add(choice_id)
+
     return choices
 
 

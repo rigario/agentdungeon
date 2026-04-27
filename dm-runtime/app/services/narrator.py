@@ -100,17 +100,33 @@ def _build_context_prompt(server_result: dict, intent: dict, world_context: dict
         char_name = char.get("name", "the adventurer")
         parts.append(f"CHARACTER: {char_name} (HP: {hp_current}/{hp_max})")
 
-    # NPCs present
-    npcs = world_context.get("npcs", [])
-    if npcs:
+    # NPCs present — use only available NPCs for DM speech; unavailable are context-only
+    npcs_all = world_context.get("npcs", [])
+    # Prefer explicit availability lists if provided by world_context
+    available_npcs = world_context.get("npcs_available")
+    if available_npcs is None:
+        available_npcs = [n for n in npcs_all if n.get("available", True)]
+    if available_npcs:
         npc_desc = []
-        for npc in npcs[:5]:
+        for npc in available_npcs[:5]:
             name = npc.get("name", "Unknown")
             personality = npc.get("personality", "")
             dialogue = npc.get("dialogue", [])
             d_text = dialogue[0].get("text", "") if dialogue else ""
             npc_desc.append(f"- {name}: {personality}" + (f' (says: "{d_text}")' if d_text else ""))
         parts.append("NPCs PRESENT:\n" + "\n".join(npc_desc))
+
+    # Include unavailable NPCs as context (not speakable)
+    unavailable_npcs = world_context.get("npcs_unavailable")
+    if unavailable_npcs is None:
+        unavailable_npcs = [n for n in npcs_all if not n.get("available", True)]
+    if unavailable_npcs:
+        unavail_lines = []
+        for npc in unavailable_npcs[:5]:
+            name = npc.get("name", "Unknown")
+            reason = npc.get("unavailability_reason", "Not available")
+            unavail_lines.append(f"- {name}: {reason}")
+        parts.append("OTHER NPCS (unavailable):\n" + "\n".join(unavail_lines))
 
     # Connections (where player can go)
     connections = world_context.get("connections", [])
@@ -163,6 +179,23 @@ def _build_context_prompt(server_result: dict, intent: dict, world_context: dict
     if front:
         parts.append(f"FRONT: {front.get('name', '?')} — Portent {front.get('current_portent', 0)}")
 
+    # Narrative flags — story progression markers
+    narrative_flags = world_context.get("narrative_flags", {})
+    if narrative_flags:
+        flag_lines = [f"- {k}: {v}" for k, v in list(narrative_flags.items())[:10]]
+        parts.append("NARRATIVE FLAGS:\n" + "\n".join(flag_lines))
+
+    # Key items — critical story items in inventory
+    key_items = world_context.get("key_items", [])
+    if key_items:
+        ki_lines = []
+        for ki in key_items[:5]:
+            name = ki.get("name", ki.get("id", "?"))
+            desc = ki.get("description", "")[:80].replace("\n", " ")
+            ki_lines.append(f"- {name}: {desc}")
+        parts.append("KEY ITEMS:\n" + "\n".join(ki_lines))
+
+
     # Social context — relationship affinity, milestones, exploration history
     social = world_context.get("social_context", {})
     if social:
@@ -210,52 +243,113 @@ def _build_context_prompt(server_result: dict, intent: dict, world_context: dict
 
 
 def _validate_scope(llm_output: dict, world_context: dict) -> bool:
-    """Validate that LLM output doesn't reference off-scope entities.
+    """Validate that LLM output stays within the world_context scope boundary.
 
-    Checks:
-    1. NPC lines only reference NPCs in the world_context
-    2. Scene doesn't introduce characters/locations not in scope
+    Checks enforced (scope):
+    1. NPC speakers must exist in world_context npcs[]
+    2. Scene location mentions must align with world_context (current location or connections)
+    3. Scene must not reference key_items not present in world_context key_items[]
+    4. Narrated outcomes must be consistent with server_result (death, quest completion)
 
-    Returns True if valid, False if scope violation detected.
+    Returns True if all checks pass (or are skipped due to insufficient context data).
     """
-    # Extract allowed NPC names from world_context
-    allowed_npcs = set()
-    for npc in world_context.get("npcs", []):
-        name = npc.get("name", "")
-        if name:
-            allowed_npcs.add(name.lower())
+    allowed_npcs = {n.get("name", "").lower() for n in world_context.get("npcs", []) if n.get("name")}
 
-    # Validate NPC lines
+    def potential_entities(text: str):
+        """Extract candidate proper-noun tokens from scene, filtering obvious pronouns."""
+        # Accept 2+ consecutive TitleCase words; skip common stop list words
+        COMMON = {"i", "you", "your", "yours", "someone", "something", "nothing",
+                  "anyone", "anybody", "everyone", "everybody", "nobody",
+                  "the", "a", "an", "my", "our", "their", "his", "her", "its",
+                  "this", "that", "these", "those", "all", "both", "each", "every",
+                  "many", "few", "some", "such"}
+        tokens = set(re.findall(r'(?:[A-Z][a-z]+)(?:\s+[A-Z][a-z]+)*', text))
+        # Filter stop words and very short tokens (<4 chars unless multi-word)
+        return {t for t in tokens if t.lower() not in COMMON and (len(t) >= 4 or ' ' in t)}
+
+    # ── NPC speaker validation ─────────────────────────────────────────────
     for line in llm_output.get("npc_lines", []):
-        speaker = line.get("speaker", "").lower()
-        if speaker and allowed_npcs:
-            # Allow if speaker exactly matches, or if any allowed name is a substring of speaker (e.g., "aldric" matches "aldric the innkeeper")
-            if not any(speaker in allowed_name or allowed_name in speaker for allowed_name in allowed_npcs):
-                logger.warning(f"Scope violation: NPC speaker '{speaker}' not in world_context (allowed: {allowed_npcs})")
-                return False
+        speaker = line.get("speaker", "").lower().strip()
+        if speaker and allowed_npcs and not any(
+            speaker in an or an in speaker for an in allowed_npcs
+        ):
+            logger.warning(f"Scope violation: NPC speaker '{speaker}' not in world_context")
+            return False
 
-    # Extract allowed location names
-    allowed_locations = set()
-    loc = world_context.get("location", {})
-    if loc.get("name"):
-        allowed_locations.add(loc["name"].lower())
+    # Precompute allowed_items (used by location+item checks)
+    allowed_items = { (ki.get("name") or ki.get("id") or "").lower()
+                     for ki in world_context.get("key_items", []) }
+
+    # ── Location validation ─────────────────────────────────────────────────
+    allowed_locations = {loc.get("name", "").lower() for loc in [world_context.get("location", {})] if loc.get("name")}
     for conn in world_context.get("connections", []):
-        if conn.get("name"):
-            allowed_locations.add(conn["name"].lower())
+        if isinstance(conn, dict):
+            name = conn.get("name")
+            if name:
+                allowed_locations.add(name.lower())
+        else:
+            allowed_locations.add(str(conn).lower())
 
-    # Basic scene validation: check for obvious scope violations
     scene = llm_output.get("scene", "")
+    for token in potential_entities(scene):
+        t = token.lower()
+        # Skip if NPC, item, or already allowed location
+        if t in allowed_npcs or t in allowed_items:
+            continue
+        if any(t in loc or loc in t for loc in allowed_locations):
+            continue
+        # Off-scope location — fail
+        logger.warning(f"Off-scope location reference: '{token}' (allowed: {allowed_locations})")
+        return False
 
-    # Check that NPC lines' speakers appear in the scene text
-    for line in llm_output.get("npc_lines", []):
-        speaker = line.get("speaker", "")
-        if speaker and speaker.lower() not in scene.lower():
-            logger.debug(f"NPC '{speaker}' speaks but isn't mentioned in scene text (may be OK)")
+    # ── Key item validation ──────────────────────────────────────────────────
+    # If key_items exist in world, scene must not reference disallowed items
+    if allowed_items:
+        for token in potential_entities(scene):
+            t = token.lower()
+            if t in allowed_items or t in allowed_npcs:
+                continue  # OK or handled elsewhere
+            logger.warning(f"Off-scope item reference: '{token}'")
+            return False
+
+    # ── Outcome validation ───────────────────────────────────────────────────
+    server_trace = world_context.get("server_trace", {})
+    combat_log = server_trace.get("combat_log", [])
+    active_quests = world_context.get("active_quests", [])
+
+    scene_lower = scene.lower()
+
+    # Death narration must have combat_log support
+    death_phrases = {"dies", "death", "falls dead", "dead", "kills", "slays", "defeated", "killed"}
+    if any(p in scene_lower for p in death_phrases):
+        if not any(
+            any(w in str(e).lower() for w in ("0 hp", "hp 0", "dead", "death"))
+            for e in combat_log
+        ):
+            logger.warning("Death narration without combat evidence")
+            return False
+
+    # Quest completion narration must align with active quests
+    complete_phrases = {"quest complete", "quest is complete", "quest completed",
+                        "completed", "finished", "saved", "accomplished", "victory"}
+    if any(p in scene_lower for p in complete_phrases):
+        if not active_quests:
+            logger.warning("Quest completion narration but active_quests is empty")
+            return False
+        for q in active_quests:
+            if q.get("name", "").lower() in scene_lower:
+                break  # OK: named matching active quest
+        else:
+            # No named quest — still OK (vague); optionally could require name
+            pass
 
     return True
 
 
 async def narrate(server_result: dict, intent: dict, world_context: dict, session_id: str | None = None) -> Optional[dict]:
+
+
+
     """Generate LLM-powered narration from server result.
 
     Returns dict with keys: scene, npc_lines, tone, choices_summary
