@@ -80,7 +80,7 @@ def dm():
         yield c
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def character(rules):
     """Create a throwaway test character and return its ID."""
     payload = {
