@@ -130,6 +130,7 @@ class CharacterResponse(BaseModel):
     feats: list = []
     conditions: dict = {}
     xp: int = 0
+    level: int = 1
     location_id: Optional[str] = None
     current_location_id: Optional[str] = None
     approval_config: dict = {}
