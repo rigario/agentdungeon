@@ -141,8 +141,17 @@ Result:
 }
 ```
 
+## Git commit / push proof
+
+```text
+Local commit: 55938b86184d445968b8c2a40a90c6e215639f2c
+Commit message: Prepare AgentDungeon hackathon freeze submission
+Remote branch: origin/main -> 55938b86184d445968b8c2a40a90c6e215639f2c
+Working tree after push: clean
+```
+
 ## Remaining caveats
 
 - Historical reports/playtest logs may still mention old domains as evidence. Active public docs and skills no longer do.
 - Some previously tracked backup files remain in git history/index. I did not remove tracked files without explicit deletion approval. `.gitignore` now prevents new local temp/backups/playtest-run dumps from polluting status.
-- The working tree had substantial pre-existing implementation changes before this cleanup; the freeze commit should include the intended source/docs/test/runtime changes so GitHub matches production behavior.
+- Freeze changes were committed and pushed to `origin/main`; the repository now reflects the demo-ready docs/runtime/skills state.
