@@ -164,3 +164,34 @@ class TestTargetNormalization:
         router = IntentRouter(rules_client=MagicMock())
         result = router._normalize_target(intent, wc)
         assert result == "thornhold"
+
+    def test_move_uses_top_level_connections_when_current_location_missing(self):
+        """Move target matches against top-level world_context.connections (from turn/latest).
+
+        This covers case where world_context from turn/latest has connections at top-level
+        but not nested under current_location.connections. E.g., south-road turn world_context.
+        """
+        intent = make_intent("move", "Thornhold town square")
+        wc = {
+            "locations": [],  # empty
+            "current_location": {},  # no connections nested
+            "connections": ["thornhold", "crossroads"],  # top-level string IDs
+        }
+        router = IntentRouter(rules_client=MagicMock())
+        result = router._normalize_target(intent, wc)
+        assert result == "thornhold"
+
+    def test_move_uses_top_level_connections_dicts(self):
+        """Top-level connections can also be dicts with id/name."""
+        intent = make_intent("move", "Crossroads")
+        wc = {
+            "locations": [],
+            "connections": [
+                {"id": "thornhold", "name": "Thornhold"},
+                {"id": "crossroads", "name": "The Crossroads"},
+            ],
+        }
+        router = IntentRouter(rules_client=MagicMock())
+        result = router._normalize_target(intent, wc)
+        assert result == "crossroads"
+

@@ -392,6 +392,14 @@ class IntentRouter:
                     return conn_id
                 if conn_name and (target in conn_name or conn_name in target):
                     return conn_id
+            # Also check top-level connections (e.g., from turn/latest world_context)
+            for conn in wc.get("connections", []):
+                conn_id = conn.get("id", "").lower() if isinstance(conn, dict) else str(conn).lower()
+                conn_name = conn.get("name", "").lower() if isinstance(conn, dict) else ""
+                if target == conn_id or (conn_id and conn_id in target):
+                    return conn_id
+                if conn_name and (target in conn_name or conn_name in target):
+                    return conn_id
 
         # --- NPC normalization for INTERACT/TALK intents ---
         if intent.action_type == "interact" or intent.type == IntentType.TALK:
@@ -459,6 +467,13 @@ class IntentRouter:
                 wc = latest_turn.get("world_context", {}) or {}
                 if wc.get("npcs"):
                     world_context = wc
+                    # FIX ISSUE-018: Alias is_available/asleep from character-aware availability
+                    # for legacy planner. NPC rows have 'available' (per-character), but
+                    # NarrativePlanner checks 'is_available' and 'asleep'.
+                    for npc in world_context.get("npcs", []):
+                        if "is_available" not in npc:
+                            npc["is_available"] = npc.get("available", True)
+                        npc.setdefault("asleep", False)
                 else:
                     raise ValueError("latest turn world_context has no NPCs")
             except Exception:
