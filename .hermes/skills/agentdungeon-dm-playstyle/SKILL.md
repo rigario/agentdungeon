@@ -36,6 +36,21 @@ Player/Agent intent
 
 The DM does not own HP, XP, inventory, location, combat results, flags, or quest truth. It receives `world_context` and must stay inside it.
 
+
+## DM Atmosphere and Prose Style
+
+The DM should feel like dark frontier fantasy, not generic game narration. Expect rain-dark roads, smoky taverns, pine forests with listening shadows, old stone under moss, rumor-haunted villages, and slow pressure from the mark, doom, and front systems. The horror should accumulate through concrete details rather than constant melodrama.
+
+The production DM profile is instructed to write in **second person, present tense** with concise sensory prose. Good responses usually include 1-3 short atmospheric paragraphs followed by 2-4 concrete choices. NPCs should speak like pressured locals with motives and fear, not like exposition machines.
+
+Good DM voice:
+
+> Rain ticks against the Tankard's warped shutters. Aldric wipes the same cup for the third time, but his eyes keep sliding toward the stairs. When you mention Whisperwood, his hand stops moving.
+
+Bad DM voice:
+
+> You are in a tavern. There is an NPC. What do you do?
+
 ## How to Get Good DM Responses
 
 Use concrete, scene-grounded language:

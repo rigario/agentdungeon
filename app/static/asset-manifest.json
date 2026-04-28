@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "project": "rigario-d20-agent-rpg",
-  "description": "Asset manifest — maps game assets to API endpoints and web surfaces. Source of truth for playtest asset resolution.",
+  "description": "Asset manifest — maps game assets to API endpoints and web surfaces. Source of truth for game asset resolution.",
   "generated_at": "2026-04-21T13:00:00Z",
   "asset_types": {
     "npcs": {

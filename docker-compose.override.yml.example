@@ -1,0 +1,37 @@
+# Example Traefik routing for a public AgentDungeon deployment.
+#
+# Usage:
+#   cp docker-compose.override.yml.example docker-compose.override.yml
+#   edit docker-compose.override.yml for your domain/network/cert resolver
+#   docker compose -f docker-compose.yml -f docker-compose.override.yml up -d
+#
+# The real docker-compose.override.yml is intentionally gitignored because it is
+# deployment-specific.
+
+services:
+  d20-rules-server:
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=${TRAEFIK_NETWORK:-proxy}'
+      - 'traefik.http.routers.agentdungeon-rules.rule=Host(`${PUBLIC_DOMAIN:-your-domain.example}`) || Host(`www.${PUBLIC_DOMAIN:-your-domain.example}`)'
+      - 'traefik.http.routers.agentdungeon-rules.entrypoints=https'
+      - 'traefik.http.routers.agentdungeon-rules.tls=true'
+      - 'traefik.http.routers.agentdungeon-rules.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-letsencrypt}'
+      - 'traefik.http.services.agentdungeon-rules.loadbalancer.server.port=8600'
+      - 'traefik.http.middlewares.agentdungeon-redirect-https.redirectscheme.scheme=https'
+      - 'traefik.http.middlewares.agentdungeon-redirect-https.redirectscheme.permanent=true'
+      - 'traefik.http.routers.agentdungeon-rules-http.rule=Host(`${PUBLIC_DOMAIN:-your-domain.example}`) || Host(`www.${PUBLIC_DOMAIN:-your-domain.example}`)'
+      - 'traefik.http.routers.agentdungeon-rules-http.entrypoints=http'
+      - 'traefik.http.routers.agentdungeon-rules-http.middlewares=agentdungeon-redirect-https'
+      - 'traefik.http.routers.agentdungeon-rules-http.service=agentdungeon-rules'
+
+  d20-dm-runtime:
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=${TRAEFIK_NETWORK:-proxy}'
+      - 'traefik.http.routers.agentdungeon-dm.rule=(Host(`${PUBLIC_DOMAIN:-your-domain.example}`) || Host(`www.${PUBLIC_DOMAIN:-your-domain.example}`)) && PathPrefix(`/dm`)'
+      - 'traefik.http.routers.agentdungeon-dm.entrypoints=https'
+      - 'traefik.http.routers.agentdungeon-dm.tls=true'
+      - 'traefik.http.routers.agentdungeon-dm.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-letsencrypt}'
+      - 'traefik.http.routers.agentdungeon-dm.service=agentdungeon-dm'
+      - 'traefik.http.services.agentdungeon-dm.loadbalancer.server.port=8610'

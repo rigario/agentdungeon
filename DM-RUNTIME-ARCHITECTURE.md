@@ -15,7 +15,7 @@ This keeps the game deterministic and testable while still feeling like a real D
 
 What exists today:
 - `d20-rules-server` simulates turns, actions, combat, fronts, flags, and atmosphere.
-- `d20-dm-runtime` is a separate FastAPI service running in Docker on the deployment host.
+- `d20-dm-runtime` is a separate FastAPI service running in Docker on the deployment environment.
 - `POST /dm/turn` accepts player natural language, classifies intent, calls the rules server, and synthesizes the final player-facing DM payload.
 - `POST /dm/turn` includes a **DM-agent fallback intent resolver** for flexible/ambiguous input: deterministic routing handles precise actions first; low-confidence/general messages ask the in-container `d20-dm` profile for a bounded JSON decision (`execute`, `clarify`, `refuse`, or `narrate_noop`) before any server mutation.
 - `POST /dm/narrate` accepts already-resolved mechanics/world context and narrates without re-entering rules resolution.
@@ -28,9 +28,8 @@ What exists today:
 - Deployment verification is scripted in `scripts/deploy_dm_runtime.sh` and documented in `DEPLOYMENT.md`.
 
 What must remain true:
-- The laptop/global Hermes profile `~/.hermes/profiles/d20-dm` must not be created or used.
+- The DM uses the isolated Hermes profile mounted inside the `d20-dm-runtime` container. Host-level personal profiles are not part of the runtime contract.
 - Repo path `dm-runtime/hermes-home/profiles/d20-dm/` is a Docker build/source artifact only.
-- Host-side DM proxy containers and port `8611` are obsolete and should not be resurrected.
 - Health is not sufficient proof; actual `/dm/turn` must pass with a non-empty Hermes `session_id`.
 
 ## Target System Split
@@ -52,7 +51,7 @@ Responsibilities:
 
 ### 2. DM Runtime
 
-A separate FastAPI service plus in-container Hermes agent. It runs as `d20-dm-runtime` on the deployment host, colocated with the rules server in Docker for isolation.
+A separate FastAPI service plus in-container Hermes agent. It runs as `d20-dm-runtime` on the deployment environment, colocated with the rules server in Docker for isolation.
 
 Responsibilities:
 - Accept public player natural language at `/dm/turn`
@@ -87,7 +86,7 @@ Live production stack:
 ```text
 Public player / portal
   -> Traefik HTTPS: https://agentdungeon.com
-  -> Docker Compose on deployment host: /path/to/agentdungeon
+  -> Docker Compose in your deployment directory: /path/to/agentdungeon
      - d20-rules-server  (:8600, authoritative rules/state)
      - d20-dm-runtime    (:8610, DM FastAPI + Hermes agent)
      - d20-redis         (lock/cache support)
@@ -314,7 +313,7 @@ Recommended setup:
   - uses `world_context` as hard scope
 
 Why Kimi here:
-- strongest public demo narrative value
+- strongest public deployment narrative value
 - visible Kimi usage in the live demo
 - model is used exactly where synthesis matters most
 - mechanical correctness remains server-side
@@ -326,7 +325,7 @@ Why Kimi here:
 - Output: narration + choices
 - Classify intent and route to existing server endpoints
 - Minimal session memory
-- Enough for public demo
+- Enough for public deployment
 
 ### Stage 2 — Scene Continuity Layer
 - Better NPC continuity

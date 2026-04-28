@@ -59,7 +59,7 @@ VIDEO-PLAN.md
 D20-DEPLOYMENT-KEYS.md
 reports/
 video-build/
-*d20-hackathon*.mp4
+*.mp4
 voiceover.mp3
 _heartbeat_update.py
 heartbeat_*.py
@@ -73,3 +73,7 @@ dm-runtime/hermes-home/profiles/*/.skills_prompt_snapshot.json
 dm-runtime/hermes-home/profiles/*/models_dev_cache.json
 dm-runtime/hermes-home/profiles/*/skills/
 dm-runtime/vendor/
+
+# Local deployment overrides
+docker-compose.override.yml
+.env.*.local

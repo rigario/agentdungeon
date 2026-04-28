@@ -6,7 +6,7 @@ set -Eeuo pipefail
 LOCAL_ROOT="${LOCAL_ROOT:-$(pwd)}"
 DEPLOY_HOST="${DEPLOY_HOST:-<your-user>@<host>}"
 DEPLOY_APP_DIR="${DEPLOY_APP_DIR:-/path/to/agentdungeon}"
-PUBLIC_BASE="${PUBLIC_BASE:-https://agentdungeon.com}"
+PUBLIC_BASE="${PUBLIC_BASE:-https://your-domain.example}"
 MAX_TURN_SECONDS="${MAX_TURN_SECONDS:-90}"
 RUN_TESTS="${RUN_TESTS:-1}"
 NO_CACHE="${NO_CACHE:-1}"
@@ -72,7 +72,7 @@ if [[ "$VERIFY_ONLY" != "1" ]]; then
   ssh "$DEPLOY_HOST" "set -Eeuo pipefail
     cd '$DEPLOY_APP_DIR'
     test -f docker-compose.yml
-    test -f docker-compose.override.yml
+    test -f docker-compose.override.yml || test -f docker-compose.override.yml.example
     test -f dm-runtime/Dockerfile
     chmod -R u+rwX,go+rX dm-runtime/hermes-home || true
     grep -n 'def _extract_trace\|_extract_trace(server_result)' dm-runtime/app/services/synthesis.py
@@ -87,15 +87,17 @@ PY"
 
   log "Build d20-dm-runtime image"
   if [[ "$NO_CACHE" == "1" ]]; then
-    ssh "$DEPLOY_HOST" "cd '$DEPLOY_APP_DIR' && docker compose -f docker-compose.yml -f docker-compose.override.yml build d20-dm-runtime --no-cache"
+    ssh "$DEPLOY_HOST" "cd '$DEPLOY_APP_DIR' && OVERRIDE_FILE="\${COMPOSE_OVERRIDE_FILE:-docker-compose.override.yml}" && if [ ! -f "\$OVERRIDE_FILE" ]; then OVERRIDE_FILE=docker-compose.override.yml.example; fi && docker compose -f docker-compose.yml -f "\$OVERRIDE_FILE" build d20-dm-runtime --no-cache"
   else
-    ssh "$DEPLOY_HOST" "cd '$DEPLOY_APP_DIR' && docker compose -f docker-compose.yml -f docker-compose.override.yml build d20-dm-runtime"
+    ssh "$DEPLOY_HOST" "cd '$DEPLOY_APP_DIR' && OVERRIDE_FILE="\${COMPOSE_OVERRIDE_FILE:-docker-compose.override.yml}" && if [ ! -f "\$OVERRIDE_FILE" ]; then OVERRIDE_FILE=docker-compose.override.yml.example; fi && docker compose -f docker-compose.yml -f "\$OVERRIDE_FILE" build d20-dm-runtime"
   fi
 
   log "Recreate d20-dm-runtime with required dependencies"
   ssh "$DEPLOY_HOST" "set -Eeuo pipefail
     cd '$DEPLOY_APP_DIR'
-    docker compose -f docker-compose.yml -f docker-compose.override.yml up -d --no-deps d20-dm-runtime
+    OVERRIDE_FILE="\${COMPOSE_OVERRIDE_FILE:-docker-compose.override.yml}"
+    if [ ! -f "\$OVERRIDE_FILE" ]; then OVERRIDE_FILE=docker-compose.override.yml.example; fi
+    docker compose -f docker-compose.yml -f "\$OVERRIDE_FILE" up -d --no-deps d20-dm-runtime
     sleep 8
     docker ps --filter name=d20 --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
     docker exec d20-dm-runtime sh -lc 'which hermes && hermes --help >/tmp/hermes-help.txt && head -5 /tmp/hermes-help.txt'

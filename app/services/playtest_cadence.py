@@ -1,9 +1,9 @@
 """D20 Agent RPG — Playtest Cadence Mode.
 
-Accelerated tick system for rapid internal playtesting. In production, the
-game advances at real-time pace (6-hour heartbeats). In playtest mode,
-ticks fire every 3-5 minutes so agents can exercise the full async turn
-flow, doom-clock progression, and front advancement in a single session.
+Accelerated tick system for fast validation and demo pacing. In normal mode,
+the game advances at real-time pace. In playtest mode, ticks can be shortened
+so agents can exercise the full async turn flow, doom-clock progression,
+and front advancement in a single session.
 
 Cadence modes:
   - "normal"   — production cadence (default). No accelerated ticks.
@@ -12,7 +12,7 @@ Cadence modes:
 
 The doom clock is a simple per-character counter that increments on each
 tick. When it crosses configurable thresholds, it can auto-advance front
-portents or trigger narrative events. This lets us test the full
+portents or trigger narrative events. This lets a deployment validate the full
 "DM heartbeat → turn → front advance → doom" loop without waiting days.
 """
 

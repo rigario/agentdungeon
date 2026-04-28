@@ -52,7 +52,7 @@ AgentDungeon's current campaign, **The Dreaming Hunger**, customizes the generic
 - Mark/doom/front progression fields,
 - 5E-compatible-inspired action grammar,
 - guardrails for visible NPCs, reachable locations, and allowed outcomes,
-- portal and playtest flows for human-agent collaboration.
+- portal and validation flows for human-agent collaboration.
 
 ## Reusing the DM for Another Campaign
 
