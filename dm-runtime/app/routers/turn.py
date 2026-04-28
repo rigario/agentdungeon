@@ -52,13 +52,26 @@ async def dm_turn(body: dict):
         raise HTTPException(status_code=status, detail=result.error)
 
     try:
-        intent = classify_intent(message)
-        intent_dict = {
-            "type": intent.type.value,
-            "target": intent.target,
-            "details": intent.details,
-            "server_endpoint": intent.server_endpoint.value,
-        }
+        # Use the NORMALIZED intent from the router (after _normalize_target).
+        # Calling classify_intent() again would re-classify the raw message,
+        # losing the canonical target (e.g. "thornhold town square" → "thornhold").
+        normalized_intent = result.intent
+        if normalized_intent is not None:
+            intent_dict = {
+                "type": normalized_intent.type.value,
+                "target": normalized_intent.target,
+                "details": normalized_intent.details,
+                "server_endpoint": normalized_intent.server_endpoint.value,
+            }
+        else:
+            # Fallback: re-classify only if result.intent is somehow None
+            intent = classify_intent(message)
+            intent_dict = {
+                "type": intent.type.value,
+                "target": intent.target,
+                "details": intent.details,
+                "server_endpoint": intent.server_endpoint.value,
+            }
         world_context = result.world_context or {}
         narrated = await synthesize_narration(result.to_dict(), intent_dict, world_context, session_id=session_id)
         resolved_session_id = narrated.get("session_id") or session_id

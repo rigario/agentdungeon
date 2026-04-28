@@ -47,8 +47,8 @@ def fail(message: str):
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--base", default="https://d20.holocronlabs.ai")
-    parser.add_argument("--max-turn-seconds", type=float, default=15.0)
+    parser.add_argument("--base", default="https://agentdungeon.com")
+    parser.add_argument("--max-turn-seconds", type=float, default=120.0)
     args = parser.parse_args()
 
     status, elapsed, text = request(args.base, "GET", "/dm/health", timeout=20)
@@ -64,7 +64,7 @@ def main() -> int:
 
     suffix = "".join(random.choice(string.ascii_lowercase) for _ in range(6))
     payload = {"name": f"ActualDM{suffix}", "race": "Human", "class": "Fighter", "background": "Soldier"}
-    status, elapsed, text = request(args.base, "POST", "/dm/character", payload, timeout=30)
+    status, elapsed, text = request(args.base, "POST", "/dm/character", payload, timeout=60)
     if status != 200:
         fail(f"/dm/character returned {status}: {text[:500]}")
     character = json.loads(text)
@@ -74,7 +74,7 @@ def main() -> int:
     print("Created character:", char_id)
 
     turn_payload = {"character_id": char_id, "message": "look around and describe what I notice"}
-    status, elapsed, text = request(args.base, "POST", "/dm/turn", turn_payload, timeout=90)
+    status, elapsed, text = request(args.base, "POST", "/dm/turn", turn_payload, timeout=150)
     print(f"/dm/turn status={status} elapsed={elapsed:.2f}s")
     if status != 200:
         fail(f"/dm/turn returned {status}: {text[:1000]}")

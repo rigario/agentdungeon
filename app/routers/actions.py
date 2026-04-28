@@ -28,6 +28,7 @@ from app.services import affinity
 from app.services import milestones
 from app.services import hub_rumors
 from app.services import loot as loot_service
+from app.services.npc_movement import get_available_npcs_at_location
 from app.services.atmosphere import get_atmospheric_description
 
 
@@ -1826,6 +1827,22 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
                 "SELECT * FROM npcs WHERE current_location_id = ?",
                 (location_id,)
             ).fetchall()
+
+            # Compute NPC availability and filter to available only
+            flag_rows = conn2.execute(
+                "SELECT flag_key, flag_value FROM narrative_flags WHERE character_id = ?",
+                (character_id,)
+            ).fetchall()
+            narrative_flags = {r[0]: r[1] for r in flag_rows}
+            char_context = {
+                "character_id": character_id,
+                "game_hour": char.get("game_hour", 8),
+                "narrative_flags": narrative_flags,
+            }
+            npcs_availability = get_available_npcs_at_location(location_id, char_context)
+            available_ids = {n["id"] for n in npcs_availability.get("available", [])}
+            # Convert to dicts and keep only available
+            npcs = [dict(row) for row in npcs if row["id"] in available_ids]
 
             if not npcs:
                 conn2.close()

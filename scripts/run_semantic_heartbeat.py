@@ -6,8 +6,8 @@ D20 Semantic Guard Heartbeat — Fixed version
 import os, sys, re, json, datetime, urllib.request, urllib.error, subprocess
 
 REPO_ROOT = '/home/rigario/Projects/rigario-d20'
-RULES_URL = os.environ.get('RULES_URL', 'https://d20.holocronlabs.ai')
-DM_URL = os.environ.get('DM_URL', 'https://d20.holocronlabs.ai')
+RULES_URL = os.environ.get('RULES_URL', 'https://agentdungeon.com')
+DM_URL = os.environ.get('DM_URL', 'https://agentdungeon.com')
 ISSUES_PATH = os.path.join(REPO_ROOT, 'PLAYTEST-ISSUES.md')
 
 def http_post(url, payload_dict, timeout=10):

@@ -85,7 +85,7 @@ a living world driven by agents, not a static demo.
 ### Technical
 - **Resolution:** 1920x1080 (landscape for Twitter video)
 - **Browser:** Full-screen Chrome, dark theme
-- **Server:** d20.holocronlabs.ai (live)
+- **Server:** agentdungeon.com (live)
 - **Screen recorder:** OBS or built-in (whatever's available)
 - **Audio:** ambient.mp3 (already in the project) as background
 

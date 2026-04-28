@@ -36,7 +36,7 @@ def fresh_db():
     # Active quest
     conn.execute("INSERT OR REPLACE INTO character_quests (character_id, quest_id, quest_title, status) VALUES ('test-char-001','quest_moonpetal','Moonpetal Gathering','accepted')")
     # Fronts (id, name, danger_type, grim_portents_json, impending_doom, campaign_id)
-    conn.execute("INSERT OR REPLACE INTO fronts (id,name,danger_type,grim_portents_json,impending_doom,campaign_id) VALUES ('dreaming_hunger','Dreaming Hunger','doom','["p1","p2","p3"]','The doom','default')")
+    conn.execute("INSERT OR REPLACE INTO fronts (id,name,danger_type,grim_portents_json,impending_doom,campaign_id) VALUES ('dreaming_hunger','Dreaming Hunger','doom',?, 'The doom','default')", ('["p1","p2","p3"]',))
     # Character front
     conn.execute("INSERT OR REPLACE INTO character_fronts (character_id, front_id, current_portent_index, is_active) VALUES ('test-char-001','dreaming_hunger',1,1)")
     # Doom clock

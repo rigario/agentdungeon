@@ -7,8 +7,8 @@ to be elsewhere. Log actual location BEFORE and AFTER each turn.
 import httpx, json, uuid
 from datetime import datetime, timezone
 
-RULES = "https://d20.holocronlabs.ai"
-DM = "https://d20.holocronlabs.ai"
+RULES = "https://agentdungeon.com"
+DM = "https://agentdungeon.com"
 
 char_name = f"Trick2-{uuid.uuid4().hex[:6]}"
 ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")

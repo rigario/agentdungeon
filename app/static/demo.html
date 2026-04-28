@@ -72,6 +72,9 @@
     .dots { display:flex; gap:8px; } .dot { width:10px; height:10px; border-radius:50%; border:1px solid var(--gold); opacity:.45; cursor:pointer; } .dot.active { background:var(--gold); opacity:1; box-shadow:0 0 14px var(--gold); }
     .keys { color:var(--gold2); }
     .audio { position:fixed; top:18px; right:22px; z-index:30; border:1px solid var(--line); background:rgba(8,6,8,.7); color:var(--gold2); padding:9px 12px; cursor:pointer; font:800 11px Source Sans 3,sans-serif; letter-spacing:.12em; text-transform:uppercase; }
+    .top-nav { position:fixed; top:18px; left:22px; z-index:30; display:flex; gap:10px; align-items:center; }
+    .top-nav a { text-decoration:none; border:1px solid var(--line); background:rgba(8,6,8,.7); color:var(--gold2); padding:9px 12px; font:800 11px Source Sans 3,sans-serif; letter-spacing:.12em; text-transform:uppercase; transition: background .18s ease, border-color .18s ease; }
+    .top-nav a:hover { background:rgba(212,168,79,.12); border-color:var(--gold); }
     a { color:var(--gold2); }
     @media(max-width:850px){
       body { min-height:100svh; overflow:hidden; }
@@ -110,7 +113,14 @@
   </style>
 </head>
 <body>
-  <div class="progress" id="progress"></div><button type="button" class="audio" id="audioBtn">sound</button>
+  <div class="progress" id="progress"></div>
+  <nav class="top-nav" aria-label="Demo exit">
+    <a href="/">← Back to site</a>
+    <a href="/portal/">Field journal</a>
+    <a href="/map">Map</a>
+    <a href="/docs">Build notes</a>
+  </nav>
+  <button type="button" class="audio" id="audioBtn">sound</button>
   <main class="stage" id="stage">
     <section class="scene active"><div class="center"><div class="art-frame"><img class="demo-art" src="/static/generated/demo-seal-journal.png" alt="Cracked field journal seal watching from the dark"></div><h1>The Dreaming Hunger</h1><p style="margin:28px auto 0">The seal is not decoration. It is the last thing between Thornhold and what keeps knocking from inside the dream.</p></div></section>
 

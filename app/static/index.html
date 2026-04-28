@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>The Dreaming Hunger — A Campaign That Moves Without You</title>
-  <meta name="description" content="A living D&amp;D campaign where your agent carries the torch, the world keeps score, and you step in before the choices that leave scars.">
+  <title>The Dreaming Hunger — A Living Campaign for Human-Agent Co-Play</title>
+  <meta name="description" content="A living D&amp;D campaign where time moves in rounds, your agent acts between sessions, the world keeps score, and you step in before choices that leave scars.">
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -66,8 +66,10 @@
     .navlinks { display: flex; gap: 18px; align-items: center; font: 700 12px/1 Source Sans 3, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
     .navlinks a { text-decoration: none; }
     .navlinks a:hover { color: var(--gold-2); }
-    .hero { min-height: 86vh; display: grid; align-items: center; padding: 76px 0 64px; }
-    .hero-grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(330px, .95fr); gap: clamp(32px, 6vw, 82px); align-items: center; }
+    .hero { min-height: 92vh; display: grid; align-items: center; padding: 84px 0 72px; position: relative; overflow: hidden; isolation: isolate; }
+    .hero::before { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(90deg, var(--void) 0%, rgba(8,6,8,.96) 18%, rgba(8,6,8,.70) 42%, rgba(8,6,8,.16) 70%, var(--void) 100%), linear-gradient(180deg, rgba(8,6,8,.88) 0%, transparent 17%, transparent 68%, var(--void) 100%), radial-gradient(circle at 72% 42%, rgba(240,211,138,.18), transparent 24rem), radial-gradient(circle at 78% 66%, rgba(111,29,29,.26), transparent 30rem); }
+    .hero-bg-character { position: absolute; z-index: 0; right: max(-110px, calc((100vw - 1180px) / 2 - 170px)); bottom: -7vh; height: min(118vh, 980px); width: auto; max-width: none; object-fit: contain; object-position: bottom right; image-rendering: pixelated; opacity: .96; filter: drop-shadow(0 54px 96px rgba(0,0,0,.86)) drop-shadow(0 0 44px rgba(212,168,79,.18)); -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 13%, #000 88%, transparent 100%), linear-gradient(180deg, transparent 0, #000 8%, #000 86%, transparent 100%); -webkit-mask-composite: source-in; mask-image: linear-gradient(90deg, transparent 0, #000 13%, #000 88%, transparent 100%), linear-gradient(180deg, transparent 0, #000 8%, #000 86%, transparent 100%); mask-composite: intersect; }
+    .hero-grid { display: grid; grid-template-columns: minmax(0, .74fr) minmax(260px, .26fr); gap: clamp(32px, 6vw, 82px); align-items: center; position: relative; z-index: 2; }
     .eyebrow { font: 800 12px/1 Source Sans 3, sans-serif; color: var(--gold); text-transform: uppercase; letter-spacing: .2em; margin-bottom: 18px; }
     h1, h2, h3 { font-family: Cinzel, Georgia, serif; margin: 0; letter-spacing: .02em; }
     h1 { font-size: clamp(48px, 8vw, 105px); line-height: .9; max-width: 850px; }
@@ -78,16 +80,10 @@
     .btn:hover { transform: translateY(-2px); }
     .btn.primary { background: var(--gold); color: #1d130b; border-color: var(--gold); box-shadow: 0 14px 36px rgba(212,168,79,.22); }
     .btn.ghost { color: var(--gold-2); background: rgba(212,168,79,.06); }
-    .seal-card { position: relative; min-height: 600px; border: 1px solid var(--line); background: radial-gradient(circle at 50% 30%, rgba(212,168,79,.18), transparent 13rem), radial-gradient(circle at 50% 45%, rgba(111,29,29,.26), transparent 20rem), linear-gradient(180deg, rgba(33,22,18,.9), rgba(8,6,8,.96)); box-shadow: var(--shadow); overflow: hidden; }
-    .seal-card::before { content: ""; position: absolute; inset: 22px; border: 1px solid rgba(212,168,79,.18); background: linear-gradient(135deg, transparent 0 48%, rgba(212,168,79,.08) 49% 51%, transparent 52%); }
-    .seal-card::after { content: ""; position: absolute; inset: -20%; background: radial-gradient(circle, transparent 0 42%, rgba(0,0,0,.38) 72%); pointer-events: none; }
-    .seal { position: absolute; inset: 22px 24px 132px; display: grid; place-items: center; }
-    .seal-art { width: min(100%, 390px); aspect-ratio: 1 / 1; object-fit: contain; image-rendering: pixelated; filter: drop-shadow(0 26px 50px rgba(0,0,0,.62)); opacity: .30; transform: translate(-42px, -18px) rotate(-5deg); }
-    .player-art { position: absolute; right: clamp(0px, 3vw, 34px); bottom: 112px; height: min(74%, 500px); max-width: 68%; object-fit: contain; image-rendering: pixelated; z-index: 1; filter: drop-shadow(0 34px 60px rgba(0,0,0,.72)) drop-shadow(0 0 28px rgba(212,168,79,.16)); }
-    .hero-badge { position: absolute; top: 34px; left: 34px; z-index: 2; max-width: 245px; padding: 16px 16px 14px; background: rgba(8,6,8,.72); border: 1px solid rgba(212,168,79,.26); box-shadow: 0 18px 46px rgba(0,0,0,.32); }
-    .hero-badge span { display: block; font: 800 10px Source Sans 3, sans-serif; color: var(--gold); letter-spacing: .16em; text-transform: uppercase; margin-bottom: 8px; }
-    .hero-badge b { display: block; font: 700 22px/1 Cinzel, serif; color: var(--gold-2); }
-    .hero-badge small { display: block; margin-top: 7px; color: var(--muted); font-size: 14px; line-height: 1.35; }
+    .hero-caption { position: absolute; right: clamp(24px, 6vw, 92px); bottom: clamp(34px, 8vh, 86px); max-width: 390px; z-index: 3; text-shadow: 0 3px 18px rgba(0,0,0,.95); }
+    .hero-caption .caption-title { display: block; font: 800 10px Source Sans 3, sans-serif; color: var(--gold); letter-spacing: .16em; text-transform: uppercase; margin-bottom: 6px; }
+    .hero-caption .caption-name { display: block; font: 700 24px/1 Cinzel, serif; color: var(--gold-2); margin-bottom: 6px; }
+    .hero-caption .caption-body { display: block; color: #d8c6a4; font-size: 15px; line-height: 1.35; }
     .seal-svg { width: min(100%, 455px); height: auto; filter: drop-shadow(0 26px 50px rgba(0,0,0,.52)); }
     .seal-orbit { transform-origin: 250px 250px; animation: slow-turn 34s linear infinite; opacity: .72; }
     .seal-counter { transform-origin: 250px 250px; animation: slow-turn 48s linear infinite reverse; opacity: .62; }
@@ -97,9 +93,7 @@
     @keyframes slow-turn { to { transform: rotate(360deg); } }
     @keyframes seal-pulse { 50% { transform: scale(1.035); opacity: .78; } }
     @keyframes crack-draw { 35%, 70% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -250; } }
-    .field-note { position: absolute; left: 36px; right: 36px; bottom: 36px; padding: 20px 22px; background: rgba(8,6,8,.82); border-left: 2px solid var(--gold); z-index: 2; box-shadow: 0 20px 60px rgba(0,0,0,.32); }
-    .field-note strong { display: block; font: 700 15px Cinzel, serif; color: var(--gold-2); margin-bottom: 8px; }
-    .field-note p { margin: 0; color: var(--muted); font-size: 16px; line-height: 1.42; }
+
     .proof { padding: 36px 0 20px; }
     .pulse { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--line); background: rgba(23,16,14,.72); box-shadow: var(--shadow); }
     .pulse-item { padding: 22px; border-right: 1px solid var(--line); min-height: 124px; }
@@ -113,8 +107,8 @@
     h2 { font-size: clamp(34px, 5vw, 64px); line-height: .98; }
     .section-head p { margin: 0; color: var(--muted); font-size: 20px; max-width: 620px; }
     .spine { position: relative; display: grid; gap: 18px; }
-    .spine::before { content: ""; position: absolute; left: 18px; top: 16px; bottom: 16px; width: 1px; background: linear-gradient(var(--gold), var(--blood)); }
-    .beat { display: grid; grid-template-columns: 54px minmax(0,1fr) minmax(220px, .35fr); gap: 22px; align-items: stretch; padding: 20px; margin-left: 0; border: 1px solid rgba(212,168,79,.18); background: linear-gradient(90deg, rgba(33,22,18,.9), rgba(13,9,8,.78)); }
+    .spine::before { content: ""; position: absolute; left: 94px; top: 16px; bottom: 16px; width: 1px; background: linear-gradient(var(--gold), var(--blood)); }
+    .beat { display: grid; grid-template-columns: 64px minmax(0,1fr) minmax(220px, .35fr); column-gap: 34px; row-gap: 22px; align-items: stretch; padding: 20px; margin-left: 0; border: 1px solid rgba(212,168,79,.18); background: linear-gradient(90deg, rgba(33,22,18,.9), rgba(13,9,8,.78)); }
     .num { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: var(--void); border: 1px solid var(--gold); color: var(--gold-2); font: 800 13px Source Sans 3, sans-serif; z-index: 1; }
     .beat h3 { font-size: 24px; color: var(--gold-2); margin-bottom: 8px; }
     .beat p { margin: 0; color: #d1bea0; font-size: 18px; }
@@ -146,18 +140,18 @@
     footer a { color: var(--gold-2); text-decoration: none; margin-left: 16px; }
     @media (max-width: 860px) {
       .hero-grid, .section-head, .world, .split { grid-template-columns: 1fr; }
-      .seal-card { min-height: 560px; }
-      .seal { inset: 24px 24px 146px; }
-      .player-art { height: 420px; max-width: 66%; bottom: 118px; }
-      .hero-badge { top: 28px; left: 28px; max-width: 220px; }
+      .hero { min-height: auto; padding: 72px 0 56px; }
+      .hero-bg-character { right: -180px; bottom: -4vh; height: 78vh; opacity: .42; }
+      .hero-caption { position: relative; right: auto; bottom: auto; margin-top: 36px; max-width: 420px; }
       .pulse { grid-template-columns: 1fr 1fr; }
       .pulse-item:nth-child(2) { border-right: 0; }
       .pulse-item { border-bottom: 1px solid var(--line); }
-      .beat { grid-template-columns: 44px 1fr; }
+      .spine::before { left: 42px; }
+      .beat { grid-template-columns: 52px 1fr; column-gap: 22px; }
       .beat .proofline { grid-column: 2; border-left: 0; padding-left: 0; }
       .navlinks { display: none; }
     }
-    @media (max-width: 560px) { .pulse { grid-template-columns: 1fr; } .pulse-item { border-right: 0; } .location { grid-template-columns: 1fr; } .location img { width: 100%; height: 150px; } .seal-card { min-height: 590px; } .player-art { right: -12px; height: 390px; max-width: 78%; bottom: 132px; } .hero-badge { max-width: calc(100% - 56px); } .build-choice { grid-template-columns: 1fr; gap: 6px; } }
+    @media (max-width: 560px) { .pulse { grid-template-columns: 1fr; } .pulse-item { border-right: 0; } .location { grid-template-columns: 1fr; } .location img { width: 100%; height: 150px; } .hero-bg-character { right: -210px; bottom: -2vh; height: 70vh; opacity: .34; } .hero-caption { max-width: none; } .build-choice { grid-template-columns: 1fr; gap: 6px; } }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; } }
   </style>
 </head>
@@ -168,62 +162,53 @@
         <span class="brand-mark">✦</span><span>The Dreaming Hunger</span>
       </a>
       <nav class="navlinks" aria-label="Primary">
-        <a href="#loop">The Loop</a><a href="#world">World</a><a href="/portal/">Portal</a><a href="/demo">Demo</a><a href="/docs">API</a>
+        <a href="#loop">Play Loop</a><a href="#world">World</a><a href="/portal/">Field Journal</a><a href="/map">Map</a><a href="/demo">Demo</a><a href="/docs">Build Notes</a>
       </nav>
     </div>
   </header>
 
   <main>
     <section class="hero">
+      <img class="hero-bg-character" src="/static/generated/aegis-ward-hero.png" alt="" aria-hidden="true">
       <div class="wrap hero-grid">
         <div>
           <div class="eyebrow">Field Journal // Thornhold perimeter // candle low</div>
-          <h1>The seal is failing. <span class="quiet">Your agent is already in the dark.</span></h1>
-          <p class="lede">The Dreaming Hunger is a living D&amp;D campaign that keeps moving between sessions. Your agent carries the lantern through Thornhold, rolls real checks, survives real consequences, and returns with field notes when the next choice needs a human hand.</p>
+          <h1>The world moves in rounds. <span class="quiet">Your agent is already on the road.</span></h1>
+          <p class="lede">The Dreaming Hunger is not another tabletop simulator. It is a one-week living campaign: time advances in rounds, your agent can travel between sessions, rolls resolve against real rules, and the world remembers what happened. You do not watch a bot play. You set the intent, read the field notes, and step in before choices that leave scars.</p>
           <div class="cta-row">
-            <a class="btn primary" href="/portal/">Open the field journal</a>
-            <a class="btn ghost" href="/demo">Watch the omen</a>
+            <a class="btn primary" href="/portal/" title="Player portal — field journal" aria-label="Open the player portal (field journal)">Open the field journal</a>
+            <a class="btn ghost" href="/demo" title="Demo — watch how the loop works" aria-label="Watch the demo showing how the campaign loop works">Watch the loop</a>
           </div>
         </div>
-        <aside class="seal-card" aria-label="Aegis Ward, player character ready at the failing seal">
-          <div class="seal" aria-hidden="true">
-            <img class="seal-art" src="/static/generated/dreaming-hunger-seal.png" alt="Cracked pixel-art binding seal over an awakening eye">
-          </div>
-          <div class="hero-badge" aria-hidden="true">
-            <span>Player character // Fighter</span>
-            <b>Aegis Ward</b>
-            <small>Lantern lit. Sword drawn. At your command.</small>
-          </div>
-          <img class="player-art" src="/static/generated/aegis-ward-hero.png" alt="A powerful armored player character holding a lantern and sword before a haunted forest">
-          <div class="field-note">
-            <strong>Not scenery. A hero under your command.</strong>
-            <p>Aegis enters Thornhold with your agent at his shoulder. You decide when the lantern becomes a blade.</p>
-          </div>
-        </aside>
+        <div class="hero-caption" aria-label="Aegis Ward, player character ready at the failing seal">
+          <span class="caption-title">Player character // Fighter</span>
+          <span class="caption-name">Aegis Ward</span>
+          <span class="caption-body">Lantern lit. Sword drawn. At your command. Not scenery — a hero under your command. Aegis enters Thornhold with your agent at his shoulder.</span>
+        </div>
       </div>
     </section>
 
-    <div class="wrap proof" role="region" aria-label="Live campaign proof">
+    <div class="wrap proof" role="region" aria-label="Working proof from the current build">
       <div class="pulse">
         <div class="pulse-item"><span class="status"><span class="dot" id="healthDot"></span>Rules engine</span><b id="healthText">checking</b><small>The dice are visible. The math leaves tracks.</small></div>
         <div class="pulse-item"><span class="status"><span class="dot"></span>World graph</span><b id="mapCount">9 locations</b><small>Roads, taverns, caves, grudges.</small></div>
-        <div class="pulse-item"><span class="status"><span class="dot"></span>Last roll</span><b>WIS 7 + 1</b><small>The failed save did not vanish into flavor text.</small></div>
-        <div class="pulse-item"><span class="status"><span class="dot"></span>Human gate</span><b>Decision pending</b><small>The story has reached a door your agent should not open alone.</small></div>
+        <div class="pulse-item"><span class="status"><span class="dot"></span>Roll trace</span><b>WIS 7 + 1</b><small>Sample trace: failed saves become state, not flavor text.</small></div>
+        <div class="pulse-item"><span class="status"><span class="dot"></span>Human gate</span><b>Approval point</b><small>The story can pause before a door your agent should not open alone.</small></div>
       </div>
     </div>
 
     <section id="loop">
       <div class="wrap">
         <div class="section-head">
-          <h2>Not autoplay. A pact.</h2>
-          <p>Your agent can march through the mud, spend torches, trade blows, and bring back the truth. You still decide what kind of hero walks out of it.</p>
+          <h2>The play loop is the product.</h2>
+          <p>Every round has intent, action, consequence, and review. Your agent can march through the mud, spend torches, trade blows, and bring back the truth—field notes, visible rolls, and choices it will not make without you.</p>
         </div>
         <div class="spine">
-          <article class="beat"><div class="num">01</div><div><h3>The agent takes the road</h3><p>With signed authority, it scouts, bargains, fights, retreats, and writes down what the night took from it.</p></div><div class="proofline">Action log</div></article>
-          <article class="beat"><div class="num">02</div><div><h3>Thornhold answers back</h3><p>Doors close. Rumors curdle. NPCs remember debts. The doom clock advances when actions draw blood or time.</p></div><div class="proofline">World state</div></article>
-          <article class="beat"><div class="num">03</div><div><h3>The dice leave bruises</h3><p>Combat, saves, and skill checks resolve through the rules server. No hidden hand waves away a bad night.</p></div><div class="proofline">Roll trace</div></article>
-          <article class="beat"><div class="num">04</div><div><h3>The Mark keeps score</h3><p>Progress has a cost. Shortcuts, failed saves, and strange bargains settle into the character sheet.</p></div><div class="proofline">Consequences</div></article>
-          <article class="beat"><div class="num">05</div><div><h3>You answer the knock</h3><p>When the next step can change the campaign, the portal stops the march. Approve, redirect, or demand a better plan.</p></div><div class="proofline">Human gate</div></article>
+          <article class="beat"><div class="num">01</div><div><h3>You set the intent</h3><p>Pick the direction: scout the road, question the innkeeper, press toward the cave, conserve torches, avoid permanent risks.</p></div><div class="proofline">Player intent</div></article>
+          <article class="beat"><div class="num">02</div><div><h3>Your agent takes the road</h3><p>Inside those limits, it scouts, bargains, fights, retreats, and writes down what the night took from it.</p></div><div class="proofline">Action log</div></article>
+          <article class="beat"><div class="num">03</div><div><h3>The world answers back</h3><p>Doors close. Rumors curdle. NPCs remember debts. The campaign clock advances when actions draw blood or time.</p></div><div class="proofline">World state</div></article>
+          <article class="beat"><div class="num">04</div><div><h3>The dice leave bruises</h3><p>Combat, saves, and skill checks are resolved and recorded. Shortcuts, wounds, loot, and failed rolls settle into the sheet.</p></div><div class="proofline">Roll trace</div></article>
+          <article class="beat"><div class="num">05</div><div><h3>You answer the knock</h3><p>When the next step can change the campaign, the field journal stops the march. Approve, redirect, or demand a better plan.</p></div><div class="proofline">Human gate</div></article>
         </div>
       </div>
     </section>
@@ -231,8 +216,8 @@
     <section id="world">
       <div class="wrap">
         <div class="section-head">
-          <h2>Thornhold remembers.</h2>
-          <p>A frontier town under a failing seal. A road that thins into whispering trees. A cave mouth that has learned the shape of fear.</p>
+          <h2>A world that keeps score.</h2>
+          <p>A frontier town, a dangerous road, a tavern full of witnesses, and a cave that does not reset because the tab closed. Places remember visits, rumors, injuries, and unfinished business.</p>
         </div>
         <div class="world">
           <div class="map-panel">
@@ -240,7 +225,7 @@
             <div class="copy">
               <div class="eyebrow">Current field report // recovered at dusk</div>
               <h3>Whisperwood Edge</h3>
-              <p>The trees lean toward the path like listeners. Your agent can press deeper, but the Mark is restless and the last failed save is still rippling through the sheet.</p>
+              <p>The trees lean toward the path like listeners. Your agent can press deeper, but the last failed save is still on the sheet and the next round will cost something.</p>
               <a class="btn ghost" href="/map">Unroll the map</a>
             </div>
           </div>
@@ -248,7 +233,7 @@
             <div class="location"><img src="/static/pixel-art/loc-rusty-tankard.png" alt="The Rusty Tankard"><div><b>The Rusty Tankard</b><small>Warm ale, colder rumors, one table nobody chooses twice.</small></div></div>
             <div class="location"><img src="/static/pixel-art/thornhold.png" alt="Thornhold"><div><b>Thornhold</b><small>Last lanterns before the road begins lying.</small></div></div>
             <div class="location"><img src="/static/pixel-art/loc-cave-entrance.png" alt="Cave Entrance"><div><b>Cave Entrance</b><small>The point where courage becomes a user decision.</small></div></div>
-            <div class="location"><img src="/static/pixel-art/cave-depths-seal.png" alt="Seal Chamber"><div><b>Seal Chamber</b><small>The map knows the destination. It refuses to name the price.</small></div></div>
+            <div class="location"><img src="/static/pixel-art/cave-depths-seal.png" alt="Old Threshold"><div><b>Old Threshold</b><small>A late-campaign door. The field journal will not cross it without you.</small></div></div>
           </div>
         </div>
       </div>
@@ -258,27 +243,27 @@
       <div class="wrap split">
         <div class="journal">
           <div class="eyebrow">How co-play works</div>
-          <h3>Open the field journal.</h3>
+          <h3>Play with your agent.</h3>
           <ol>
-            <li>Receive a character with scars, stats, inventory, and unfinished business.</li>
-            <li>Give your agent narrow permission to move through the world.</li>
+            <li>Receive a character with stats, inventory, relationships, and unfinished business.</li>
+            <li>Choose a goal and give your agent narrow permission for the next round.</li>
             <li>Let it handle the march: travel, scouting, routine checks, ugly little fights.</li>
-            <li>Read the field notes, roll traces, wounds, loot, and consequences.</li>
+            <li>Read the field notes: rolls, wounds, loot, rumors, and consequences.</li>
             <li>Step in when the road forks toward something permanent.</li>
           </ol>
         </div>
         <div class="builders">
-          <div class="eyebrow">For builders</div>
-          <h3>Technical choices with teeth.</h3>
-          <p style="color: var(--muted); font-size: 18px; margin-top: 0;">The ritual is theatrical. The architecture is the point: human players and autonomous agents share the same world through explicit auth, traceable rules, and a DM that can evolve without becoming a black box.</p>
+          <div class="eyebrow">Why it is different</div>
+          <h3>Not a chatbot. Not a virtual tabletop.</h3>
+          <p style="color: var(--muted); font-size: 18px; margin-top: 0;">Most tabletop software helps humans run a session. The Dreaming Hunger is built around the time between sessions: a scoped agent can act, the campaign state changes, and the human returns to evidence rather than a blank recap.</p>
           <div class="build-stack">
-            <div class="build-choice"><b>Agentic auth</b><span>Humanless accounts can hold scoped authority, act through signed permissions, and stop before irreversible campaign state changes.</span></div>
-            <div class="build-choice"><b>Hermes DM</b><span>The DM layer runs as a Hermes agent: narrating, parsing intent, remembering context, and improving the campaign loop over time.</span></div>
-            <div class="build-choice"><b>FastAPI surface</b><span>One service exposes human portal routes and agent-facing endpoints, so browsers, player agents, and the DM runtime negotiate with the same rules server.</span></div>
-            <div class="build-choice"><b>Rules trace</b><span>D&amp;D SRD data, visible rolls, SQLite state, and Docker deployment make the magic inspectable instead of hand-waved.</span></div>
+            <div class="build-choice"><b>Rounds, not sessions</b><span>The campaign can move in scheduled beats, so play becomes a living week instead of a single table night.</span></div>
+            <div class="build-choice"><b>Agency with edges</b><span>Your agent can scout, travel, bargain, and fight inside limits you set. It stops before choices that would scar the campaign.</span></div>
+            <div class="build-choice"><b>One shared world</b><span>The journal, agent, and DM all touch the same campaign state. What happens on the road is what you see later.</span></div>
+            <div class="build-choice"><b>Evidence, not recap</b><span>Rolls, saves, wounds, loot, rumors, and consequences remain inspectable. The story earns its scars instead of hand-waving them.</span></div>
           </div>
           <div class="pills">
-            <span class="pill">Agent API keys</span><span class="pill">Hermes Agent DM</span><span class="pill">FastAPI</span><span class="pill">D&amp;D SRD 5.2</span><span class="pill">SQLite WAL</span><span class="pill">Docker</span><span class="pill">MIT Licensed</span>
+            <span class="pill">Between-session rounds</span><span class="pill">Scoped agency</span><span class="pill">Shared world state</span><span class="pill">Visible rolls</span><span class="pill">Human gates</span><span class="pill">Open source</span>
           </div>
         </div>
       </div>
@@ -287,8 +272,8 @@
 
   <footer>
     <div class="wrap">
-      <span>Built for the Hermes Agent Creative Hackathon · SRD 5.2 compatible.</span>
-      <span><a href="/portal/">Portal</a><a href="/demo">Demo</a><a href="/docs">API Docs</a><a href="https://github.com/rigario/rigario-d20" rel="noopener">GitHub</a></span>
+      <span>Built for the Hermes Agent Creative Hackathon · A living human-agent campaign loop.</span>
+      <span><a href="/portal/">Field Journal</a><a href="/demo">Demo</a><a href="/docs">Build Notes</a><a href="https://github.com/rigario/rigario-d20" rel="noopener">GitHub</a></span>
     </div>
   </footer>
   <script>

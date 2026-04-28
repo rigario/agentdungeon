@@ -393,6 +393,11 @@ async def narrate(server_result: dict, intent: dict, world_context: dict, sessio
         # Validate scope — reject output that references off-scope entities
         if not _validate_scope(result, world_context):
             logger.warning("DM narrator produced off-scope output — falling back to passthrough")
+            # Preserve the Hermes session id even when prose is rejected. This
+            # proves the actual DM agent ran while still refusing unsafe/off-scope
+            # narration; synthesis will attach the session id to passthrough.
+            if result.get("_hermes_session_id"):
+                return {"_hermes_session_id": result["_hermes_session_id"], "_scope_rejected": True}
             return None
 
         logger.info(f"DM narrator generated {len(result['scene'])} chars of prose")

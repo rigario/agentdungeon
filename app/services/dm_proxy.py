@@ -15,7 +15,7 @@ Flow:
 
 Env:
   DM_PROXY_URL   default "http://d20-dm-runtime:8610"
-  DM_TIMEOUT     default 30.0
+  DM_TIMEOUT     default 120.0
 """
 
 from __future__ import annotations
@@ -30,11 +30,13 @@ from app.services.database import get_db
 from app.services.key_items import KEY_ITEMS
 from app.services import affinity
 from app.services import hub_rumors
+from app.services.npc_movement import get_available_npcs_at_location
+from app.services import scene_context
 
 logger = logging.getLogger(__name__)
 
 DM_PROXY_URL = os.environ.get("DM_PROXY_URL", "http://d20-dm-runtime:8610")
-DM_TIMEOUT = float(os.environ.get("DM_TIMEOUT", "65.0"))
+DM_TIMEOUT = float(os.environ.get("DM_TIMEOUT", "120.0"))
 
 _shared_client: Optional[httpx.AsyncClient] = None
 
@@ -184,6 +186,41 @@ async def build_world_context(character_id: str) -> Dict[str, Any]:
             })
     # -------------------------------------------------------------------------
 
+    # Narrative Flags — per-character story progression markers
+    # -------------------------------------------------------------------------
+    narrative_flag_rows = conn.execute(
+        "SELECT flag_key, flag_value FROM narrative_flags WHERE character_id = ?",
+        (character_id,),
+    ).fetchall()
+    narrative_flags = {r["flag_key"]: r["flag_value"] for r in narrative_flag_rows}
+    # Build character context for NPC availability evaluation
+    char_context = {
+        "character_id": character_id,
+        "game_hour": char.get("game_hour", 8),
+        "narrative_flags": narrative_flags,
+    }
+    # Compute NPC availability split using character's current location
+    loc_id_for_avail = char.get("location_id")
+    npcs_availability = get_available_npcs_at_location(loc_id_for_avail, char_context) if loc_id_for_avail else {
+        "all_npcs": [], "available": [], "unavailable": []
+    }
+
+    # Enrich each NPC entry with availability fields and reasons
+    avail_by_id = {n["id"]: n for n in npcs_availability.get("available", [])}
+    unavail_by_id = {n["id"]: n for n in npcs_availability.get("unavailable", [])}
+    for npc in npcs:
+        nid = npc.get("id")
+        if nid in avail_by_id:
+            npc["available"] = True
+            npc["availability_reason"] = avail_by_id[nid].get("availability_reason", "Available")
+        elif nid in unavail_by_id:
+            npc["available"] = False
+            npc["unavailable_reason"] = unavail_by_id[nid].get("unavailable_reason", "Not available")
+        else:
+            npc["available"] = True
+            npc["availability_reason"] = "No restrictions"
+    # -------------------------------------------------------------------------
+
     # Social Context — affinity, milestones, exploration loot log
     # -------------------------------------------------------------------------
     # Fetch per-NPC affinity for relationship-status narration
@@ -229,6 +266,11 @@ async def build_world_context(character_id: str) -> Dict[str, Any]:
         }
         for r in loot_rows
     ]
+
+    # Compute scene affordances (allowed_actions/disallowed_actions) for DM choices
+    scene_ctx = scene_context.get_scene_context(character_id)
+    allowed_actions = scene_ctx.get("allowed_actions", [])
+    disallowed_actions = scene_ctx.get("disallowed_actions", [])
     
     # -------------------------------------------------------------------------
 
@@ -255,6 +297,11 @@ async def build_world_context(character_id: str) -> Dict[str, Any]:
         "front_progression": front_progression,
         "active_quests": active_quests,
         "key_items": key_items,
+        "narrative_flags": narrative_flags,
+        "allowed_actions": allowed_actions,
+        "disallowed_actions": disallowed_actions,
+        "npcs_available": npcs_availability.get("available", []),
+        "npcs_unavailable": npcs_availability.get("unavailable", []),
         "social_context": {
             "affinities": social_affinities,
             "milestones": milestones,

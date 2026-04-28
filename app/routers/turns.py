@@ -25,6 +25,9 @@ from typing import Optional
 from app.services.database import get_db
 from app.services.srd_reference import ability_modifier
 from app.services.auth_helpers import get_auth, require_character_ownership
+from app.services.npc_movement import get_npc_availability_status
+from app.services import scene_context
+from app.services.key_items import get_key_items
 
 router = APIRouter(prefix="/characters/{character_id}/turn", tags=["turns"])
 
@@ -325,10 +328,35 @@ def _build_world_context(
         if row:
             connected.append(dict(row))
 
-    # 3. NPCs at this biome
-    flags = _get_char_flags(character_id)
+    # 3. Character context (for NPC availability and movement rules)
+    char_row = conn.execute(
+        "SELECT id, name, game_hour FROM characters WHERE id = ?",
+        (character_id,),
+    ).fetchone()
+    char_dict = dict(char_row) if char_row else {}
+    game_hour = char_dict.get("game_hour", 8)
+
+    # Narrative flags as dict {key: value}
+    narrative_flags_dict = {}
+    flag_rows = conn.execute(
+        "SELECT flag_key, flag_value FROM narrative_flags WHERE character_id = ?",
+        (character_id,),
+    ).fetchall()
+    for r in flag_rows:
+        narrative_flags_dict[r[0]] = r[1]
+
+    char_context = {
+        "character_id": character_id,
+        "game_hour": game_hour,
+        "narrative_flags": narrative_flags_dict,
+    }
+
+    # Flag keys set for dialogue filtering
+    flag_keys_set = set(narrative_flags_dict.keys())
+
+    # 3. NPCs at this location (query by current_location_id, not biome)
     rows = conn.execute(
-        "SELECT * FROM npcs WHERE biome = ?", (loc["biome"],)
+        "SELECT * FROM npcs WHERE current_location_id = ?", (location_id,)
     ).fetchall()
 
     npcs_present = []
@@ -338,7 +366,7 @@ def _build_world_context(
             dialogue_templates = json.loads(npc.get("dialogue_templates", "[]"))
         except:
             dialogue_templates = []
-        accessible_dialogue = _filter_dialogue(dialogue_templates, flags)
+        accessible_dialogue = _filter_dialogue(dialogue_templates, flag_keys_set)
 
         npc_entry = {
             "id": npc["id"],
@@ -362,6 +390,21 @@ def _build_world_context(
                     npc_entry["quests"] = quests
             except:
                 pass
+        # NEW: Include movement rules JSON for DM planning/availability
+        if npc.get("movement_rules_json"):
+            npc_entry["movement_rules_json"] = npc["movement_rules_json"]
+
+        # NEW: Compute and attach NPC availability status
+        availability = get_npc_availability_status(npc, char_context)
+        if availability.get("available"):
+            npc_entry["available"] = True
+            reason = availability.get("reasons", ["Available"])[0] if availability.get("reasons") else "Available"
+            npc_entry["availability_reason"] = reason
+        else:
+            npc_entry["available"] = False
+            reasons = availability.get("reasons", ["Not available"])
+            npc_entry["unavailable_reason"] = "; ".join(reasons)
+
         npcs_present.append(npc_entry)
 
     # 4. Encounters at this location
@@ -408,6 +451,41 @@ def _build_world_context(
             "is_active": bool(f["is_active"]),
         })
 
+
+        # Compose front_progression for narrator (first active front)
+        front_progression = {}
+        if fronts:
+            active_front = next((f for f in fronts if f.get("is_active")), fronts[0])
+            front_progression = {
+                "name": active_front.get("name", "?"),
+                "current_portent": active_front.get("current_portent_index", 0),
+            }
+
+        # Key items for narrator
+        key_items = get_key_items(character_id, conn)
+
+        # Active quests for narrator
+        active_quests_rows = conn.execute(
+            "SELECT quest_id, quest_title, status FROM character_quests WHERE character_id = ? AND status = 'accepted' ORDER BY accepted_at DESC",
+            (character_id,),
+        ).fetchall()
+        active_quests = [
+            {"name": r["quest_title"], "status": r["status"]} for r in active_quests_rows
+        ]
+
+        # Hub rumors for narrator
+        hub_rumors = []
+        if location_id:
+            hr_rows = conn.execute(
+                "SELECT rumor_key AS key, sentiment, spread_count FROM hub_rumors WHERE character_id = ? AND location_id = ? ORDER BY last_seen_at DESC LIMIT 5",
+                (character_id, location_id),
+            ).fetchall()
+            hub_rumors = [
+                {"key": r["key"], "sentiment": r["sentiment"], "spread": r["spread_count"]}
+                for r in hr_rows
+            ]
+        social_context = {"hub_social": {"rumors": hub_rumors}} if hub_rumors else {}
+
     # 7. Atmospheric overlay (mark + portent + time-of-day aware)
     from app.services.atmosphere import get_atmospheric_description
 
@@ -425,6 +503,11 @@ def _build_world_context(
     conn.close()
 
     period = get_time_period(game_hour)
+
+    # Compute scene affordances from scene_context
+    scene_ctx = scene_context.get_scene_context(character_id)
+    allowed_actions = scene_ctx.get("allowed_actions", [])
+    disallowed_actions = scene_ctx.get("disallowed_actions", [])
 
     return {
         "location": {
@@ -448,7 +531,14 @@ def _build_world_context(
         "npcs": npcs_present,
         "encounters": encounters_here,
         "flags": flag_values,
+        "narrative_flags": narrative_flags_dict,
         "fronts": fronts,
+        "front_progression": front_progression,
+        "key_items": key_items,
+        "active_quests": active_quests,
+        "social_context": social_context,
+        "allowed_actions": allowed_actions,
+        "disallowed_actions": disallowed_actions,
         "scope_contract": (
             "SCOPE CONTRACT — The agent MAY describe ONLY the items in this world_context. "
             "The agent MUST NOT invent additional NPCs, locations, items, or plot hooks "

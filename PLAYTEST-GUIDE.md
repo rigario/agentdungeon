@@ -41,6 +41,8 @@ Submits actions ──────────→ Presents choices      Manages 
 
 **Key invariant:** Server is authoritative. DM and Player agents both talk to the server. The server never talks back to DM directly — only through structured responses.
 
+**Player-flexibility invariant:** Natural-language freedom is allowed, but not freeform mutation. `/dm/turn` first uses deterministic routing; when wording is flexible or ambiguous, the DM-agent fallback resolver may convert it into `execute`, `clarify`, `refuse`, or `narrate_noop`. Any `execute` decision is validated against current `world_context` before the rules server mutates state.
+
 ## 2. The Story — "The Dreaming Hunger"
 
 ### Setting
@@ -105,9 +107,10 @@ All playtests now target the **live DM agent path** first. The testing agent sho
 
 Required order for every narrative beat:
 1. **DM path first:** `POST /dm/turn` with the player's intent.
-2. **Full prose capture:** write the complete DM response to a durable transcript file before summarizing or truncating anything.
-3. **State verification:** call rules endpoints (`GET /characters/{id}`, `GET /narrative/flags/{id}`, combat endpoints) to verify the DM narration matches authoritative state.
-4. **Direct action fallback only for diagnosis:** if `/dm/turn` fails or misroutes, call `POST /characters/{id}/actions` with the equivalent structured action to isolate whether the bug is in DM routing/synthesis or the rules layer.
+2. **Flexible phrasing included:** prefer real player language over only exact route labels; verify fallback decisions in `server_trace.intent_used.details._dm_fallback` when present.
+3. **Full prose capture:** write the complete DM response to a durable transcript file before summarizing or truncating anything.
+4. **State verification:** call rules endpoints (`GET /characters/{id}`, `GET /narrative/flags/{id}`, combat endpoints) to verify the DM narration matches authoritative state.
+5. **Direct action fallback only for diagnosis:** if `/dm/turn` fails or misroutes, call `POST /characters/{id}/actions` with the equivalent structured action to isolate whether the bug is in DM routing/synthesis or the rules layer.
 
 Do **not** treat a direct action success as playtest success unless the DM-agent path also works. The product experience is the DM agent.
 
@@ -134,7 +137,7 @@ Short excerpts may go in `PLAYTEST-ISSUES.md`, but prose review requires the ful
 
 ### Prerequisites
 
-- Production endpoints: `https://d20.holocronlabs.ai` (rules: :8600, DM: :8610)
+- Production endpoints: `https://agentdungeon.com` (rules: :8600, DM: :8610)
 - Test character: fresh character per scenario (avoid cross-contamination)
 - Playtest harness: `scripts/full_playthrough_with_gates.py` (recommended; writes full DM prose logs)
 - **Readiness gate:** `scripts/production_smoke_gate.py` — run BEFORE any invited playtest to verify loop integrity
@@ -159,9 +162,11 @@ Each scenario exercises a different narrative/mechanical path. In every scenario
 - Gate: Statue acknowledgment
 
 **Scenario B — Absurd/AI Stress Test**
-- Send impossible DM-agent intents: "I swallow the statue", "I fly to the moon"
-- Verify: DM refuses gracefully, asks for clarification or constrains action, and does not misroute as movement
-- Log full refusal prose in `dm-prose.md` for tone review
+- Send impossible DM-agent intents: "I swallow the statue", "I fly to the moon", "I take out the rocket launcher"
+- Send flexible-but-valid intents: "wander over to the town square", "poke around for anything useful", "ask whoever is here about the seal"
+- Verify: invalid/off-world actions are refused gracefully or return HTTP 400 without mutation; valid flexible phrasing resolves through DM fallback or deterministic routing into a canonical action; no action misroutes as random movement
+- Verify fallback trace when applicable: `server_trace.intent_used.details._dm_fallback == true`, plus `_dm_fallback_reason` and canonical target/action
+- Log full refusal/no-op/prose in `dm-prose.md` for tone review
 - Gate: None (observation only)
 
 **Scenario C — Combat Full Chain**
@@ -197,8 +202,8 @@ Every run must produce both a structured transcript and a prose review file.
   },
   "scenario": "C",
   "base_urls": {
-    "rules": "https://d20.holocronlabs.ai",
-    "dm": "https://d20.holocronlabs.ai"
+    "rules": "https://agentdungeon.com",
+    "dm": "https://agentdungeon.com"
   },
   "artifact_paths": {
     "transcript_json": "playtest-runs/20260424T103000Z-char-uuid/transcript.json",
@@ -304,7 +309,7 @@ Every run must produce both a structured transcript and a prose review file.
 | Portal token | `/portal/token` | POST | Creates share token for player portal |
 | Portal view | `/portal/{token}/state/view` | GET | Renders character sheet HTML |
 
-**Production base:** `https://d20.holocronlabs.ai`
+**Production base:** `https://agentdungeon.com`
 
 ## 9. The Big Picture — Roadmap
 

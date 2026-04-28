@@ -4,7 +4,7 @@
 **Last updated:** 2026-04-24  
 **Maintainer:** Alpha / cron agents
 
-This is the canonical deploy runbook for the live D20 stack at `https://d20.holocronlabs.ai`.
+This is the canonical deploy runbook for the live D20 stack at `https://agentdungeon.com`.
 
 ## Production topology
 
@@ -12,7 +12,7 @@ This is the canonical deploy runbook for the live D20 stack at `https://d20.holo
 Public player / portal
         |
         v
-Traefik / Coolify HTTPS route: d20.holocronlabs.ai
+Traefik / Coolify HTTPS route: agentdungeon.com
         |
         v
 Docker Compose project on VPS: /home/admin/apps/d20
@@ -22,13 +22,13 @@ Docker Compose project on VPS: /home/admin/apps/d20
         +-- d20-redis         (per-character lock/cache support)
 ```
 
-VPS SSH target from agent sandboxes:
+VPS SSH target for maintainers is environment-specific and intentionally not committed here. Configure your own deployment host or private inventory before running deploy commands.
 
 ```bash
-ssh admin@100.98.80.95
+ssh <your-user>@<your-vps-host>
 ```
 
-Do **not** use `ssh admin@VPS` from cron/sandbox agents; that alias only exists on Rigario's laptop.
+Do **not** rely on laptop-only SSH aliases from cron/sandbox agents.
 
 ## Canonical DM architecture
 
@@ -97,8 +97,8 @@ VERIFY_ONLY=1 scripts/deploy_dm_runtime.sh      # no sync/build/recreate; verify
 RUN_TESTS=0 scripts/deploy_dm_runtime.sh        # skip local pytest, not recommended
 NO_CACHE=0 scripts/deploy_dm_runtime.sh         # allow Docker cache, not recommended for dependency changes
 MAX_TURN_SECONDS=120 scripts/deploy_dm_runtime.sh
-VPS_HOST=admin@100.98.80.95 scripts/deploy_dm_runtime.sh
-PUBLIC_BASE=https://d20.holocronlabs.ai scripts/deploy_dm_runtime.sh
+VPS_HOST=${VPS_HOST:-<your-user>@<your-vps-host>} scripts/deploy_dm_runtime.sh
+PUBLIC_BASE=https://agentdungeon.com scripts/deploy_dm_runtime.sh
 ```
 
 ## Manual DM runtime deploy fallback
@@ -124,9 +124,9 @@ rsync -az --delete \
   --exclude='hermes-home/profiles/*/sessions/' \
   --exclude='hermes-home/profiles/*/lcm.db*' \
   --exclude='hermes-home/profiles/*/*.log' \
-  dm-runtime/ admin@100.98.80.95:/home/admin/apps/d20/dm-runtime/
+  dm-runtime/ ${VPS_HOST:-<your-user>@<your-vps-host>}:/home/admin/apps/d20/dm-runtime/
 
-ssh admin@100.98.80.95 '
+ssh ${VPS_HOST:-<your-user>@<your-vps-host>} '
 set -Eeuo pipefail
 cd /home/admin/apps/d20
 chmod -R u+rwX,go+rX dm-runtime/hermes-home || true
@@ -138,7 +138,7 @@ docker ps --filter name=d20 --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 docker exec d20-dm-runtime sh -lc "grep -n \"def _extract_trace\|_extract_trace(server_result)\" /app/app/services/synthesis.py && sha256sum /app/app/services/synthesis.py && python3 -m py_compile /app/app/services/synthesis.py"
 '
 
-python3 scripts/validate_actual_dm_agent_turn.py --base https://d20.holocronlabs.ai --max-turn-seconds 90
+python3 scripts/validate_actual_dm_agent_turn.py --base https://agentdungeon.com --max-turn-seconds 90
 ```
 
 ## Rules server deploy
@@ -157,9 +157,9 @@ Critical rules-server invariants:
 A deploy is not done until all of these are true:
 
 ```bash
-curl -s https://d20.holocronlabs.ai/health
-curl -s https://d20.holocronlabs.ai/dm/health
-python3 scripts/validate_actual_dm_agent_turn.py --base https://d20.holocronlabs.ai --max-turn-seconds 90
+curl -s https://agentdungeon.com/health
+curl -s https://agentdungeon.com/dm/health
+python3 scripts/validate_actual_dm_agent_turn.py --base https://agentdungeon.com --max-turn-seconds 90
 ```
 
 Required proof:
@@ -222,7 +222,7 @@ Most likely deployment drift in `dm-runtime/app/services/synthesis.py`.
 Check:
 
 ```bash
-ssh admin@100.98.80.95 'docker exec d20-dm-runtime grep -n "def _extract_trace\|_extract_trace(server_result)" /app/app/services/synthesis.py || true'
+ssh ${VPS_HOST:-<your-user>@<your-vps-host>} 'docker exec d20-dm-runtime grep -n "def _extract_trace\|_extract_trace(server_result)" /app/app/services/synthesis.py || true'
 grep -n "def _extract_trace\|_extract_trace(server_result)" dm-runtime/app/services/synthesis.py
 ```
 
@@ -237,7 +237,7 @@ Python already imported the old module. Restart/recreate the service. Hotpatch a
 Fix build-context permissions:
 
 ```bash
-ssh admin@100.98.80.95 'cd /home/admin/apps/d20 && sudo chmod -R u+rwX,go+rX dm-runtime/hermes-home'
+ssh ${VPS_HOST:-<your-user>@<your-vps-host>} 'cd /home/admin/apps/d20 && sudo chmod -R u+rwX,go+rX dm-runtime/hermes-home'
 ```
 
 Then rerun the deploy script.

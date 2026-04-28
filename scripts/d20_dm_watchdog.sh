@@ -4,7 +4,7 @@
 set -Eeuo pipefail
 
 APP_DIR="${APP_DIR:-/home/admin/apps/d20}"
-PUBLIC_BASE="${PUBLIC_BASE:-https://d20.holocronlabs.ai}"
+PUBLIC_BASE="${PUBLIC_BASE:-https://agentdungeon.com}"
 LOG_FILE="${LOG_FILE:-/var/log/d20-dm-watchdog.log}"
 COMPOSE=(docker compose -f docker-compose.yml -f docker-compose.override.yml)
 CURL_TIMEOUT="${CURL_TIMEOUT:-8}"

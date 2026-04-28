@@ -85,3 +85,66 @@ class TestFreshenWorldContext:
         current = {"still": "here"}
         result = await router._freshen_world_context("char-111", current)
         assert result == current
+
+
+# =============================================================================
+# Scene-context fallback in route() (0c056bba)
+# =============================================================================
+
+class TestSceneContextFallback:
+    """Tests that route() falls back to get_scene_context when get_latest_turn fails."""
+
+    @pytest.fixture
+    def mock_client(self):
+        client = AsyncMock()
+        return client
+
+    @pytest.fixture
+    def router(self, mock_client):
+        return IntentRouter(mock_client)
+
+    @pytest.mark.asyncio
+    async def test_route_uses_scene_context_when_latest_turn_fails(self, router, mock_client):
+        """Planner receives scene-context as world_context when get_latest_turn returns nothing."""
+        from app.contract import AffordancePlannerResult, PlannerDecision
+
+        # Arrange: get_latest_turn fails (e.g., fresh character, 404)
+        mock_client.get_latest_turn = AsyncMock(side_effect=Exception("No turns yet"))
+        scene_wc = {
+            "npcs": [{"id": "npc1", "name": "Aldric"}],
+            "location": {"id": "rusty-tankard", "connections": []},
+            "allowed_actions": [
+                {"type": "interact", "target_id": "npc1", "target_name": "Aldric"}
+            ],
+            "can_rest": True,
+            "can_explore": True,
+        }
+        mock_client.get_scene_context = AsyncMock(return_value=scene_wc)
+        # Mock get_map_data to avoid hitting the real API (not needed for this test path)
+        mock_client.get_map_data = AsyncMock(return_value={"locations": [], "current_location": None})
+
+        # Mock planner to return CLARIFY — short-circuits before routing
+        mock_planner = AsyncMock()
+        mock_planner.plan = AsyncMock(return_value=AffordancePlannerResult(
+            decision=PlannerDecision.CLARIFY,
+            action_type=None,
+            target=None,
+            confidence=0.9,
+            reason="Ambiguous NPC reference",
+            clarifying_question="Which NPC do you want to talk to? Available: Aldric.",
+            narration_hint="Ask for clarification",
+        ))
+        router._planner = mock_planner
+
+        # Act: call the public route method
+        result = await router.route("char-xyz", "talk to him")
+
+        # Assert: get_latest_turn was attempted
+        mock_client.get_latest_turn.assert_awaited_once_with("char-xyz")
+        # Fallback: get_scene_context was called because get_latest_turn failed
+        mock_client.get_scene_context.assert_awaited_once_with("char-xyz")
+        # Planner called with the scene context
+        mock_planner.plan.assert_awaited_once_with("char-xyz", "talk to him", scene_wc)
+        # Result indicates planner clarify short-circuit
+        assert result.endpoint_called == "planner-clarify"
+        assert result.narration == "Which NPC do you want to talk to? Available: Aldric."

@@ -5,7 +5,7 @@ bypassing the DM agent's teleportation bug (ISSUE-016).
 """
 import httpx, uuid, json, time
 
-RULES = "https://d20.holocronlabs.ai"
+RULES = "https://agentdungeon.com"
 
 cname = f"Desync-{uuid.uuid4().hex[:6]}"
 

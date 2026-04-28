@@ -7,8 +7,8 @@ instead of `actions` (in-place narrative), teleporting the character away.
 import httpx, json, uuid, sys
 from datetime import datetime, timezone
 
-RULES = "https://d20.holocronlabs.ai"
-DM = "https://d20.holocronlabs.ai"
+RULES = "https://agentdungeon.com"
+DM = "https://agentdungeon.com"
 
 def check(msg: str, data: dict) -> str:
     """Extract a short label from response data."""

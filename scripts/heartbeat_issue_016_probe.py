@@ -6,8 +6,8 @@ Continuation of Scenario B run: after moving to thornhold, explore to set flag, 
 
 import os, json, datetime, requests
 
-RULES_URL = "https://d20.holocronlabs.ai"
-DM_URL = "https://d20.holocronlabs.ai"
+RULES_URL = "https://agentdungeon.com"
+DM_URL = "https://agentdungeon.com"
 CHAR_ID = "hbb-202604251545-2bfa3d"  # from previous run
 RUN_DIR = "playtest-runs/heartbeat-b-20260425T154516"
 

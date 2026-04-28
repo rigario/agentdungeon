@@ -7,7 +7,7 @@ Current implementation status:
 - **DM runtime is real and running** — `d20-dm-runtime` accepts `/dm/turn`, routes to the rules server, and invokes Hermes narration in-container.
 - **Hermes `d20-dm` profile is container-only** — live profile is `/root/.hermes/profiles/d20-dm` inside the VPS `d20-dm-runtime` container. Do not create/use laptop `~/.hermes/profiles/d20-dm`.
 
-See `DM-RUNTIME-ARCHITECTURE.md` for authority boundaries and `DEPLOYMENT.md` for cron-safe deploy/verification.
+See `DM-RUNTIME-ARCHITECTURE.md` for authority boundaries and `DEPLOYMENT.md` for cron-safe deploy/verification. The DM-agent fallback intent resolver is documented in `docs/dm-agent-fallback-intent-resolver.md`.
 
 Three independent entities that never mix responsibilities:
 
@@ -15,7 +15,7 @@ Three independent entities that never mix responsibilities:
 ┌─────────────────┐
 │ Player / Agent  │
 └────────┬────────┘
-         │ HTTPS: d20.holocronlabs.ai
+         │ HTTPS: agentdungeon.com
          ▼
 ┌─────────────────────────────────────────────────────┐
 │ VPS Docker Compose project: /home/admin/apps/d20    │
@@ -54,7 +54,7 @@ The server **never** narrates. It never creates content. It validates and return
 
 ### DM Agent (Storyteller)
 
-**Single responsibility: narrate within server-validated bounds.**
+**Single responsibility: narrate within server-validated bounds and interpret ambiguous player phrasing into bounded candidate actions.**
 
 - Receives `world_context` from the server after each action
 - Crafts narrative from validated data:
@@ -62,11 +62,12 @@ The server **never** narrates. It never creates content. It validates and return
   - Voices NPCs using their personality and flag-gated dialogue
   - Describes combat using combat_log
   - Presents choices from `asks`
+- Interprets flexible/ambiguous player phrasing through the fallback intent resolver when deterministic routing cannot safely act
 - Follows the scope contract:
   - May describe ONLY what's in world_context
   - Must NOT invent additional NPCs, locations, items, or events
 
-The DM agent **never** validates rules. It never modifies character sheets. It narrates what the server validates.
+The DM agent **never** validates rules and never modifies character sheets directly. In fallback mode it may propose a canonical action/target, but the runtime validates that proposal against `world_context` and the server performs any actual mutation.
 
 ### Player Agent (Character)
 
@@ -97,17 +98,18 @@ Player Agent                   Server                    DM Agent
 
 ### Turn / Action
 
+```text
+Player Agent                   DM Runtime                 Server
+─────────                      ──────────                 ──────
+"I enter the tavern"         → deterministic route      → Load character state
+                              → fallback resolver if       Validate action/target
+                                phrasing is ambiguous      Resolve mechanics
+                              → validated canonical      → Return events/world_context
+                                action only              →
+                              → synthesize/narrate final player-facing payload
 ```
-Player Agent                   Server                    DM Agent
-─────────                      ──────                    ────────
-"I enter the tavern"         → Load character state     →
-                              → Check encounters        →
-                              → Resolve combat (if any) →
-                              → Build world_context     →
-                              → Return turn result      → Narrate scene
-                                                        → Voice NPCs
-                                                        → Present choices
-```
+
+The fallback resolver lets players use flexible language, but it does not bypass server authority. Low-confidence/general messages can become `execute`, `clarify`, `refuse`, or `narrate_noop`; only a validated `execute` path reaches mutation endpoints.
 
 ### Level Up
 

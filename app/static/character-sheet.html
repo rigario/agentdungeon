@@ -4,15 +4,42 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Character Sheet — The Dreaming Hunger</title>
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Bitter:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Fira+Code:wght@400;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Bitter:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Fira+Code:wght@400;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/sheet.css">
   <style>
     /* Website body font override — force Source Sans 3 for prose/body text */
     body { font-family: 'Source Sans 3', 'Segoe UI', sans-serif !important; }
-  </style>
+
+  /* Shared public-site navigation shell */
+  .site-topbar { position: sticky; top: 0; z-index: 1000; backdrop-filter: blur(18px); background: rgba(8,6,8,.82); border-bottom: 1px solid rgba(212,168,79,.24); }
+  .site-shell { width: min(1180px, calc(100% - 40px)); margin: 0 auto; }
+  .site-nav { min-height: 62px; display: flex; justify-content: space-between; align-items: center; gap: 24px; font-family: 'Source Sans 3', system-ui, sans-serif; }
+  .site-brand { display: flex; align-items: center; gap: 12px; color: #f0e4ce; text-decoration: none; }
+  .site-brand-mark { width: 34px; height: 34px; border: 1px solid #d4a84f; border-radius: 50%; display: grid; place-items: center; color: #f0d38a; box-shadow: 0 0 22px rgba(212,168,79,.22); }
+  .site-brand span:last-child { font: 800 13px/1 'Cinzel', Georgia, serif; letter-spacing: .14em; text-transform: uppercase; }
+  .site-links { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; font: 800 11px/1 'Source Sans 3', system-ui, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: #b9a98d; }
+  .site-links a { color: inherit; text-decoration: none; }
+  .site-links a:hover, .site-links a.active { color: #f0d38a; }
+  @media (max-width: 760px) { .site-nav { align-items: flex-start; padding: 14px 0; flex-direction: column; gap: 12px; } .site-links { gap: 12px; } }
+
+</style>
 </head>
 <body>
+  <header class="site-topbar" aria-label="Site navigation">
+    <div class="site-shell site-nav">
+      <a class="site-brand" href="/"><span class="site-brand-mark">✦</span><span>The Dreaming Hunger</span></a>
+      <nav class="site-links" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/portal/">Field Journal</a>
+        <a href="/map">Map</a>
+        <a href="/demo">Demo</a>
+        <a href="/docs">Build Notes</a>
+      </nav>
+    </div>
+  </header>
 
 <div id="app" class="loading">Loading character sheet...</div>
 

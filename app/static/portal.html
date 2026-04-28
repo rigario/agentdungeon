@@ -4,11 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Field Journal — The Dreaming Hunger</title>
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Spectral:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
-    :root { --void:#080608; --panel:#17100e; --panel2:#211612; --gold:#d4a84f; --gold2:#f0d38a; --ember:#a63d2f; --blood:#6f1d1d; --text:#f0e4ce; --muted:#b9a98d; --line:rgba(212,168,79,.24); --green:#82a36f; }
+    :root { --void:#080608; --panel:#17100e; --panel2:#211612; --gold:#d4a84f; --gold2:#f0d38a; --ember:#a63d2f; --blood:#6f1d1d; --text:#f0e4ce; --muted:#b9a98d; --line:rgba(212,168,79,.24); --green:#82a36f; --font-display:Cinzel,Georgia,serif; }
     * { box-sizing:border-box; } body { margin:0; color:var(--text); font-family:Spectral,Georgia,serif; background:radial-gradient(circle at 20% 0%,rgba(166,61,47,.22),transparent 28rem),linear-gradient(180deg,#050405,var(--void)); }
     .wrap { width:min(1260px,calc(100% - 32px)); margin:0 auto; } a { color:var(--gold2); text-decoration:none; }
     header { position:sticky; top:0; z-index:5; background:rgba(8,6,8,.82); border-bottom:1px solid var(--line); backdrop-filter:blur(16px); }
@@ -38,7 +40,7 @@
     .error { margin:40px auto; max-width:760px; border:1px solid rgba(166,61,47,.52); background:rgba(111,29,29,.18); padding:24px; }
     @media(max-width:900px){ .grid,.digest,.titlebar{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}.stamp{width:max-content}.char{grid-template-columns:1fr}.portrait{width:100%;height:150px} }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; } }
-  
+
   /* Portal nearby NPCs horizontal strip */
   .npc-strip {
     grid-column: 1 / -1;
@@ -98,10 +100,46 @@
   .npc-card-sm .npc-status { font-size: 0.65rem; padding: 0.1rem 0.3rem; border-radius: 3px; text-align: center; font-family: var(--font-display); }
   .npc-card-sm.available .npc-status { background: rgba(130,163,111,0.2); color: var(--green); }
   .npc-card-sm.unavailable .npc-status { background: rgba(166,61,47,0.2); color: var(--ember); }
+
+  /* Visual character sheet panel */
+  .sheet-panel { grid-column: 1 / -1; }
+  .sheet-header-row { display:grid; grid-template-columns:110px 1fr; gap:18px; align-items:center; margin-bottom:16px; }
+  .sheet-header-row .portrait { width:110px; height:110px; }
+  .sheet-title { font-family:Cinzel,Georgia,serif; font-size:clamp(22px,3vw,36px); color:var(--gold2); line-height:1; }
+  .sheet-sub { color:var(--muted); font-size:15px; margin-top:6px; }
+  .sheet-badges { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .sheet-badge { border:1px solid var(--line); background:rgba(212,168,79,.08); color:var(--gold2); padding:4px 10px; font:800 11px Source Sans 3,sans-serif; letter-spacing:.1em; text-transform:uppercase; }
+  .ability-grid { display:grid; grid-template-columns:repeat(6,1fr); gap:10px; margin-top:12px; }
+  .ability { border:1px solid rgba(212,168,79,.18); background:rgba(8,6,8,.5); padding:10px; text-align:center; }
+  .ability .ab-name { font:800 11px Source Sans 3,sans-serif; text-transform:uppercase; letter-spacing:.12em; color:var(--gold); }
+  .ability .ab-score { font:700 26px Cinzel,serif; color:var(--text); line-height:1; margin-top:4px; }
+  .ability .ab-mod { font:700 13px Source Sans 3,sans-serif; color:var(--muted); margin-top:2px; }
+  .sheet-sections { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:18px; }
+  .sheet-section { border:1px solid rgba(212,168,79,.12); background:rgba(8,6,8,.36); padding:14px; }
+  .sheet-section h4 { margin:0 0 10px; font-family:Cinzel,serif; font-size:16px; color:var(--gold2); }
+  .sheet-section ul { margin:0; padding-left:18px; color:#d6c4a4; font-size:14px; }
+  .sheet-section ul li { margin-bottom:4px; }
+  .sheet-section .kv-row { display:flex; justify-content:space-between; gap:12px; border-bottom:1px solid rgba(212,168,79,.10); padding-bottom:6px; margin-bottom:6px; color:var(--muted); font-size:14px; }
+  .sheet-section .kv-row b { color:var(--text); font-weight:600; }
+  .sheet-bar { margin-top:12px; }
+  .sheet-bar .bar-label { display:flex; justify-content:space-between; font:800 11px Source Sans 3,sans-serif; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); margin-bottom:4px; }
+  .sheet-bar .bar-track { height:8px; background:rgba(8,6,8,.6); border:1px solid var(--line); border-radius:4px; overflow:hidden; }
+  .sheet-bar .bar-fill { height:100%; background:linear-gradient(90deg,var(--gold),var(--gold2)); border-radius:4px; }
+  .sheet-bar .bar-fill.hp { background:linear-gradient(90deg,var(--blood),var(--ember)); }
+  .mark-banner { border:1px solid rgba(166,61,47,.45); background:rgba(111,29,29,.22); padding:12px 14px; margin-top:14px; }
+  .mark-banner b { font-family:Cinzel,serif; color:#ffd5c8; }
+  .mark-banner span { color:var(--muted); font-size:13px; }
+  .spell-dots { display:flex; gap:6px; flex-wrap:wrap; }
+  .spell-dot { width:10px; height:10px; border-radius:50%; background:var(--gold); border:1px solid var(--gold2); }
+  .spell-dot.used { background:rgba(8,6,8,.6); border-color:var(--line); }
+  .coin-row { display:flex; gap:10px; flex-wrap:wrap; }
+  .coin { border:1px solid rgba(212,168,79,.18); background:rgba(8,6,8,.5); padding:6px 10px; font:700 13px Source Sans 3,sans-serif; color:var(--gold2); }
+  .coin .c-type { font:800 10px Source Sans 3,sans-serif; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); }
+  @media(max-width:900px){ .sheet-header-row{grid-template-columns:1fr}.sheet-header-row .portrait{width:100%;height:150px}.ability-grid{grid-template-columns:repeat(3,1fr)}.sheet-sections{grid-template-columns:1fr} }
 </style>
 </head>
 <body>
-  <header><div class="wrap nav"><a href="/portal/">← Portal</a><span id="refreshStatus">Loading journal…</span><a href="/demo">Demo</a></div></header>
+  <header><div class="wrap nav"><a href="/">✦ The Dreaming Hunger</a><span id="refreshStatus">Loading journal…</span><span><a href="/portal/">Field Journal</a> · <a href="/map">Map</a> · <a href="/demo">Demo</a> · <a href="/docs">Build Notes</a></span></div></header>
   <main class="wrap" id="app">
     <section class="titlebar"><div><div class="eyebrow">Field Journal</div><h1>Loading character…</h1><p class="subtitle">Fetching signed portal state.</p></div><div class="stamp">view-only token</div></section>
   </main>
@@ -116,6 +154,12 @@
     function eventTitle(e){ const type = titleize(e.type || e.event_type || e.action_type); if (/combat/i.test(type)) return 'Steel drawn'; if (/move|travel/i.test(type)) return 'Road taken'; if (/explore/i.test(type)) return 'Area searched'; if (/dialogue|npc/i.test(type)) return 'Conversation logged'; return type; }
     function eventText(e){ return e.summary || e.description || e.message || e.narration || e.result || 'The journal recorded a state change.'; }
     function digestFrom(events, character, location){ if (events && events.length) { const latest = events.slice(0,3).map(eventText).join(' '); return latest.length > 260 ? latest.slice(0,260) + '…' : latest; } return `${getCharName(character)} is currently near ${location?.name || character?.location_id || 'an unknown road'}. No recent event prose was returned, but the journal is ready.`; }
+
+    function modStr(score){ const n = Number(score) || 10; const m = Math.floor((n - 10) / 2); return m >= 0 ? `+${m}` : `${m}`; }
+    function getAbility(abilities, ab){ return abilities[ab] ?? abilities[ab.toLowerCase()] ?? abilities[ab.toUpperCase()]; }
+    function xpForLevel(lvl){ const t=[0,300,900,2700,6500,14000,23000,34000,48000,64000,85000,100000,120000,140000,165000,195000,225000,265000,305000,355000]; return t[Math.min(Math.max(Number(lvl)||0,0),20)]??355000; }
+    function xpPct(xp, lvl){ const next=xpForLevel(lvl); const prev=xpForLevel((Number(lvl)||1)-1); if(next===prev) return 100; return Math.max(0, Math.min(100, Math.round((((Number(xp)||0)-prev)/(next-prev))*100))); }
+
     function render(data){
       const character = data.character || data.character_state || {};
       const location = data.location || data.current_location || {};
@@ -123,210 +167,197 @@
       const quests = data.quests || data.active_quests || [];
       const inv = data.inventory || data.items || [];
       const doom = data.doom_clock || data.fronts || {};
+      const tokenInfo = data.token_info || {};
       const npcs_at_location = data.npcs_at_location || [];
       const npcs_available = new Set((data.npcs_available || []).map(n => n.id));
-      const npcs_unavailable = (data.npcs_unavailable || []).map(n => n.id);
       const name = getCharName(character);
       const locName = location.name || character.current_location_name || character.location_id || 'Unknown road';
-      const hp = character.hp ?? character.hit_points ?? character.current_hp ?? '—';
-      const maxHp = character.max_hp ?? character.hit_point_max ?? '—';
+      const hp = character.hp_current ?? character.hp ?? character.hit_points ?? character.current_hp ?? '—';
+      const maxHp = character.hp_max ?? character.max_hp ?? character.hit_point_max ?? '—';
       const ac = character.ac ?? character.armor_class ?? '—';
       const lvl = character.level ?? 1;
+      const xp = character.xp ?? 0;
       const img = location.image_url || '/static/pixel-art/whisperwood-edge.png';
       const digest = digestFrom(events, character, location);
+
+      // Prefer new enriched character_sheet, fall back to legacy sheet
+      const cs = character.character_sheet || character.sheet || {};
+      const race = cs.race || character.race || 'Unknown';
+      const cls = cs.class || getClass(character);
+      const acVal = cs.ac_value ?? ac ?? 10;
+      const acDesc = cs.ac_description || '';
+      const abilities = cs.ability_scores || {};
+      const speed = cs.speed || {};
+      const skills = cs.skills || {};
+      const saves = cs.saving_throws || {};
+      const languages = Array.isArray(cs.languages) ? cs.languages : [];
+      const wProf = Array.isArray(cs.weapon_proficiencies) ? cs.weapon_proficiencies : [];
+      const aProf = Array.isArray(cs.armor_proficiencies) ? cs.armor_proficiencies : [];
+      const equipment = Array.isArray(cs.equipment) ? cs.equipment : [];
+      const treasure = cs.treasure || {};
+      const spellSlots = cs.spell_slots || {};
+      const spells = Array.isArray(cs.spells) ? cs.spells : [];
+      const feats = Array.isArray(cs.feats) ? cs.feats : [];
+      const conditions = cs.conditions || {};
+      const markStage = cs.mark_of_dreamer_stage ?? character.mark_stage ?? character.corruption_stage ?? 0;
+
+      const abilityOrder = ['STR','DEX','CON','INT','WIS','CHA'];
+      const hasAbilities = abilityOrder.some(ab => getAbility(abilities, ab) != null);
+
+      // Build character sheet HTML
+      let sheetHtml = '';
+      sheetHtml += `<article class="panel sheet-panel"><h2>Character Sheet</h2>`;
+      sheetHtml += `<div class="sheet-header-row"><div class="portrait">${esc(name.charAt(0) || '?')}</div><div>`;
+      sheetHtml += `<div class="sheet-title">${esc(name)}</div>`;
+      sheetHtml += `<div class="sheet-sub">${esc(race)} ${esc(cls)} · Level ${esc(lvl)} · ${esc(locName)}</div>`;
+      sheetHtml += `<div class="sheet-badges">`;
+      sheetHtml += `<span class="sheet-badge">AC ${esc(acVal)}</span>`;
+      sheetHtml += `<span class="sheet-badge">HP ${esc(hp)}/${esc(maxHp)}</span>`;
+      sheetHtml += `<span class="sheet-badge">XP ${esc(xp)}</span>`;
+      if (speed.Walk || speed.walk) sheetHtml += `<span class="sheet-badge">Speed ${esc(speed.Walk || speed.walk)}</span>`;
+      if (markStage > 0) sheetHtml += `<span class="sheet-badge" style="border-color:var(--ember);color:#ffd5c8">Mark ${esc(markStage)}</span>`;
+      sheetHtml += `</div></div></div>`;
+
+      // HP + XP bars
+      const hpNum = Number(hp) || 0; const maxHpNum = Number(maxHp) || 1;
+      sheetHtml += `<div class="sheet-bar"><div class="bar-label"><span>Hit Points</span><span>${esc(hp)} / ${esc(maxHp)}</span></div><div class="bar-track"><div class="bar-fill hp" style="width:${Math.min(100, Math.round((hpNum/maxHpNum)*100))}%"></div></div></div>`;
+      sheetHtml += `<div class="sheet-bar"><div class="bar-label"><span>Experience</span><span>${esc(xp)} XP</span></div><div class="bar-track"><div class="bar-fill" style="width:${Math.min(100, xpPct(xp, lvl))}%"></div></div></div>`;
+
+      // Ability scores
+      if (hasAbilities) {
+        sheetHtml += `<div class="ability-grid">`;
+        for (const ab of abilityOrder) {
+          const score = getAbility(abilities, ab) ?? 10;
+          sheetHtml += `<div class="ability"><div class="ab-name">${esc(ab)}</div><div class="ab-score">${esc(score)}</div><div class="ab-mod">${esc(modStr(score))}</div></div>`;
+        }
+        sheetHtml += `</div>`;
+      }
+
+      // Two-column sections
+      sheetHtml += `<div class="sheet-sections">`;
+
+      // Left column
+      sheetHtml += `<div class="sheet-section">`;
+      if (acDesc) sheetHtml += `<div class="kv-row"><span>Armor</span><b>${esc(acDesc)}</b></div>`;
+      if (Object.keys(saves).length) {
+        sheetHtml += `<h4>Saving Throws</h4><ul>`;
+        for (const [k,v] of Object.entries(saves)) sheetHtml += `<li>${esc(k)}: ${esc(String(v))}</li>`;
+        sheetHtml += `</ul>`;
+      }
+      if (Object.keys(skills).length) {
+        sheetHtml += `<h4>Skills</h4><ul>`;
+        for (const [k,v] of Object.entries(skills)) sheetHtml += `<li>${esc(k)}: ${esc(String(v))}</li>`;
+        sheetHtml += `</ul>`;
+      }
+      if (languages.length) {
+        sheetHtml += `<h4>Languages</h4><ul>`;
+        for (const l of languages) sheetHtml += `<li>${esc(l)}</li>`;
+        sheetHtml += `</ul>`;
+      }
+      if (wProf.length || aProf.length) {
+        sheetHtml += `<h4>Proficiencies</h4><ul>`;
+        for (const p of wProf) sheetHtml += `<li>Weapon: ${esc(p)}</li>`;
+        for (const p of aProf) sheetHtml += `<li>Armor: ${esc(p)}</li>`;
+        sheetHtml += `</ul>`;
+      }
+      if (feats.length) {
+        sheetHtml += `<h4>Feats</h4><ul>`;
+        for (const f of feats) sheetHtml += `<li>${esc(typeof f === 'string' ? f : f.name || JSON.stringify(f))}</li>`;
+        sheetHtml += `</ul>`;
+      }
+      sheetHtml += `</div>`;
+
+      // Right column
+      sheetHtml += `<div class="sheet-section">`;
+      if (equipment.length) {
+        sheetHtml += `<h4>Equipment</h4><ul>`;
+        for (const it of equipment) sheetHtml += `<li>${esc(typeof it === 'string' ? it : it.name || JSON.stringify(it))}</li>`;
+        sheetHtml += `</ul>`;
+      }
+      if (Object.keys(treasure).length) {
+        sheetHtml += `<h4>Treasure</h4><div class="coin-row">`;
+        for (const [type, amount] of [['pp','pp'],['gp','gp'],['sp','sp'],['cp','cp']]) {
+          const val = treasure[type] || 0;
+          if (val) sheetHtml += `<div class="coin"><span class="c-type">${esc(type)}</span> ${esc(val)}</div>`;
+        }
+        sheetHtml += `</div>`;
+      }
+      if (Object.keys(spellSlots).length) {
+        sheetHtml += `<h4>Spell Slots</h4>`;
+        for (const [slvl, slots] of Object.entries(spellSlots).sort((a,b)=>Number(a[0])-Number(b[0]))) {
+          const total = slots.total ?? slots.max ?? 0;
+          const used = slots.used ?? 0;
+          sheetHtml += `<div class="kv-row"><span>Lv ${esc(slvl)}</span><div class="spell-dots">`;
+          for (let i=0;i<total;i++) sheetHtml += `<div class="spell-dot${i < used ? ' used' : ''}"></div>`;
+          sheetHtml += `</div></div>`;
+        }
+      }
+      if (spells.length) {
+        sheetHtml += `<h4>Spells</h4><ul>`;
+        for (const s of spells) sheetHtml += `<li>${esc(typeof s === 'string' ? s : s.name || JSON.stringify(s))}</li>`;
+        sheetHtml += `</ul>`;
+      }
+      const conditionEntries = Object.entries(conditions).filter(([,v]) => v);
+      if (conditionEntries.length) {
+        sheetHtml += `<h4>Conditions</h4><ul>`;
+        for (const [k,v] of conditionEntries) sheetHtml += `<li>${esc(k)}: ${esc(String(v))}</li>`;
+        sheetHtml += `</ul>`;
+      }
+      if (markStage > 0) {
+        sheetHtml += `<div class="mark-banner"><b>☠ Mark of the Dreamer</b><span> Stage ${esc(markStage)}</span></div>`;
+      }
+      sheetHtml += `</div>`;
+
+      sheetHtml += `</div></article>`;
+
+      // NPC strip (single, after character sheet)
+      let npcHtml = '';
+      npcHtml += `<div class="npc-strip">`;
+      npcHtml += `<h3>People nearby</h3>`;
+      if (npcs_at_location.length > 0) {
+        npcHtml += `<div class="npc-cards-horz">`;
+        npcHtml += npcs_at_location.map(npc => {
+          const isAvail = npcs_available.has(npc.id);
+          const availClass = isAvail ? 'available' : 'unavailable';
+          const imgHtml = npc.image_url
+            ? `<img src="${esc(npc.image_url)}" alt="${esc(npc.name)}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=emoji-fallback>🧙</span>'">`
+            : `<span class="emoji-fallback">🧙</span>`;
+          return `
+            <div class="npc-card-sm ${availClass}" data-id="${esc(npc.id)}">
+              <div class="npc-img-wrap">${imgHtml}</div>
+              <div class="npc-info">
+                <div class="npc-name">${esc(npc.name)}</div>
+                <div class="npc-archetype">${esc(npc.archetype || 'Unknown')}</div>
+                ${npc.personality ? `<div class="npc-personality">${esc(npc.personality.substring(0, 90) + (npc.personality.length > 90 ? '...' : ''))}</div>` : ''}
+                <div class="npc-status">${isAvail ? 'Available' : 'Unavailable'}</div>
+              </div>
+            </div>`;
+        }).join('');
+        npcHtml += `</div>`;
+      } else {
+        npcHtml += '<em style="color:var(--muted)">No one here</em>';
+      }
+      npcHtml += `</div>`;
+
       app.innerHTML = `
-        <section class="titlebar"><div><div class="eyebrow">Field Journal</div><h1>${esc(name)}</h1><p class="subtitle">${esc(getClass(character))} · Level ${esc(lvl)} · currently at ${esc(locName)}</p></div><div class="stamp">auto-refresh 30s</div></section>
+        <section class="titlebar"><div><div class="eyebrow">Field Journal</div><h1>${esc(name)}</h1><p class="subtitle">${esc(cls)} · Level ${esc(lvl)} · currently at ${esc(locName)}</p></div><div class="stamp">auto-refresh 30s</div></section>
         <section class="grid">
-          <article class="panel digest"><div class="digest-main"><div class="eyebrow">Since you last checked</div><p>${esc(digest)}</p></div><div class="gate"><b>Decision pressure</b><p>The next meaningful choice should pause for human review: push deeper, rest first, or return to safety.</p><div class="btn-row"><button type="button">Approve later</button><button type="button">Ask for plan</button><button type="button">Set gate</button></div></div></article>
-          <div class="npc-strip">
-            <h3>People nearby</h3>
-            ${npcs_at_location.length > 0 ? `
-              <div class="npc-cards-horz">
-                ${npcs_at_location.map(npc => {
-                  const isAvail = npcs_available.has(npc.id);
-                  const availClass = isAvail ? 'available' : 'unavailable';
-                  const imgHtml = npc.image_url
-                    ? `<img src="${esc(npc.image_url)}" alt="${esc(npc.name)}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=emoji-fallback>🧙</span>'">`
-                    : `<span class="emoji-fallback">🧙</span>`;
-                  return `
-                    <div class="npc-card-sm ${availClass}" data-id="${esc(npc.id)}">
-                      <div class="npc-img-wrap">${imgHtml}</div>
-                      <div class="npc-info">
-                        <div class="npc-name">${esc(npc.name)}</div>
-                        <div class="npc-archetype">${esc(npc.archetype || 'Unknown')}</div>
-${npc.personality ? `<div class="npc-personality">${esc(npc.personality.substring(0, 90) + (npc.personality.length > 90 ? \'...\' : \'\'))}</div>` : \'\'}
-                          <div class="npc-status">${isAvail ? 'Available' : 'Unavailable'}</div>
-                          <div class="npc-prompt">Talk to ${esc(npc.name)}</div>
-                      </div>
-                    </div>`;
-                }).join('')}
-              </div>
-            ` : '<em style="color:var(--muted)">No one here</em>'}
-          </div>
+          <article class="panel digest"><div class="digest-main"><div class="eyebrow">Since you last checked</div><p>${esc(digest)}</p></div><div class="gate"><b>Live rules snapshot</b><p>This is a read-only portal view. Character stats, location, inventory, quests, nearby NPCs, map state, and recent events are loaded from the game state endpoint every 30 seconds.</p></div></article>
 
-                    <article class="panel"><h2>Character state</h2><div class="char"><div class="portrait">${esc(name.charAt(0) || '?')}</div><div><div class="eyebrow">Sheet snapshot</div><p style="color:#d8c7a7;margin:0">${esc(getClass(character))}. View-only state from the rules server.</p></div></div><div class="stats"><div class="stat"><span>HP</span><b>${esc(hp)}/${esc(maxHp)}</b></div><div class="stat"><span>AC</span><b>${esc(ac)}</b></div><div class="stat"><span>Level</span><b>${esc(lvl)}</b></div><div class="stat"><span>Mark</span><b>${esc(character.mark_stage ?? character.corruption_stage ?? 0)}</b></div></div></article>
-          <div class="npc-strip">
-            <h3>People nearby</h3>
-            ${npcs_at_location.length > 0 ? `
-              <div class="npc-cards-horz">
-                ${npcs_at_location.map(npc => {
-                  const isAvail = npcs_available.has(npc.id);
-                  const availClass = isAvail ? 'available' : 'unavailable';
-                  const imgHtml = npc.image_url
-                    ? `<img src="${esc(npc.image_url)}" alt="${esc(npc.name)}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=emoji-fallback>🧙</span>'">`
-                    : `<span class="emoji-fallback">🧙</span>`;
-                  return `
-                    <div class="npc-card-sm ${availClass}" data-id="${esc(npc.id)}">
-                      <div class="npc-img-wrap">${imgHtml}</div>
-                      <div class="npc-info">
-                        <div class="npc-name">${esc(npc.name)}</div>
-                        <div class="npc-archetype">${esc(npc.archetype || 'Unknown')}</div>
-${npc.personality ? `<div class="npc-personality">${esc(npc.personality.substring(0, 90) + (npc.personality.length > 90 ? \'...\' : \'\'))}</div>` : \'\'}
-                          <div class="npc-status">${isAvail ? 'Available' : 'Unavailable'}</div>
-                          <div class="npc-prompt">Talk to ${esc(npc.name)}</div>
-                      </div>
-                    </div>`;
-                }).join('')}
-              </div>
-            ` : '<em style="color:var(--muted)">No one here</em>'}
-          </div>
+          ${sheetHtml}
+          ${npcHtml}
 
-                    <article class="panel"><h2>Current location</h2><img class="mapimg" src="${esc(img)}" alt="${esc(locName)}" onerror="this.src='/static/pixel-art/thornhold.png'"/><div class="kv"><div class="row"><span>Location</span><b>${esc(locName)}</b></div><div class="row"><span>Terrain</span><b>${esc(location.biome || location.terrain || 'frontier')}</b></div><div class="row"><span>Hostility</span><b>${esc(location.hostility || location.danger || 'unknown')}</b></div></div></article>
-          <div class="npc-strip">
-            <h3>People nearby</h3>
-            ${npcs_at_location.length > 0 ? `
-              <div class="npc-cards-horz">
-                ${npcs_at_location.map(npc => {
-                  const isAvail = npcs_available.has(npc.id);
-                  const availClass = isAvail ? 'available' : 'unavailable';
-                  const imgHtml = npc.image_url
-                    ? `<img src="${esc(npc.image_url)}" alt="${esc(npc.name)}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=emoji-fallback>🧙</span>'">`
-                    : `<span class="emoji-fallback">🧙</span>`;
-                  return `
-                    <div class="npc-card-sm ${availClass}" data-id="${esc(npc.id)}">
-                      <div class="npc-img-wrap">${imgHtml}</div>
-                      <div class="npc-info">
-                        <div class="npc-name">${esc(npc.name)}</div>
-                        <div class="npc-archetype">${esc(npc.archetype || 'Unknown')}</div>
-${npc.personality ? `<div class="npc-personality">${esc(npc.personality.substring(0, 90) + (npc.personality.length > 90 ? \'...\' : \'\'))}</div>` : \'\'}
-                          <div class="npc-status">${isAvail ? 'Available' : 'Unavailable'}</div>
-                          <div class="npc-prompt">Talk to ${esc(npc.name)}</div>
-                      </div>
-                    </div>`;
-                }).join('')}
-              </div>
-            ` : '<em style="color:var(--muted)">No one here</em>'}
-          </div>
+          <article class="panel"><h2>Current location</h2><img class="mapimg" src="${esc(img)}" alt="${esc(locName)}" onerror="this.src='/static/pixel-art/thornhold.png'"/><div class="kv"><div class="row"><span>Location</span><b>${esc(locName)}</b></div><div class="row"><span>Terrain</span><b>${esc(location.biome || location.terrain || 'frontier')}</b></div><div class="row"><span>Hostility</span><b>${esc(location.hostility || location.danger || 'unknown')}</b></div></div></article>
 
-                    <article class="panel"><h2>Agent decision trace</h2><div class="trace-step"><span>Situation</span><p>Low certainty near ${esc(locName)}; campaign pressure remains active.</p></div><div class="trace-step"><span>Options</span><p>Explore, rest, return to Thornhold, or ask for human approval before advancing.</p></div><div class="trace-step"><span>Chosen</span><p>Hold at the next gate until the player reviews risk.</p></div><div class="trace-step"><span>Why</span><p>Human-in-the-loop decisions are reserved for irreversible story movement.</p></div></article>
-          <div class="npc-strip">
-            <h3>People nearby</h3>
-            ${npcs_at_location.length > 0 ? `
-              <div class="npc-cards-horz">
-                ${npcs_at_location.map(npc => {
-                  const isAvail = npcs_available.has(npc.id);
-                  const availClass = isAvail ? 'available' : 'unavailable';
-                  const imgHtml = npc.image_url
-                    ? `<img src="${esc(npc.image_url)}" alt="${esc(npc.name)}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=emoji-fallback>🧙</span>'">`
-                    : `<span class="emoji-fallback">🧙</span>`;
-                  return `
-                    <div class="npc-card-sm ${availClass}" data-id="${esc(npc.id)}">
-                      <div class="npc-img-wrap">${imgHtml}</div>
-                      <div class="npc-info">
-                        <div class="npc-name">${esc(npc.name)}</div>
-                        <div class="npc-archetype">${esc(npc.archetype || 'Unknown')}</div>
-${npc.personality ? `<div class="npc-personality">${esc(npc.personality.substring(0, 90) + (npc.personality.length > 90 ? \'...\' : \'\'))}</div>` : \'\'}
-                          <div class="npc-status">${isAvail ? 'Available' : 'Unavailable'}</div>
-                          <div class="npc-prompt">Talk to ${esc(npc.name)}</div>
-                      </div>
-                    </div>`;
-                }).join('')}
-              </div>
-            ` : '<em style="color:var(--muted)">No one here</em>'}
-          </div>
+          <article class="panel"><h2>Portal wiring</h2><div class="trace-step"><span>Source</span><p>Live /portal state endpoint backed by the production game database.</p></div><div class="trace-step"><span>Character</span><p>${esc(name)} · ${esc(race)} ${esc(cls)} · Level ${esc(lvl)}</p></div><div class="trace-step"><span>Refresh</span><p>Browser polls every 30 seconds; current token view count is ${esc(tokenInfo.view_count ?? '—')}.</p></div><div class="trace-step"><span>Mode</span><p>View-only. No portal buttons mutate game state.</p></div></article>
 
-                    <article class="panel"><h2>Doom clock</h2><div class="kv"><div class="row"><span>Stage</span><b>${esc(doom.stage ?? doom.current_stage ?? 'active')}</b></div><div class="row"><span>Pressure</span><b>${esc(doom.pressure ?? doom.status ?? 'rising')}</b></div><div class="row"><span>Next portent</span><b>${esc(doom.next_portent || doom.next || 'unknown')}</b></div></div></article>
-          <div class="npc-strip">
-            <h3>People nearby</h3>
-            ${npcs_at_location.length > 0 ? `
-              <div class="npc-cards-horz">
-                ${npcs_at_location.map(npc => {
-                  const isAvail = npcs_available.has(npc.id);
-                  const availClass = isAvail ? 'available' : 'unavailable';
-                  const imgHtml = npc.image_url
-                    ? `<img src="${esc(npc.image_url)}" alt="${esc(npc.name)}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=emoji-fallback>🧙</span>'">`
-                    : `<span class="emoji-fallback">🧙</span>`;
-                  return `
-                    <div class="npc-card-sm ${availClass}" data-id="${esc(npc.id)}">
-                      <div class="npc-img-wrap">${imgHtml}</div>
-                      <div class="npc-info">
-                        <div class="npc-name">${esc(npc.name)}</div>
-                        <div class="npc-archetype">${esc(npc.archetype || 'Unknown')}</div>
-${npc.personality ? `<div class="npc-personality">${esc(npc.personality.substring(0, 90) + (npc.personality.length > 90 ? \'...\' : \'\'))}</div>` : \'\'}
-                          <div class="npc-status">${isAvail ? 'Available' : 'Unavailable'}</div>
-                          <div class="npc-prompt">Talk to ${esc(npc.name)}</div>
-                      </div>
-                    </div>`;
-                }).join('')}
-              </div>
-            ` : '<em style="color:var(--muted)">No one here</em>'}
-          </div>
+          <article class="panel"><h2>Doom clock</h2><div class="kv"><div class="row"><span>Stage</span><b>${esc(doom.stage ?? doom.current_stage ?? 'active')}</b></div><div class="row"><span>Pressure</span><b>${esc(doom.pressure ?? doom.status ?? 'rising')}</b></div><div class="row"><span>Next portent</span><b>${esc(doom.next_portent || doom.next || 'unknown')}</b></div></div></article>
 
-                    <article class="panel"><h2>Quests</h2>${quests.length ? `<div class="events">${quests.map(q=>`<div class="event"><b>${esc(q.title || q.name || 'Quest')}</b><p>${esc(q.description || q.status || 'Active objective')}</p></div>`).join('')}</div>` : `<p class="empty">No quest is pinned. Rumors are still gathering at the Rusty Tankard.</p>`}</article>
-          <div class="npc-strip">
-            <h3>People nearby</h3>
-            ${npcs_at_location.length > 0 ? `
-              <div class="npc-cards-horz">
-                ${npcs_at_location.map(npc => {
-                  const isAvail = npcs_available.has(npc.id);
-                  const availClass = isAvail ? 'available' : 'unavailable';
-                  const imgHtml = npc.image_url
-                    ? `<img src="${esc(npc.image_url)}" alt="${esc(npc.name)}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=emoji-fallback>🧙</span>'">`
-                    : `<span class="emoji-fallback">🧙</span>`;
-                  return `
-                    <div class="npc-card-sm ${availClass}" data-id="${esc(npc.id)}">
-                      <div class="npc-img-wrap">${imgHtml}</div>
-                      <div class="npc-info">
-                        <div class="npc-name">${esc(npc.name)}</div>
-                        <div class="npc-archetype">${esc(npc.archetype || 'Unknown')}</div>
-${npc.personality ? `<div class="npc-personality">${esc(npc.personality.substring(0, 90) + (npc.personality.length > 90 ? \'...\' : \'\'))}</div>` : \'\'}
-                          <div class="npc-status">${isAvail ? 'Available' : 'Unavailable'}</div>
-                          <div class="npc-prompt">Talk to ${esc(npc.name)}</div>
-                      </div>
-                    </div>`;
-                }).join('')}
-              </div>
-            ` : '<em style="color:var(--muted)">No one here</em>'}
-          </div>
+          <article class="panel"><h2>Quests</h2>${quests.length ? `<div class="events">${quests.map(q=>`<div class="event"><b>${esc(q.title || q.name || 'Quest')}</b><p>${esc(q.description || q.status || 'Active objective')}</p></div>`).join('')}</div>` : `<p class="empty">No quest is pinned. Rumors are still gathering at the Rusty Tankard.</p>`}</article>
 
-                    <article class="panel"><h2>Inventory & loot</h2>${inv.length ? `<div class="items">${inv.map(i=>`<span class="item">${esc(i.name || i.item_name || i)}</span>`).join('')}</div>` : `<p class="empty">No carried loot returned by the portal state.</p>`}</article>
-          <div class="npc-strip">
-            <h3>People nearby</h3>
-            ${npcs_at_location.length > 0 ? `
-              <div class="npc-cards-horz">
-                ${npcs_at_location.map(npc => {
-                  const isAvail = npcs_available.has(npc.id);
-                  const availClass = isAvail ? 'available' : 'unavailable';
-                  const imgHtml = npc.image_url
-                    ? `<img src="${esc(npc.image_url)}" alt="${esc(npc.name)}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=emoji-fallback>🧙</span>'">`
-                    : `<span class="emoji-fallback">🧙</span>`;
-                  return `
-                    <div class="npc-card-sm ${availClass}" data-id="${esc(npc.id)}">
-                      <div class="npc-img-wrap">${imgHtml}</div>
-                      <div class="npc-info">
-                        <div class="npc-name">${esc(npc.name)}</div>
-                        <div class="npc-archetype">${esc(npc.archetype || 'Unknown')}</div>
-${npc.personality ? `<div class="npc-personality">${esc(npc.personality.substring(0, 90) + (npc.personality.length > 90 ? \'...\' : \'\'))}</div>` : \'\'}
-                          <div class="npc-status">${isAvail ? 'Available' : 'Unavailable'}</div>
-                          <div class="npc-prompt">Talk to ${esc(npc.name)}</div>
-                      </div>
-                    </div>`;
-                }).join('')}
-              </div>
-            ` : '<em style="color:var(--muted)">No one here</em>'}
-          </div>
+          <article class="panel"><h2>Inventory & loot</h2>${inv.length ? `<div class="items">${inv.map(i=>`<span class="item">${esc(i.name || i.item_name || i)}</span>`).join('')}</div>` : `<p class="empty">No carried loot returned by the portal state.</p>`}</article>
 
-                    <article class="panel"><h2>Recent events</h2><div class="events">${events.length ? events.slice(0,8).map(e=>`<div class="event"><b>${esc(eventTitle(e))}</b><p>${esc(eventText(e))}</p></div>`).join('') : `<div class="event"><b>Journal quiet</b><p>No recent events were returned. The next agent turn will appear here.</p></div>`}</div></article>
+          <article class="panel"><h2>Recent events</h2><div class="events">${events.length ? events.slice(0,8).map(e=>`<div class="event"><b>${esc(eventTitle(e))}</b><p>${esc(eventText(e))}</p></div>`).join('') : `<div class="event"><b>Journal quiet</b><p>No recent events were returned. The next agent turn will appear here.</p></div>`}</div></article>
         </section>`;
     }
     async function load(){

@@ -14,6 +14,7 @@ Exit codes:
 
 import argparse
 import hashlib
+import os
 import subprocess
 import sys
 import tempfile
@@ -26,7 +27,7 @@ import re
 # ── Configuration ─────────────────────────────────────────────────────────────
 
 LOCAL_ROOT = Path("/home/rigario/Projects/rigario-d20")
-VPS_HOST = "admin@100.98.80.95"
+VPS_HOST = os.environ.get("VPS_HOST", "<your-user>@<your-vps-host>")
 VPS_APP_DIR = Path("/home/admin/apps/d20")
 CONTAINER_NAME = "d20-dm-runtime"
 

@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse, FileResponse
+from fastapi.openapi.docs import get_swagger_ui_html
 from app.config import HOST, PORT
 from app.scripts.seed import seed
 from app.services.auth_middleware import AuthMiddleware
@@ -50,6 +51,8 @@ app = FastAPI(
     description="DM server for agent-led D&D 5E idle RPG. Validates rules, runs encounters, tracks world state.",
     version="0.1.0",
     lifespan=lifespan,
+    docs_url=None,
+    redoc_url=None,
 )
 
 # Auth middleware — extracts user/agent identity from headers
@@ -119,6 +122,21 @@ def redirect_npcs_to_gallery():
 def serve_items_page():
     """Serve the items catalogue page — fetches from /items API."""
     return FileResponse(os.path.join(static_dir, "items.html"))
+
+
+@app.get("/docs", include_in_schema=False)
+def serve_docs():
+    """Serve the custom-designed static docs page."""
+    return FileResponse(os.path.join(static_dir, "docs.html"))
+
+
+@app.get("/api/docs", include_in_schema=False)
+def serve_api_docs():
+    """Serve the raw Swagger UI at a new path."""
+    return get_swagger_ui_html(
+        openapi_url="/openapi.json",
+        title="Rigario D20 Agent RPG — API Docs",
+    )
 
 # Register routers
 app.include_router(health.router)

@@ -1,10 +1,35 @@
-# Rigario D20 Agent RPG
+# AgentDungeon — Rigario D20 Agent RPG
 
 A D&D 5E SRD 5.2 game system where AI agents play characters and a DM agent narrates the world. Players stay lightly involved via approvals — the agent handles everything else.
+
+**Live demo:** https://agentdungeon.com  
+**Public docs:** [`docs/index.md`](docs/index.md)  
+**Agent skills:** [`.hermes/skills/`](.hermes/skills/)  
+**Hackathon notes:** [`SUBMISSION.md`](SUBMISSION.md)
 
 ## Core Promise
 
 **Install once. Your agent plays your D&D character 24/7. You only step in when it matters.**
+
+## Judge / Demo Quick Path
+
+1. Open **https://agentdungeon.com**.
+2. Read the [architecture diagram](docs/architecture/agentdungeon-architecture.md).
+3. Let an agent load the public skills in [`.hermes/skills/`](.hermes/skills/) or follow [the agent quickstart](docs/agent-play-quickstart.md).
+4. Create a character, take a `/dm/turn`, and generate a portal link using the [API quickstart](docs/api-quickstart.md).
+5. Read [DM Runtime Framework](docs/dm-runtime-framework.md) to see what is reusable versus campaign-specific.
+
+## Public Agent Skills
+
+This repo ships installable/readable skills for public agents:
+
+| Skill | Purpose |
+|---|---|
+| `.hermes/skills/agentdungeon-player/SKILL.md` | Teaches an agent the public play loop and action grammar. |
+| `.hermes/skills/agentdungeon-dm-playstyle/SKILL.md` | Explains how to interact with the bounded DM runtime. |
+| `.hermes/skills/agentdungeon-troubleshooting/SKILL.md` | Provides safe public health checks and repro steps. |
+
+Agents should use `https://agentdungeon.com` as the canonical base URL.
 
 ## Architecture
 
@@ -14,7 +39,7 @@ The live system is a three-service Docker stack on the VPS. The DM is not a lapt
 Player / Player Agent
         |
         v
-https://d20.holocronlabs.ai  (Traefik / Coolify)
+https://agentdungeon.com  (Traefik / Coolify)
         |
         +--> d20-rules-server  :8600  # authoritative rules, state, rolls, world_context
         |
@@ -27,7 +52,13 @@ https://d20.holocronlabs.ai  (Traefik / Coolify)
 ```
 
 Canonical docs:
+- `docs/index.md` — public docs index and judge path
+- `docs/architecture/agentdungeon-architecture.md` — GitHub-renderable architecture diagram
+- `docs/agent-play-quickstart.md` — public human/agent play instructions
+- `docs/api-quickstart.md` — minimal API examples
+- `docs/dm-runtime-framework.md` — reusable DM framework explainer
 - `DM-RUNTIME-ARCHITECTURE.md` — authority boundaries and DM/rules flow
+- `docs/dm-agent-fallback-intent-resolver.md` — natural-language fallback resolver enabling flexible player input without freeform mutation
 - `DEPLOYMENT.md` — cron-safe deploy/verification workflow
 
 ## Three Entities
@@ -75,13 +106,19 @@ Returns: full character sheet in portable format with `sha256:` signature.
 
 ### 2. Play
 
-Player agent submits actions to server. Server resolves and returns:
+Player agent submits natural-language intent to `POST /dm/turn`. The DM runtime:
+- Routes precise/high-confidence actions deterministically.
+- Uses the bounded DM-agent fallback resolver for flexible or ambiguous phrasing.
+- Validates any fallback action/target against current `world_context` before mutation.
+- Calls the rules server only with canonical, validated actions.
+
+Server resolves and returns:
 - `events` — what mechanically happened
 - `combat_log` — every roll, every hit, every decision
 - `world_context` — what the DM agent can see and narrate
 - `dice_log` — every single roll with full context
 
-DM agent takes the world_context and crafts narrative for the player.
+DM agent takes the result and crafts narrative for the player. Invalid/off-world actions are refused or clarified rather than mutated.
 
 ### 3. Level Up
 

@@ -133,7 +133,7 @@ Or better: ensure every append path produces a string.
 
 1. Create character via API
 2. Generate portal share token
-3. Open `https://d20.holocronlabs.ai/portal.html?token=<token>`
+3. Open `https://agentdungeon.com/portal.html?token=<token>`
 4. Verify: character sheet renders, location shows, HP/AC display
 5. Take actions via API, refresh portal — verify state updates
 6. Test on mobile viewport
@@ -344,9 +344,9 @@ Scenario: _______
 |--------|--------|--------|
 | Git log | `git log --oneline -30` | 30 commits, latest `f7a2cbd` (conftest.py fix) |
 | Local tests | `pytest --tb=short -q` | 200 passed in 0.91s |
-| Rules server health | `GET https://d20.holocronlabs.ai/health` | 200 OK, DB connected |
-| DM runtime health | `GET https://d20.holocronlabs.ai/dm/health` | 200 OK, narrator enabled |
-| DM /turn | `POST https://d20.holocronlabs.ai/dm/turn` | 500 Internal Server Error |
+| Rules server health | `GET https://agentdungeon.com/health` | 200 OK, DB connected |
+| DM runtime health | `GET https://agentdungeon.com/dm/health` | 200 OK, narrator enabled |
+| DM /turn | `POST https://agentdungeon.com/dm/turn` | 500 Internal Server Error |
 | Docker logs | `docker logs d20-dm-runtime --tail 50` | Pydantic ValidationError on `what_happened.0` |
 | Character create | `POST /characters` | 201, HP 12/12, AC 12 |
 | Explore action | `POST /characters/{id}/actions` | 200, narration + events |

@@ -185,7 +185,15 @@ def get_portal_state(character_id: str) -> dict:
             return {"error": "character_not_found"}
 
         import json
-        sheet = json.loads(char["sheet_json"]) if char["sheet_json"] else {}
+
+        def safe_json(col):
+            try:
+                val = char[col] if col in char.keys() else None
+                return json.loads(val) if val else {}
+            except (json.JSONDecodeError, TypeError, ValueError):
+                return {}
+
+        sheet = safe_json("sheet_json")
 
         # Current location + nearby NPCs (with availability filtering)
         location = None
@@ -318,9 +326,31 @@ def get_portal_state(character_id: str) -> dict:
                 traveled_edges.append([prev_loc, curr_loc])
             prev_loc = curr_loc
 
-        # 4. Character's map-relevant state
+        # === NEW: map state derived from event_log ===
         mark_stage = char["mark_of_dreamer_stage"] if "mark_of_dreamer_stage" in char.keys() else 0
         portents_triggered = doom["portents_triggered"] if doom else 0
+
+        # Build enriched character sheet object for the visual panel
+        character_sheet = {
+            "race": (char["race"] if "race" in char.keys() else None) or sheet.get("race") or "",
+            "class": (char["class"] if "class" in char.keys() else None) or sheet.get("class") or sheet.get("class_name") or "",
+            "ac_value": (char["ac_value"] if "ac_value" in char.keys() else None) or sheet.get("ac", {}).get("value") or sheet.get("armor_class", {}).get("value") or 10,
+            "ac_description": (char["ac_description"] if "ac_description" in char.keys() else None) or sheet.get("ac", {}).get("description") or sheet.get("armor_class", {}).get("description") or "",
+            "ability_scores": safe_json("ability_scores_json") or sheet.get("ability_scores") or {},
+            "speed": safe_json("speed_json") or sheet.get("speed") or {},
+            "skills": safe_json("skills_json") or sheet.get("skills") or {},
+            "saving_throws": safe_json("saving_throws_json") or sheet.get("saving_throws") or {},
+            "languages": safe_json("languages_json") or sheet.get("languages") or [],
+            "weapon_proficiencies": safe_json("weapon_proficiencies_json") or sheet.get("weapon_proficiencies") or [],
+            "armor_proficiencies": safe_json("armor_proficiencies_json") or sheet.get("armor_proficiencies") or [],
+            "equipment": safe_json("equipment_json") or sheet.get("equipment") or [],
+            "treasure": safe_json("treasure_json") or sheet.get("treasure") or {},
+            "spell_slots": safe_json("spell_slots_json") or sheet.get("spell_slots") or {},
+            "spells": safe_json("spells_json") or sheet.get("spells") or [],
+            "feats": safe_json("feats_json") or sheet.get("feats") or [],
+            "conditions": safe_json("conditions_json") or sheet.get("conditions") or {},
+            "mark_of_dreamer_stage": mark_stage,
+        }
 
         return {
             "character": {
@@ -331,6 +361,7 @@ def get_portal_state(character_id: str) -> dict:
                 "hp_current": char["hp_current"],
                 "hp_max": char["hp_max"],
                 "sheet": sheet,
+                "character_sheet": character_sheet,
             },
             "location": location,
             "npcs_at_location": npcs_at_location,

@@ -6,8 +6,8 @@ Character stays at thornhold. DM messages claim location that doesn't match real
 import httpx, json, uuid
 from datetime import datetime, timezone
 
-RULES = "https://d20.holocronlabs.ai"
-DM = "https://d20.holocronlabs.ai"
+RULES = "https://agentdungeon.com"
+DM = "https://agentdungeon.com"
 
 char_name = f"Trick-{uuid.uuid4().hex[:6]}"
 ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")

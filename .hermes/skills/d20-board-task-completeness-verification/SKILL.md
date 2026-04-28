@@ -9,7 +9,7 @@ purpose: "Systematically verify whether a Mission Control task (To Do or Done) i
 steps:
   - description: "Pull live board context from heartbeat API"
     commands: []
-    note: "GET http://vps-8432193b:8500/api/context/heartbeat/{config_id}"
+    note: "GET http://<mission-control-host>:8500/api/context/heartbeat/{config_id}"
     
   - description: "Identify candidate actionable tasks by priority/deps"
     commands: []
@@ -107,7 +107,7 @@ Systematically verify whether a Mission Control task (To Do or Done) is **genuin
 
 ### Step 1: Pull Live Board Context
 ```
-GET http://vps-8432193b:8500/api/context/heartbeat/{config_id}
+GET http://<mission-control-host>:8500/api/context/heartbeat/{config_id}
 ```
 Extract all tasks, filter by status (To Do / In Progress), check `depends_on` satisfaction, and read full `description` and acceptance criteria.
 

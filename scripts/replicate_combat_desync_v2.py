@@ -5,8 +5,8 @@ We need to trigger actual combat (not just explore) and then force a defeat.
 """
 import httpx, uuid, json, time
 
-RULES = "https://d20.holocronlabs.ai"
-DM = "https://d20.holocronlabs.ai"
+RULES = "https://agentdungeon.com"
+DM = "https://agentdungeon.com"
 
 cname = f"Desync-{uuid.uuid4().hex[:6]}"
 

@@ -138,3 +138,122 @@ class TestScopeValidation:
             "connections": [],
         }
         assert _validate_scope(llm_output, world_context) is False
+
+    def test_key_item_off_scope_fails(self):
+        """Scene referencing a key item not in allowed set should fail."""
+        llm_output = {
+            "scene": "You hold the Crystal of Aldric, glowing with power.",
+            "npc_lines": [],
+            "tone": "neutral",
+            "choices_summary": "",
+        }
+        world_context = {
+            "npcs": [],
+            "location": {"name": "Tavern"},
+            "connections": [],
+            "key_items": [{"name": "Silver Key"}],
+        }
+        assert _validate_scope(llm_output, world_context) is False
+
+    def test_key_item_allowed_passes(self):
+        """Scene referencing an allowed key item should pass."""
+        llm_output = {
+            "scene": "You clutch the Silver Key tightly.",
+            "npc_lines": [],
+            "tone": "neutral",
+            "choices_summary": "",
+        }
+        world_context = {
+            "npcs": [],
+            "location": {"name": "Tavern"},
+            "connections": [],
+            "key_items": [{"name": "Silver Key"}],
+        }
+        assert _validate_scope(llm_output, world_context) is True
+
+    def test_outcome_death_without_combat_fails(self):
+        """Scene narrating death without combat_log should fail."""
+        llm_output = {
+            "scene": "Aldric falls dead at your feet.",
+            "npc_lines": [{"speaker": "Aldric", "text": "I fall..."}],
+            "tone": "tragic",
+            "choices_summary": "",
+        }
+        world_context = {
+            "npcs": [{"name": "Aldric"}],
+            "location": {"name": "Crossroads"},
+            "connections": [],
+            "server_trace": {"combat_log": []},
+            "active_quests": [],
+        }
+        assert _validate_scope(llm_output, world_context) is False
+
+    def test_outcome_death_with_combat_passes(self):
+        """Scene narrating valid death with combat_log should pass."""
+        llm_output = {
+            "scene": "Aldric falls dead after your strike.",
+            "npc_lines": [],
+            "tone": "triumphant",
+            "choices_summary": "",
+        }
+        world_context = {
+            "npcs": [{"name": "Aldric"}],
+            "location": {"name": "Arena"},
+            "connections": [],
+            "server_trace": {
+                "combat_log": [
+                    {"round": 1, "event": "player hits Aldric for 5 damage"},
+                    {"round": 2, "event": "Aldric reduced to 0 HP"},
+                ]
+            },
+            "active_quests": [],
+        }
+        assert _validate_scope(llm_output, world_context) is True
+
+    def test_outcome_quest_completion_without_quests_fails(self):
+        """Scene claiming quest complete with no active quests should fail."""
+        llm_output = {
+            "scene": "Your quest is complete. The village is saved.",
+            "npc_lines": [],
+            "tone": "triumphant",
+            "choices_summary": "",
+        }
+        world_context = {
+            "npcs": [],
+            "location": {"name": "Village"},
+            "connections": [],
+            "active_quests": [],
+        }
+        assert _validate_scope(llm_output, world_context) is False
+
+    def test_outcome_quest_completion_with_quest_passes(self):
+        """Scene claiming quest completion with active quest should pass."""
+        llm_output = {
+            "scene": "Your quest is complete. The villagers are saved.",
+            "npc_lines": [],
+            "tone": "triumphant",
+            "choices_summary": "",
+        }
+        world_context = {
+            "npcs": [],
+            "location": {"name": "Village"},
+            "connections": [],
+            "active_quests": [{"name": "Rat Hunt", "status": "active"}],
+        }
+        assert _validate_scope(llm_output, world_context) is True
+
+    def test_location_pronoun_exclusion_passes(self):
+        """Scene containing capitalised pronouns (You, Someone) should not fail."""
+        llm_output = {
+            "scene": "You enter the room. Someone speaks from the shadows.",
+            "npc_lines": [],
+            "tone": "neutral",
+            "choices_summary": "",
+        }
+        world_context = {
+            "npcs": [],
+            "location": {"name": "Dark Room"},
+            "connections": [],
+        }
+        assert _validate_scope(llm_output, world_context) is True
+

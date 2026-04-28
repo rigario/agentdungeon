@@ -11,7 +11,7 @@ agent:
 terminal:
   backend: local
   cwd: .
-  timeout: 60
+  timeout: 110
   env_passthrough: []
 browser:
   enabled: false

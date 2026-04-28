@@ -17,6 +17,7 @@ What exists today:
 - `d20-rules-server` simulates turns, actions, combat, fronts, flags, and atmosphere.
 - `d20-dm-runtime` is a separate FastAPI service running in Docker on the VPS.
 - `POST /dm/turn` accepts player natural language, classifies intent, calls the rules server, and synthesizes the final player-facing DM payload.
+- `POST /dm/turn` includes a **DM-agent fallback intent resolver** for flexible/ambiguous input: deterministic routing handles precise actions first; low-confidence/general messages ask the in-container `d20-dm` profile for a bounded JSON decision (`execute`, `clarify`, `refuse`, or `narrate_noop`) before any server mutation.
 - `POST /dm/narrate` accepts already-resolved mechanics/world context and narrates without re-entering rules resolution.
 - The live DM narrator is a Hermes agent **inside** the `d20-dm-runtime` container:
   - `HERMES_HOME=/root/.hermes`
@@ -56,6 +57,7 @@ A separate FastAPI service plus in-container Hermes agent. It runs as `d20-dm-ru
 Responsibilities:
 - Accept public player natural language at `/dm/turn`
 - Translate player intent into server calls
+- Resolve flexible/ambiguous phrasing through the bounded DM-agent fallback resolver when deterministic routing is insufficient
 - Route intent to the right server API (`turn`, `actions`, `combat`)
 - Accept already-resolved mechanics at `/dm/narrate` for rules-server augmentation without recursion
 - Synthesize server output into rich narration through Hermes `d20-dm`
@@ -84,7 +86,7 @@ Live production stack:
 
 ```text
 Public player / portal
-  -> Traefik HTTPS: https://d20.holocronlabs.ai
+  -> Traefik HTTPS: https://agentdungeon.com
   -> Docker Compose on VPS: /home/admin/apps/d20
      - d20-rules-server  (:8600, authoritative rules/state)
      - d20-dm-runtime    (:8610, DM FastAPI + Hermes agent)
@@ -104,7 +106,7 @@ For verification without changing deployment:
 VERIFY_ONLY=1 scripts/deploy_dm_runtime.sh
 ```
 
-A deploy is only complete when `scripts/validate_actual_dm_agent_turn.py --base https://d20.holocronlabs.ai --max-turn-seconds 90` passes after rebuild/recreate.
+A deploy is only complete when `scripts/validate_actual_dm_agent_turn.py --base https://agentdungeon.com --max-turn-seconds 90` passes after rebuild/recreate.
 
 ## Authority Boundaries
 
@@ -133,6 +135,39 @@ A deploy is only complete when `scripts/validate_actual_dm_agent_turn.py --base 
 - Invent off-contract NPCs, locations, items, or outcomes
 - Replace server truth with narrative convenience
 
+## DM-Agent Fallback Intent Resolver
+
+The DM runtime contains a bounded fallback resolver for the gap between exact command parsing and real player language. It is documented in detail in `docs/dm-agent-fallback-intent-resolver.md`.
+
+Purpose:
+- Enable natural player/player-agent phrasing without requiring exact button labels or route-specific verbs.
+- Preserve immersion by letting the DM interpret flexible language the way a human Dungeon Master would.
+- Preserve integrity by validating every proposed action/target against `world_context` and existing server affordances before mutation.
+
+Trigger:
+- Deterministic routing runs first.
+- If the classified intent is `GENERAL`, low-confidence, or otherwise not safely actionable, the runtime asks the in-container Hermes `d20-dm` profile for a strict JSON fallback decision.
+
+Allowed fallback decisions:
+
+| Decision | Meaning | State mutation |
+|---|---|---:|
+| `execute` | Convert flexible phrasing into a canonical action and target. | Yes, after validation and normal server routing. |
+| `clarify` | Ask the player for a narrower or grounded action. | No. |
+| `refuse` | Reject impossible/off-world/unsupported action. | No; invalid requests return HTTP 400. |
+| `narrate_noop` | Treat as descriptive/already-true local action. | No. |
+
+Integrity rules:
+- The resolver must not send raw model text directly to the rules server.
+- Returned targets must normalize to current scene affordances: available locations, NPCs, interactables, quests, combat enemies, or other server-provided entities.
+- Obvious off-world/anachronistic actions are refused deterministically even if Hermes is unavailable.
+- Hermes `session_id` is retained as proof when the fallback path invokes the actual DM agent, even if generated prose is rejected and safe passthrough narration is used.
+
+Verified examples:
+- `"wander over to the town square"` → fallback `execute` → canonical `move` to `thornhold` → server persists `location_id=thornhold`.
+- `"wander over to the tavern"` while already at the tavern → fallback `narrate_noop` → no mutation.
+- `"take out the rocket launcher"` → deterministic/fallback refusal → HTTP 400, no mutation.
+
 ## Recommended Interaction Model
 
 ## Sync loop (active play)
@@ -141,10 +176,12 @@ Use synchronous request/response for moment-to-moment play.
 
 Flow:
 1. Player sends message to DM runtime
-2. DM runtime classifies intent
-3. DM runtime calls one or more server endpoints
-4. DM runtime synthesizes server result into final narrated payload
-5. Player chooses next action
+2. DM runtime classifies intent deterministically
+3. If deterministic routing cannot safely act, DM runtime invokes the bounded fallback resolver (`execute` / `clarify` / `refuse` / `narrate_noop`)
+4. DM runtime validates any fallback action/target against current scene affordances
+5. DM runtime calls one or more server endpoints only after validation
+6. DM runtime synthesizes server result into final narrated payload
+7. Player chooses next action
 
 This is the loop for:
 - travel

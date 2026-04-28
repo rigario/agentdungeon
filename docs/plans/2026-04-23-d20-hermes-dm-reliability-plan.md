@@ -362,11 +362,11 @@ A production deployment is only accepted when all are true:
 ## Verification commands after implementation
 
 ```bash
-ssh admin@15.235.197.208 'docker inspect d20-dm-runtime --format "{{json .Mounts}}"'
-ssh admin@15.235.197.208 'docker exec d20-dm-runtime which hermes'
-ssh admin@15.235.197.208 'docker exec d20-dm-runtime hermes chat -q "Respond with exactly {\"ok\":true}" -Q --profile d20-dm'
-curl -s https://d20.holocronlabs.ai/dm/health | jq .
-curl -s -X POST https://d20.holocronlabs.ai/dm/character -H 'Content-Type: application/json' -d '{"name":"Smoke","race":"Human","class":"Fighter","background":"Soldier"}'
+ssh <your-user>@<your-vps-host> 'docker inspect d20-dm-runtime --format "{{json .Mounts}}"'
+ssh <your-user>@<your-vps-host> 'docker exec d20-dm-runtime which hermes'
+ssh <your-user>@<your-vps-host> 'docker exec d20-dm-runtime hermes chat -q "Respond with exactly {\"ok\":true}" -Q --profile d20-dm'
+curl -s https://agentdungeon.com/dm/health | jq .
+curl -s -X POST https://agentdungeon.com/dm/character -H 'Content-Type: application/json' -d '{"name":"Smoke","race":"Human","class":"Fighter","background":"Soldier"}'
 ```
 
 Expected:

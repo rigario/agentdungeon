@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Build Notes — The Dreaming Hunger</title>
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Spectral:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --void: #080608;
+      --ink: #120c0b;
+      --panel: #17100e;
+      --panel-2: #211612;
+      --gold: #d4a84f;
+      --gold-2: #f0d38a;
+      --ember: #a63d2f;
+      --blood: #6f1d1d;
+      --parchment: #ead9ba;
+      --text: #f1e5cf;
+      --muted: #baa98b;
+      --line: rgba(212,168,79,.24);
+      --shadow: 0 30px 90px rgba(0,0,0,.45);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 20% 8%, rgba(166,61,47,.24), transparent 30rem),
+        radial-gradient(circle at 80% 18%, rgba(212,168,79,.14), transparent 34rem),
+        linear-gradient(180deg, #050405 0%, var(--void) 45%, #0e0908 100%);
+      color: var(--text);
+      font-family: Spectral, Georgia, serif;
+      line-height: 1.55;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .18;
+      background-image:
+        linear-gradient(rgba(212,168,79,.09) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(212,168,79,.07) 1px, transparent 1px);
+      background-size: 64px 64px;
+      mask-image: radial-gradient(circle at 50% 20%, black, transparent 75%);
+    }
+    a { color: inherit; }
+    .wrap { width: min(1180px, calc(100% - 40px)); margin: 0 auto; }
+    .topbar {
+      position: sticky; top: 0; z-index: 10;
+      backdrop-filter: blur(18px);
+      background: rgba(8,6,8,.76);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 16px 0; }
+    .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+    .brand-mark { width: 34px; height: 34px; border: 1px solid var(--gold); border-radius: 50%; display: grid; place-items: center; color: var(--gold-2); box-shadow: 0 0 22px rgba(212,168,79,.22); }
+    .brand span:last-child { font: 700 14px/1 Cinzel, serif; letter-spacing: .14em; text-transform: uppercase; }
+    .navlinks { display: flex; gap: 18px; align-items: center; font: 700 12px/1 Source Sans 3, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+    .navlinks a { text-decoration: none; }
+    .navlinks a:hover { color: var(--gold-2); }
+    .hero { min-height: 34vh; display: grid; align-items: center; padding: 56px 0 40px; }
+    .eyebrow { font: 800 12px/1 Source Sans 3, sans-serif; color: var(--gold); text-transform: uppercase; letter-spacing: .2em; margin-bottom: 18px; }
+    h1, h2, h3 { font-family: Cinzel, Georgia, serif; margin: 0; letter-spacing: .02em; }
+    h1 { font-size: clamp(48px, 8vw, 105px); line-height: .9; max-width: 850px; }
+    h2 { font-size: clamp(34px, 5vw, 64px); line-height: .98; }
+    h3 { font-size: clamp(22px, 3vw, 34px); color: var(--gold-2); margin-bottom: 10px; }
+    .lede { font-size: clamp(20px, 2.2vw, 27px); max-width: 720px; color: #dccaa7; margin: 28px 0 0; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; padding: 0 22px; border-radius: 999px; text-decoration: none; font: 800 12px Source Sans 3, sans-serif; letter-spacing: .14em; text-transform: uppercase; border: 1px solid var(--line); transition: transform .18s ease, border-color .18s ease, background .18s ease; }
+    .btn:hover { transform: translateY(-2px); }
+    .btn.primary { background: var(--gold); color: #1d130b; border-color: var(--gold); box-shadow: 0 14px 36px rgba(212,168,79,.22); }
+    .btn.ghost { color: var(--gold-2); background: rgba(212,168,79,.06); }
+    .intro { padding: 0 0 44px; }
+    .intro p { margin: 0; color: #dccaa7; font-size: 20px; max-width: 720px; }
+    .section { padding: clamp(48px, 6vw, 96px) 0; border-top: 1px solid var(--line); }
+    .section-head { display: grid; grid-template-columns: .75fr 1fr; gap: 40px; align-items: end; margin-bottom: 44px; }
+    .section-head p { margin: 0; color: var(--muted); font-size: 20px; }
+    .cards { display: grid; gap: 18px; }
+    .card { border: 1px solid rgba(212,168,79,.18); background: linear-gradient(90deg, rgba(33,22,18,.9), rgba(13,9,8,.78)); padding: 20px; display: grid; grid-template-columns: 56px minmax(0,1fr); gap: 18px; align-items: start; }
+    .card .badge { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--void); border: 1px solid var(--gold); color: var(--gold-2); font: 800 12px Source Sans 3, sans-serif; }
+    .card .body h4 { font: 700 20px Cinzel, serif; color: var(--gold-2); margin: 0 0 6px; }
+    .card .body p { margin: 0; color: #d1bea0; font-size: 18px; }
+    .card .body .meta { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
+    .pill { border: 1px solid rgba(212,168,79,.2); color: var(--muted); padding: 6px 10px; border-radius: 999px; font: 700 11px Source Sans 3, sans-serif; letter-spacing: .08em; text-transform: uppercase; }
+    .endpoints { display: grid; gap: 14px; margin-top: 28px; }
+    .endpoint { border: 1px solid rgba(212,168,79,.14); background: rgba(23,16,14,.72); padding: 16px 18px; display: grid; grid-template-columns: 90px 1fr; gap: 16px; align-items: start; }
+    .endpoint .method { font: 800 12px Source Sans 3, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); border: 1px solid var(--line); padding: 6px 10px; border-radius: 6px; text-align: center; }
+    .endpoint .method.post { color: #8fd48f; border-color: rgba(143,212,143,.35); }
+    .endpoint .method.put { color: #8fb4d4; border-color: rgba(143,180,212,.35); }
+    .endpoint .method.delete { color: #d48f8f; border-color: rgba(212,143,143,.35); }
+    .endpoint .path { font: 700 16px Source Sans 3, sans-serif; color: var(--gold-2); margin-bottom: 4px; }
+    .endpoint .desc { margin: 0; color: var(--muted); font-size: 16px; }
+    .endpoint .tags { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+    .tag { font: 700 10px Source Sans 3, sans-serif; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); border: 1px solid rgba(212,168,79,.16); padding: 4px 8px; border-radius: 4px; }
+    footer { border-top: 1px solid var(--line); color: var(--muted); padding: 34px 0; font-family: Source Sans 3, sans-serif; }
+    footer .wrap { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+    footer a { color: var(--gold-2); text-decoration: none; margin-left: 16px; }
+    @media (max-width: 860px) {
+      .section-head { grid-template-columns: 1fr; }
+      .card { grid-template-columns: 1fr; }
+      .endpoint { grid-template-columns: 1fr; }
+      .navlinks { display: none; }
+    }
+    @media (max-width: 560px) {
+      .section-head p { font-size: 18px; }
+      .card .body p { font-size: 16px; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap nav">
+      <a class="brand" href="/">
+        <span class="brand-mark">✦</span><span>The Dreaming Hunger</span>
+      </a>
+      <nav class="navlinks" aria-label="Primary">
+        <a href="/">Home</a><a href="/portal/">Field Journal</a><a href="/map">Map</a><a href="/demo">Demo</a><a href="/docs">Build Notes</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="wrap">
+        <div class="eyebrow">Build Notes // candle low</div>
+        <h1>Build Notes</h1>
+        <p class="lede">The engine beneath the field journal. These are the contracts your agent and the world agree to: state, action, consequence, and the rules that keep score.</p>
+        <p class="lede" style="margin-top:12px;font-size:1.02rem">Canonical public URL: <a href="https://agentdungeon.com" rel="noopener">https://agentdungeon.com</a></p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="wrap">
+        <div class="section-head">
+          <h2>What the engine does.</h2>
+          <p>The DM server is not a chat wrapper. It validates rolls, resolves combat, tracks world state, and returns evidence the player can inspect.</p>
+        </div>
+        <div class="cards" id="narrative-cards">
+          <article class="card">
+            <div class="badge">01</div>
+            <div class="body">
+              <h4>Player Portal</h4>
+              <p>Where the human reads field notes, reviews agent actions, and opens or closes the gates that let the story advance. The portal is the membrane between intent and automation.</p>
+              <div class="meta"><span class="pill">/portal/*</span><span class="pill">/portal/{token}/state</span></div>
+            </div>
+          </article>
+          <article class="card">
+            <div class="badge">02</div>
+            <div class="body">
+              <h4>Character State</h4>
+              <p>Stats, inventory, wounds, rests, and relationships are not flavor text. They are persisted, versioned, and returned in full so the agent does not hallucinate its own sheet.</p>
+              <div class="meta"><span class="pill">/characters/*</span><span class="pill">/items/*</span></div>
+            </div>
+          </article>
+          <article class="card">
+            <div class="badge">03</div>
+            <div class="body">
+              <h4>Actions</h4>
+              <p>Travel, scout, bargain, fight, rest. Every action carries a cost and a trace. The engine resolves the roll, updates state, and writes the log entry before the player sees it.</p>
+              <div class="meta"><span class="pill">/actions/*</span><span class="pill">/api/actions/*</span></div>
+            </div>
+          </article>
+          <article class="card">
+            <div class="badge">04</div>
+            <div class="body">
+              <h4>DM Sessions</h4>
+              <p>A session is a bounded arc: setup, encounter loop, resolution. The DM runtime orchestrates NPCs, terrain, and timing so the agent is playing inside a real scenario, not a sandbox.</p>
+              <div class="meta"><span class="pill">/dm-sessions/*</span><span class="pill">/encounters/*</span></div>
+            </div>
+          </article>
+          <article class="card">
+            <div class="badge">05</div>
+            <div class="body">
+              <h4>Map / World</h4>
+              <p>Locations remember visits, rumors, and unfinished business. The world graph is queryable: roads, distances, danger ratings, and what changed since the last round.</p>
+              <div class="meta"><span class="pill">/api/map/*</span><span class="pill">/map</span></div>
+            </div>
+          </article>
+          <article class="card">
+            <div class="badge">06</div>
+            <div class="body">
+              <h4>Cadence / Time</h4>
+              <p>The campaign clock is represented as explicit state. Short rests, long rests, and doom pressure are tracked through cadence endpoints instead of being guessed from narration.</p>
+              <div class="meta"><span class="pill">/cadence/*</span><span class="pill">/time/*</span></div>
+            </div>
+          </article>
+          <article class="card">
+            <div class="badge">07</div>
+            <div class="body">
+              <h4>Health</h4>
+              <p>The rules engine exposes health and map checks. The landing page reads them to show whether the dice are currently visible or the math has gone quiet.</p>
+              <div class="meta"><span class="pill">/health</span></div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="wrap">
+        <div class="section-head">
+          <h2>Endpoints.</h2>
+          <p>These are the contracts. Each tag groups related paths; each method tells you whether you are reading state, writing it, or asking for permission.</p>
+        </div>
+        <div class="endpoints" id="endpoints"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span>Built for the Hermes Agent Creative Hackathon · A living human-agent campaign loop.</span>
+      <span><a href="/">Home</a><a href="/portal/">Field Journal</a><a href="/map">Map</a><a href="/demo">Demo</a><a href="/docs">Build Notes</a><a href="https://github.com/rigario/rigario-d20" rel="noopener">GitHub</a></span>
+    </div>
+  </footer>
+
+  <script>
+    (async function() {
+      const container = document.getElementById('endpoints');
+      try {
+        const res = await fetch('/openapi.json', { cache: 'no-store' });
+        if (!res.ok) throw new Error('openapi not ready');
+        const spec = await res.json();
+        const paths = Object.entries(spec.paths || {});
+        if (!paths.length) {
+          container.innerHTML = '<p style="color:var(--muted)">No endpoints found. The server may be warming up.</p>';
+          return;
+        }
+        // Group by tag
+        const byTag = {};
+        paths.forEach(([path, methods]) => {
+          Object.entries(methods).forEach(([method, info]) => {
+            if (typeof info !== 'object' || !info.operationId) return;
+            const tag = (info.tags && info.tags[0]) || 'General';
+            if (!byTag[tag]) byTag[tag] = [];
+            byTag[tag].push({ method: method.toUpperCase(), path, summary: info.summary || '', description: info.description || '', tags: info.tags || [] });
+          });
+        });
+        // Render grouped endpoints
+        const order = ['characters','items','npcs','map','actions','combat','encounters','turns','events','narrative','narrative-introspect','time','cadence','portal','dm-sessions','health','auth'];
+        const sortedTags = Object.keys(byTag).sort((a,b) => {
+          const ia = order.indexOf(a.toLowerCase());
+          const ib = order.indexOf(b.toLowerCase());
+          if (ia !== -1 && ib !== -1) return ia - ib;
+          if (ia !== -1) return -1;
+          if (ib !== -1) return 1;
+          return a.localeCompare(b);
+        });
+        sortedTags.forEach(tag => {
+          const group = document.createElement('div');
+          group.style.marginTop = '28px';
+          const heading = document.createElement('h3');
+          heading.textContent = tag;
+          group.appendChild(heading);
+          byTag[tag].forEach(ep => {
+            const el = document.createElement('div');
+            el.className = 'endpoint';
+            const mClass = ep.method === 'GET' ? '' : (ep.method === 'POST' ? 'post' : (ep.method === 'PUT' ? 'put' : (ep.method === 'DELETE' ? 'delete' : '')));
+            el.innerHTML = '<div class="method ' + mClass + '">' + ep.method + '</div>' +
+              '<div><div class="path">' + ep.path + '</div>' +
+              '<p class="desc">' + (ep.summary || ep.description || '') + '</p>' +
+              '<div class="tags">' + ep.tags.map(t => '<span class="tag">' + t + '</span>').join('') + '</div></div>';
+            group.appendChild(el);
+          });
+          container.appendChild(group);
+        });
+      } catch (e) {
+        container.innerHTML = '<p style="color:var(--muted)">Could not load /openapi.json. The server may be warming up or the spec is unavailable.</p>';
+      }
+    })();
+  </script>
+</body>
+</html>

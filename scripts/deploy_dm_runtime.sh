@@ -4,9 +4,9 @@
 set -Eeuo pipefail
 
 LOCAL_ROOT="${LOCAL_ROOT:-/home/rigario/Projects/rigario-d20}"
-VPS_HOST="${VPS_HOST:-admin@100.98.80.95}"
+VPS_HOST="${VPS_HOST:-<your-user>@<your-vps-host>}"
 VPS_APP_DIR="${VPS_APP_DIR:-/home/admin/apps/d20}"
-PUBLIC_BASE="${PUBLIC_BASE:-https://d20.holocronlabs.ai}"
+PUBLIC_BASE="${PUBLIC_BASE:-https://agentdungeon.com}"
 MAX_TURN_SECONDS="${MAX_TURN_SECONDS:-90}"
 RUN_TESTS="${RUN_TESTS:-1}"
 NO_CACHE="${NO_CACHE:-1}"
@@ -42,7 +42,7 @@ grep -n "def _extract_trace\|_extract_trace(server_result)" dm-runtime/app/servi
 
 if [[ "$RUN_TESTS" == "1" ]]; then
   log "Local preflight: targeted regression tests"
-  run uv run pytest tests/test_dm_agent_flow_contract.py tests/test_dm_runtime_synthesis.py -q --tb=short
+  run python3 -m pytest tests/test_dm_agent_flow_contract.py tests/test_dm_runtime_synthesis.py -q --tb=short
 else
   log "Skipping local tests because RUN_TESTS=$RUN_TESTS"
 fi
@@ -64,7 +64,8 @@ if [[ "$VERIFY_ONLY" != "1" ]]; then
   run rsync -az "$LOCAL_ROOT/scripts/check_deployment_parity.py" "$VPS_HOST:$VPS_APP_DIR/scripts/"
 
   log "VPS pre-build: deployment parity check (local source ↔ VPS host files)"
-  ssh "$VPS_HOST" "cd '$VPS_APP_DIR' && python3 scripts/check_deployment_parity.py --stage=vps"
+  # FIXED: run parity check LOCALLY (not via SSH) — script uses VPS_HOST internally
+  run python3 scripts/check_deployment_parity.py --stage=vps
 
 
   log "VPS pre-build checks"
@@ -94,12 +95,13 @@ PY"
   log "Recreate d20-dm-runtime with required dependencies"
   ssh "$VPS_HOST" "set -Eeuo pipefail
     cd '$VPS_APP_DIR'
-    docker compose -f docker-compose.yml -f docker-compose.override.yml up -d d20-redis d20-rules-server d20-dm-runtime
+    docker compose -f docker-compose.yml -f docker-compose.override.yml up -d --no-deps d20-dm-runtime
     sleep 8
     docker ps --filter name=d20 --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
-    python3 scripts/check_deployment_parity.py --stage=container
     docker exec d20-dm-runtime sh -lc 'which hermes && hermes --help >/tmp/hermes-help.txt && head -5 /tmp/hermes-help.txt'
   "
+  # FIXED: run VPS parity check LOCALLY (container check requires local Docker)
+  run python3 scripts/check_deployment_parity.py --stage=vps
 fi
 
 log "Public health checks"

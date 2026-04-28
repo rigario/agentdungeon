@@ -16,8 +16,8 @@ import os
 import uuid
 from datetime import datetime
 
-RULES_URL = os.environ.get("D20_RULES_URL", "https://d20.holocronlabs.ai")
-DM_URL = os.environ.get("DM_URL", "https://d20.holocronlabs.ai")
+RULES_URL = os.environ.get("D20_RULES_URL", "https://agentdungeon.com")
+DM_URL = os.environ.get("DM_URL", "https://agentdungeon.com")
 TIMEOUT = 30.0
 
 CHAR_NAME = f"AbsurdTest-{uuid.uuid4().hex[:6]}"

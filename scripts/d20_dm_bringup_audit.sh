@@ -9,9 +9,9 @@
 set -Eeuo pipefail
 
 LOCAL_ROOT="${LOCAL_ROOT:-$HOME/Projects/rigario-d20}"
-VPS_HOST="${VPS_HOST:-admin@100.98.80.95}"
+VPS_HOST="${VPS_HOST:-<your-user>@<your-vps-host>}"
 VPS_APP_DIR="${VPS_APP_DIR:-/home/admin/apps/d20}"
-PUBLIC_BASE="${PUBLIC_BASE:-https://d20.holocronlabs.ai}"
+PUBLIC_BASE="${PUBLIC_BASE:-https://agentdungeon.com}"
 MAX_TURN_SECONDS="${MAX_TURN_SECONDS:-90}"
 SYNC_SOURCE="${SYNC_SOURCE:-1}"
 BUILD="${BUILD:-1}"

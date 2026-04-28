@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from fastapi import HTTPException
 from app.contract import IntentType, ServerEndpoint, RoutingPolicy
 from app.services.narrative_planner import NarrativePlanner
+from app.services.intent_fallback import resolve_intent as resolve_fallback_intent, is_offworld_action
 from app.contract import AffordancePlannerResult, PlannerDecision
 
 
@@ -76,6 +77,8 @@ class RouterResult:
     # Action-specific
     approval_triggered: bool = False
     approval_reason: Optional[str] = None
+    # Normalized intent (after _normalize_target) — use this instead of re-classifying
+    intent: Optional["Intent"] = None
     # Error
     error: Optional[str] = None
     error_status: Optional[int] = None
@@ -116,6 +119,15 @@ class RouterResult:
             d["approval_reason"] = self.approval_reason
         if self.error:
             d["error"] = self.error
+        # Include normalized intent for traceability
+        if self.intent is not None:
+            d["_normalized_intent"] = {
+                "type": self.intent.type.value,
+                "target": self.intent.target,
+                "action_type": self.intent.action_type,
+                "details": self.intent.details,
+                "confidence": self.intent.confidence,
+            }
         return d
 
 
@@ -198,6 +210,9 @@ _NEGATED_ACTION_PATTERNS = [
     r"\b(?:i|we)\s+(?:do\s+not|don't|dont)\s+want\s+to\s+(?:go|move|travel|head|enter|visit|return|walk|rest|sleep|camp|attack|fight|cast|use|open|take|grab|touch|press|pull|push)\b",
     r"\b(?:i|we)\s+(?:refuse|decline)\s+to\s+(?:go|move|travel|head|enter|visit|return|walk|rest|sleep|camp|attack|fight|cast|use|open|take|grab|touch|press|pull|push)\b",
     r"\b(?:i|we)\s+will\s+not\s+(?:go|move|travel|head|enter|visit|return|walk|rest|sleep|camp|attack|fight|cast|use|open|take|grab|touch|press|pull|push)\b",
+    r"^\s*(?:avoid|stay\s+away\s+from)\b",
+    r"^\s*not\s+(?:going|entering|attacking|resting|opening)\b",
+    r"^\s*(?:let(?:'| u)?s|let\s+us|we)\s+not\s+(?:go|move|travel|head|enter|visit|return|walk|rest|sleep|camp|attack|fight|cast|use|open|take|grab|touch|press|pull|push)\b",
 ]
 
 _SPEECH_ACT_PREFIX = re.compile(r"^\s*(?:ask|tell|say\s+to|speak\s+to|speak\s+with|talk\s+to|chat\s+with|greet)\b")
@@ -266,6 +281,22 @@ def classify_intent(player_message: str) -> Intent:
                 details={"intent": player_message, "_original_msg": player_message, "_absurd": True},
                 confidence=0.3,
             )
+
+    # Off-world/anachronistic actions are invalid in Rigario. Keep this
+    # deterministic so obvious bad requests do not depend on LLM availability.
+    if is_offworld_action(player_message):
+        return Intent(
+            type=IntentType.GENERAL,
+            action_type=None,
+            details={
+                "intent": player_message,
+                "_original_msg": player_message,
+                "_absurd": True,
+                "_offworld": True,
+                "_absurd_reason": "offworld_or_anachronistic_action",
+            },
+            confidence=0.98,
+        )
 
     # Check precise verb patterns (→ actions)
     for intent_type, action_type, keywords in _INTENT_PATTERNS:
@@ -396,38 +427,66 @@ class IntentRouter:
 
         # --- Location normalization for MOVE intents ---
         if intent.action_type == "move":
+            def _clean(value) -> str:
+                return str(value or "").lower().strip()
+
+            def _target_tokens() -> list[str]:
+                # Multi-word player aliases often include canonical IDs plus flavor words,
+                # e.g. "thornhold town square". Also split hyphenated IDs so
+                # "rusty tankard inn" can match "rusty-tankard".
+                raw = target.replace("-", " ")
+                return [t.strip(".,;:!?()[]{}\"'") for t in raw.split() if t.strip(".,;:!?()[]{}\"'")]
+
+            def _matches_location(candidate_id: str, candidate_name: str) -> bool:
+                loc_id = _clean(candidate_id)
+                loc_name = _clean(candidate_name)
+                if not loc_id and not loc_name:
+                    return False
+                if target == loc_id or target == loc_name:
+                    return True
+                if loc_id and (loc_id in target or target in loc_id):
+                    return True
+                if loc_name and (target in loc_name or loc_name in target):
+                    return True
+                normalized_id = loc_id.replace("-", " ")
+                if normalized_id and (normalized_id in target or target in normalized_id):
+                    return True
+                tokens = _target_tokens()
+                return any(token and (token == loc_id or token == normalized_id or token == loc_name) for token in tokens)
+
             locations = wc.get("locations", [])
             for loc in locations:
-                loc_id = loc.get("id", "").lower()
-                loc_name = loc.get("name", "").lower()
-                # Exact canonical ID match
-                if target == loc_id:
+                if not isinstance(loc, dict):
+                    continue
+                loc_id = _clean(loc.get("id", ""))
+                loc_name = _clean(loc.get("name", ""))
+                if _matches_location(loc_id, loc_name):
                     return loc_id
-                # Target is a substring of location name (e.g. "thornhold town square" contains "thornhold")
-                if loc_id and loc_id in target:
-                    return loc_id
-                # Location name contains target or vice versa
-                if loc_name and (target in loc_name or loc_name in target):
-                    return loc_id
-                # Also check connected location IDs
-            # Check connections from current_location
+
+            # Check connections from current_location.
             current = wc.get("current_location", {})
-            connections = current.get("connections", []) if current else []
+            connections = current.get("connections", []) if isinstance(current, dict) else []
             for conn in connections:
-                conn_id = conn.get("id", "").lower() if isinstance(conn, dict) else str(conn).lower()
-                conn_name = conn.get("name", "").lower() if isinstance(conn, dict) else ""
-                if target == conn_id or (conn_id and target in conn_id):
+                conn_id = _clean(conn.get("id", "") if isinstance(conn, dict) else conn)
+                conn_name = _clean(conn.get("name", "") if isinstance(conn, dict) else "")
+                if _matches_location(conn_id, conn_name):
                     return conn_id
-                if conn_name and (target in conn_name or conn_name in target):
-                    return conn_id
-            # Also check top-level connections (e.g., from turn/latest world_context)
+
+            # Also check top-level connections (e.g., from turn/latest world_context).
             for conn in wc.get("connections", []):
-                conn_id = conn.get("id", "").lower() if isinstance(conn, dict) else str(conn).lower()
-                conn_name = conn.get("name", "").lower() if isinstance(conn, dict) else ""
-                if target == conn_id or (conn_id and conn_id in target):
+                conn_id = _clean(conn.get("id", "") if isinstance(conn, dict) else conn)
+                conn_name = _clean(conn.get("name", "") if isinstance(conn, dict) else "")
+                if _matches_location(conn_id, conn_name):
                     return conn_id
-                if conn_name and (target in conn_name or conn_name in target):
-                    return conn_id
+
+            # Additive fix for ISSUE-019 (verifier feedback): explicitly treat current_location as valid move target.
+            # Prevents "I go to Thornhold town square" failing when current_location=thornhold not in exits list.
+            current = wc.get("current_location", {}) or wc.get("location", {})
+            if isinstance(current, dict):
+                curr_id = _clean(current.get("id", ""))
+                curr_name = _clean(current.get("name", "") or current.get("display_name", ""))
+                if _matches_location(curr_id, curr_name):
+                    return curr_id
 
         # --- NPC normalization for INTERACT/TALK intents ---
         if intent.action_type == "interact" or intent.type == IntentType.TALK:
@@ -487,6 +546,7 @@ class IntentRouter:
             RouterResult with normalized data from any endpoint
         """
         # Step 1a: Affordance planning (pre-routing interpretation against scene affordances)
+        world_context = {}
         try:
             world_context = {}
             try:
@@ -511,15 +571,18 @@ class IntentRouter:
                 try:
                     scene = await self._client.get_scene_context(character_id)
                     exits = scene.get("exits", [])
-                    # Add missing backward-compatible keys only when absent
-                    if "npcs" not in scene:
-                        aliased_npcs = []
-                        for npc in scene.get("npcs_here", []):
-                            npc_copy = dict(npc)
-                            npc_copy["is_available"] = npc.get("available", True)
-                            npc_copy.setdefault("asleep", False)
-                            aliased_npcs.append(npc_copy)
-                        scene["npcs"] = aliased_npcs
+                    # Add/normalize backward-compatible NPC keys. Some scene-context
+                    # responses include an empty `npcs` key and a populated `npcs_here`,
+                    # so do not gate alias construction on key presence alone.
+                    aliased_npcs = []
+                    source_npcs = scene.get("npcs") or scene.get("npcs_here") or []
+                    for npc in source_npcs:
+                        npc_copy = dict(npc)
+                        npc_copy["is_available"] = npc.get("is_available", npc.get("available", True))
+                        npc_copy.setdefault("available", npc_copy.get("is_available", True))
+                        npc_copy.setdefault("asleep", False)
+                        aliased_npcs.append(npc_copy)
+                    scene["npcs"] = aliased_npcs
                     # FIX 0c056bba: synthesis._extract_choices reads world_context["npcs_here"]
                     # for NPC name lookup. Provide both keys for backward compatibility.
                     scene["npcs_here"] = aliased_npcs
@@ -542,10 +605,29 @@ class IntentRouter:
             if world_context:
                 plan = await self._planner.plan(character_id, player_message, world_context)
                 if plan.decision != PlannerDecision.EXECUTE:
-                    # Short-circuit: planner says clarify/refuse/noop
-                    success = (plan.decision != PlannerDecision.REFUSE)
+                    if plan.decision == PlannerDecision.REFUSE:
+                        return RouterResult(
+                            success=False,
+                            endpoint_called="planner-refuse",
+                            narration=plan.clarifying_question or plan.reason or "That action isn't available here.",
+                            events=[
+                                {
+                                    "type": "affordance_planner",
+                                    "decision": plan.decision.value,
+                                    "reason": plan.reason,
+                                    "confidence": plan.confidence,
+                                    "clarifying_question": plan.clarifying_question,
+                                    "narration_hint": plan.narration_hint,
+                                }
+                            ],
+                            error=plan.clarifying_question or plan.reason or "Invalid action.",
+                            error_status=400,
+                            raw_response=plan.model_dump(),
+                            intent=classify_intent(player_message),
+                        )
+                    # CLARIFY/NARRATE_NOOP are valid no-mutation responses.
                     return RouterResult(
-                        success=success,
+                        success=True,
                         endpoint_called=f"planner-{plan.decision.value}",
                         narration=plan.clarifying_question or plan.reason or "That action isn't available here.",
                         events=[
@@ -559,16 +641,119 @@ class IntentRouter:
                             }
                         ],
                         raw_response=plan.model_dump(),
+                        intent=classify_intent(player_message),
                     )
         except Exception:
             # Planner errors should NOT block the main flow — fall through to standard classification
             pass
         intent = classify_intent(player_message)
 
-        # Canonicalize natural language targets to known IDs using scene context
+        # Step 1b: DM-agent fallback resolver for low-confidence/general input.
+        # Deterministic routing still wins for precise known actions, but when the
+        # parser cannot confidently map freeform language, ask the DM profile to
+        # decide a bounded action or refuse/clarify. Every result is validated by
+        # intent_fallback.py against scene affordances before reaching here.
+        if not force_endpoint and (intent.type == IntentType.GENERAL or intent.confidence < 0.5):
+            try:
+                fallback = await resolve_fallback_intent(player_message, world_context)
+                if fallback:
+                    if fallback.decision == PlannerDecision.EXECUTE:
+                        action_type = (fallback.action_type or "").lower().strip()
+                        if action_type == "talk":
+                            action_type = "interact"
+                            intent_type = IntentType.TALK
+                        else:
+                            intent_type = {
+                                "move": IntentType.MOVE,
+                                "interact": IntentType.INTERACT,
+                                "explore": IntentType.EXPLORE,
+                                "look": IntentType.EXPLORE,
+                                "rest": IntentType.REST,
+                                "attack": IntentType.COMBAT,
+                                "cast": IntentType.CAST,
+                                "quest": IntentType.QUEST,
+                                "puzzle": IntentType.PUZZLE,
+                            }.get(action_type, IntentType.GENERAL)
+                            if action_type == "look":
+                                action_type = "explore"
+                        details = {
+                            "action_type": action_type,
+                            "_original_msg": player_message,
+                            "_dm_fallback": True,
+                            "_dm_fallback_reason": fallback.reason,
+                            "_dm_fallback_confidence": fallback.confidence,
+                        }
+                        if fallback.target:
+                            details["target"] = fallback.target
+                        intent = Intent(
+                            type=intent_type,
+                            target=fallback.target,
+                            action_type=action_type,
+                            details=details,
+                            confidence=max(fallback.confidence, intent.confidence),
+                        )
+                    elif fallback.decision == PlannerDecision.REFUSE:
+                        return RouterResult(
+                            success=False,
+                            endpoint_called="dm-fallback-refuse",
+                            narration=fallback.clarifying_question or fallback.reason or "That action is invalid.",
+                            events=[{
+                                "type": "dm_fallback",
+                                "decision": fallback.decision.value,
+                                "reason": fallback.reason,
+                                "confidence": fallback.confidence,
+                            }],
+                            error=fallback.clarifying_question or fallback.reason or "Invalid action.",
+                            error_status=400,
+                            raw_response=fallback.model_dump(),
+                            intent=intent,
+                        )
+                    elif fallback.decision in {PlannerDecision.CLARIFY, PlannerDecision.NARRATE_NOOP}:
+                        return RouterResult(
+                            success=True,
+                            endpoint_called=f"dm-fallback-{fallback.decision.value}",
+                            narration=fallback.clarifying_question or fallback.narration_hint or fallback.reason or "What exactly are you trying to do?",
+                            events=[{
+                                "type": "dm_fallback",
+                                "decision": fallback.decision.value,
+                                "reason": fallback.reason,
+                                "confidence": fallback.confidence,
+                            }],
+                            raw_response=fallback.model_dump(),
+                            intent=intent,
+                        )
+            except Exception:
+                pass  # Fallback resolver is advisory; deterministic route remains available.
+
+        # Canonicalize natural language targets to known IDs using scene context.
         if intent.target and world_context:
             try:
                 normalized = self._normalize_target(intent, world_context)
+
+                # FIX ISSUE-019: if scene/latest context is too narrow to resolve a MOVE
+                # alias, enrich from the full map and retry. This avoids false raw targets
+                # such as "thornhold town square" reaching /actions as a location ID.
+                if normalized == intent.target and intent.action_type == "move":
+                    try:
+                        map_data = await self._client.get_map_data()
+                        world_locations = map_data.get("locations", []) if isinstance(map_data, dict) else []
+                        if world_locations:
+                            existing_ids = {
+                                str(loc.get("id", "")).lower()
+                                for loc in world_context.get("locations", [])
+                                if isinstance(loc, dict)
+                            }
+                            merged_locations = list(world_context.get("locations", []) or [])
+                            for loc in world_locations:
+                                if isinstance(loc, dict) and str(loc.get("id", "")).lower() not in existing_ids:
+                                    merged_locations.append(loc)
+                            world_context["locations"] = merged_locations
+                            if isinstance(map_data, dict) and map_data.get("current_location") and not world_context.get("current_location"):
+                                world_context["current_location"] = map_data["current_location"]
+                            normalized = self._normalize_target(intent, world_context)
+                    except Exception:
+                        pass  # Non-blocking — proceed with whatever context we already had
+
                 if normalized and normalized != intent.target:
                     intent = Intent(
                         type=intent.type,
@@ -595,6 +780,7 @@ class IntentRouter:
                     "player_message": player_message,
                 }],
                 raw_response={"semantic_guard": True, "reason": intent.details.get("_semantic_guard_reason")},
+                intent=intent,
             )
 
         # Approval gate — check before routing to rules server
@@ -640,9 +826,9 @@ class IntentRouter:
             elif endpoint == ServerEndpoint.ACTIONS:
                 return await self._route_action(character_id, intent)
             elif endpoint == ServerEndpoint.TURN:
-                return await self._route_turn(character_id, player_message)
+                return await self._route_turn(character_id, player_message, intent)
             else:
-                return await self._route_turn(character_id, player_message)
+                return await self._route_turn(character_id, player_message, intent)
         except Exception as e:
             return RouterResult(
                 success=False,
@@ -650,6 +836,7 @@ class IntentRouter:
                 error=f"Rules server error: {str(e)}",
                 error_status=_extract_error_status(e),
                 raw_response={"error": str(e)},
+                intent=intent,
             )
 
     async def _route_action(self, character_id: str, intent: Intent) -> RouterResult:
@@ -657,7 +844,10 @@ class IntentRouter:
         try:
             # Build the payload — intent.details has action_type and possibly target
             payload = dict(intent.details)
-            if intent.target and "target" not in payload:
+            if intent.target:
+                # Intent details are created before target normalization and may still
+                # contain the raw phrase (e.g. "thornhold town square"). The canonical
+                # Intent.target must win before POST /actions.
                 payload["target"] = intent.target
 
             # Quest actions need special payload shaping: details.action = accept|complete|list
@@ -708,7 +898,7 @@ class IntentRouter:
                     "combat_result": "victory" if combat_data.get("victory") else "defeat" if combat_data.get("victory") is not None else None,
                     "combat_log": result.get("events", []),
                 })
-            return RouterResult(**result_kwargs)
+            return RouterResult(**result_kwargs, intent=intent)
         except Exception as e:
             return RouterResult(
                 success=False,
@@ -716,9 +906,10 @@ class IntentRouter:
                 error=str(e),
                 error_status=_extract_error_status(e),
                 raw_response={"error": str(e)},
+                intent=intent,
             )
 
-    async def _route_turn(self, character_id: str, player_message: str) -> RouterResult:
+    async def _route_turn(self, character_id: str, player_message: str, intent: Optional["Intent"] = None) -> RouterResult:
         """Route to POST /characters/{id}/turn/start.
 
         The rules server requires TurnIntent with a `goal` field. Freeform DM
@@ -777,6 +968,7 @@ class IntentRouter:
                 combat_log=result.get("combat_log", []),
                 turn_results=result.get("turn_results"),
                 raw_response=result,
+                intent=intent,
             )
         except Exception as e:
             return RouterResult(
@@ -785,6 +977,7 @@ class IntentRouter:
                 error=str(e),
                 error_status=_extract_error_status(e),
                 raw_response={"error": str(e)},
+                intent=intent,
             )
 
     async def _route_combat_start(self, character_id: str, intent: Intent) -> RouterResult:
@@ -838,6 +1031,7 @@ class IntentRouter:
                     error="No encounters available at current location",
                     error_status=404,
                     raw_response={"error": "no encounters"},
+                    intent=intent,
                 )
 
             # Resolve enemy stats
@@ -877,6 +1071,7 @@ class IntentRouter:
                     error=f"Could not resolve enemy stats for encounter: {chosen_encounter.get('name', 'unknown')}",
                     error_status=502,
                     raw_response={"error": "unresolved enemies"},
+                    intent=intent,
                 )
 
             initiative_roll = random.randint(1, 20)
@@ -906,6 +1101,7 @@ class IntentRouter:
                 round=result.get("round", 0),
                 is_your_turn=result.get("is_your_turn", False),
                 raw_response=result,
+                intent=intent,
             )
         except Exception as e:
             return RouterResult(
@@ -914,6 +1110,7 @@ class IntentRouter:
                 error=str(e),
                 error_status=_extract_error_status(e),
                 raw_response={"error": str(e)},
+                intent=intent,
             )
 
     async def _route_combat_act(self, character_id: str, intent: Intent, combat_state: dict) -> RouterResult:
@@ -961,6 +1158,7 @@ class IntentRouter:
                 combat_log=result.get("events", []),
                 is_your_turn=result.get("is_your_turn", False),
                 raw_response=result,
+                intent=intent,
             )
         except Exception as e:
             return RouterResult(
@@ -969,4 +1167,5 @@ class IntentRouter:
                 error=str(e),
                 error_status=_extract_error_status(e),
                 raw_response={"error": str(e)},
+                intent=intent,
             )

@@ -195,3 +195,92 @@ class TestTargetNormalization:
         result = router._normalize_target(intent, wc)
         assert result == "crossroads"
 
+    def test_move_tokenized_alias_matches_hyphenated_location_id(self):
+        """'Rusty Tankard inn' should match canonical hyphenated id 'rusty-tankard'."""
+        intent = make_intent("move", "Rusty Tankard inn")
+        wc = make_world_context(
+            locations=[{"id": "rusty-tankard", "name": "The Rusty Tankard"}]
+        )
+        router = IntentRouter(rules_client=MagicMock())
+        result = router._normalize_target(intent, wc)
+        assert result == "rusty-tankard"
+
+    def test_move_unknown_tokenized_alias_no_false_positive(self):
+        """Unknown multi-word target must pass through unchanged."""
+        intent = make_intent("move", "foobar plaza")
+        wc = make_world_context(
+            locations=[{"id": "thornhold", "name": "Thornhold"}]
+        )
+        router = IntentRouter(rules_client=MagicMock())
+        result = router._normalize_target(intent, wc)
+        assert result == "foobar plaza"
+
+
+class FakeRulesClient:
+    """Minimal async rules-client for route-level target-normalization tests."""
+
+    def __init__(self):
+        self.submitted_payloads = []
+        self.map_calls = 0
+
+    async def get_latest_turn(self, character_id):
+        raise RuntimeError("no latest turn")
+
+    async def get_scene_context(self, character_id):
+        return {
+            "current_location": {"id": "rusty-tankard", "name": "The Rusty Tankard"},
+            "location": {"id": "rusty-tankard", "name": "The Rusty Tankard"},
+            "exits": [],
+            "locations": [
+                {"id": "rusty-tankard", "name": "The Rusty Tankard"},
+                {"id": "south-road", "name": "South Road"},
+                {"id": "forest-edge", "name": "Forest Edge"},
+                {"id": "old-shrine", "name": "Old Shrine"},
+                {"id": "whisperwood", "name": "Whisperwood"},
+            ],
+            "connections": [],
+            "npcs_here": [],
+            "npcs": [],
+        }
+
+    async def get_map_data(self):
+        self.map_calls += 1
+        return {
+            "locations": [
+                {"id": "rusty-tankard", "name": "The Rusty Tankard"},
+                {"id": "thornhold", "name": "Thornhold"},
+            ]
+        }
+
+    async def check_approval(self, character_id, payload):
+        return {"needs_approval": False}
+
+    async def get_combat(self, character_id):
+        return {}
+
+    async def submit_action(self, character_id, payload):
+        self.submitted_payloads.append(payload)
+        return {
+            "success": True,
+            "narration": "You move to Thornhold.",
+            "events": [{"type": "move", "to": payload.get("target")}],
+            "character_state": {"location_id": payload.get("target")},
+            "world_context": {"current_location": {"id": payload.get("target")}},
+        }
+
+
+class TestRouteTargetNormalization:
+    @pytest.mark.asyncio
+    async def test_route_enriches_from_full_map_when_scene_locations_miss_alias(self):
+        """Regression for live ISSUE-019: route must not send raw 'thornhold town square'."""
+        client = FakeRulesClient()
+        router = IntentRouter(rules_client=client)
+
+        result = await router.route("char-1", "I go to Thornhold town square.")
+
+        assert result.success is True
+        assert result.endpoint_called == "actions"
+        assert result.intent.target == "thornhold"
+        assert client.submitted_payloads[-1]["target"] == "thornhold"
+        assert client.map_calls == 1
+

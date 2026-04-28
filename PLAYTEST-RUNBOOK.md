@@ -252,8 +252,8 @@ playtest loop is broken (character create → actions → move → DM turn).
 **Usage:**
 ```bash
 # Against production
-export SMOKE_RULES_URL=https://d20.holocronlabs.ai
-export SMOKE_DM_URL=https://d20.holocronlabs.ai  # if exposed
+export SMOKE_RULES_URL=https://agentdungeon.com
+export SMOKE_DM_URL=https://agentdungeon.com  # if exposed
 python3 scripts/production_smoke_gate.py
 
 # Against local dev

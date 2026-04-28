@@ -34,7 +34,7 @@ KIMI_API_KEY = (
 )
 KIMI_BASE_URL = os.environ.get("KIMI_BASE_URL", DEFAULT_KIMI_BASE_URL)
 DM_NARRATOR_MODEL = os.environ.get("DM_NARRATOR_MODEL", "kimi-for-coding")
-DM_NARRATOR_TIMEOUT = int(os.environ.get("DM_NARRATOR_TIMEOUT", "60"))
+DM_NARRATOR_TIMEOUT = int(os.environ.get("DM_NARRATOR_TIMEOUT", "110"))
 DM_NARRATOR_MAX_TOKENS = int(os.environ.get("DM_NARRATOR_MAX_TOKENS", "1200"))
 
 _shared_client: Optional[httpx.AsyncClient] = None
@@ -196,15 +196,15 @@ async def narrate_via_direct(
                 f"{KIMI_BASE_URL.rstrip('/')}/chat/completions",
                 json=payload,
                 headers=headers,
-                timeout=30.0,
+                timeout=110.0,
             )
         else:
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=110.0) as client:
                 response = await client.post(
                     f"{KIMI_BASE_URL.rstrip('/')}/chat/completions",
                     json=payload,
                     headers=headers,
-                    timeout=30.0,
+                    timeout=110.0,
                 )
         response.raise_for_status()
         data = response.json()

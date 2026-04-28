@@ -66,11 +66,12 @@ def _row_to_response(row) -> dict:
             sheet["provenance"]["created_at"] = d.get("created_at", "")
             sheet["provenance"]["repaired_from_corruption"] = True
             # Overlay mutable progression state from flat columns so XP/gold/HP updates are visible
-            sheet["xp"] = d["xp"]
-            sheet["level"] = d["level"]
+            # Defensive against NULL DB values (fixes list 500 and stale read-model)
+            sheet["xp"] = d.get("xp") or 0
+            sheet["level"] = d.get("level") or 1
             sheet["hit_points"] = {
-                "max": d["hp_max"],
-                "current": d["hp_current"],
+                "max": d.get("hp_max") or 10,
+                "current": d.get("hp_current") or (d.get("hp_max") or 10),
                 "temporary": d.get("hp_temporary", 0),
             }
             try:
@@ -80,43 +81,78 @@ def _row_to_response(row) -> dict:
             return sheet
 
     # Fallback: construct from flat columns
+    # Defensive: handle partial data (e.g., legacy/dev characters with missing fields)
+    # Provide sensible defaults when JSON fields are empty/malformed or DB columns are NULL (fixes GET /characters 500)
+    hp_max = d.get("hp_max") or 10
+    hp_current = d.get("hp_current") or hp_max
+    ac_value = d.get("ac_value") or 10
+    xp_val = d.get("xp") or 0
+    level_val = d.get("level") or 1
+
+    # ability_scores: require all six scores; fall back to 10 (modifier 0) if missing
+    ability_raw = d.get("ability_scores_json") or "{}"
+    try:
+        ability_parsed = json.loads(ability_raw)
+        # Ensure all six ability score keys exist; default to 10
+        ability_scores = {
+            "str": ability_parsed.get("str", 10),
+            "dex": ability_parsed.get("dex", 10),
+            "con": ability_parsed.get("con", 10),
+            "int": ability_parsed.get("int", 10),
+            "wis": ability_parsed.get("wis", 10),
+            "cha": ability_parsed.get("cha", 10),
+        }
+    except (json.JSONDecodeError, TypeError):
+        # Completely invalid JSON — use all-10 baseline
+        ability_scores = {"str": 10, "dex": 10, "con": 10, "int": 10, "wis": 10, "cha": 10}
+
+    def safe_json_loads(field_value, default, is_list=False):
+        """Helper to safely parse JSON fields with fallback."""
+        if not field_value or field_value in (None, "null", "NULL"):
+            return default
+        try:
+            parsed = json.loads(field_value)
+            return parsed if parsed is not None else default
+        except (json.JSONDecodeError, TypeError):
+            return default
+
     response = {
         "id": d["id"],
         "name": d["name"],
         "version": "5.2",
         "player": {"name": d["player_id"]},
         "alignment": d.get("alignment", ""),
-        "race": json.loads(d.get("race_json", "{}")) if d.get("race_json") else {"name": d["race"], "size": "Medium", "traits": []},
-        "classes": json.loads(d.get("classes_json", "[]")) if d.get("classes_json") else (
-            [{"name": _class_val, "level": d["level"], "hit_die": 8, "spellcasting": "", "features": []}]
-            if _class_val and d.get("level") else []
-        ),
-        "background": json.loads(d.get("background_json", "{}")) if d.get("background_json") else {"name": "Soldier"},
-        "ability_scores": json.loads(d["ability_scores_json"]),
-        "hit_points": {"max": d["hp_max"], "current": d["hp_current"], "temporary": d.get("hp_temporary", 0)},
-        "armor_class": {"value": d["ac_value"], "description": d.get("ac_description", "Unarmored")},
-        "speed": json.loads(d.get("speed_json", '{"Walk": 30}')),
-        "skills": json.loads(d.get("skills_json", "{}")),
-        "saving_throws": json.loads(d.get("saving_throws_json", "{}")),
-        "languages": json.loads(d.get("languages_json", "[]")),
-        "weapon_proficiencies": json.loads(d.get("weapon_proficiencies_json", "[]")),
-        "armor_proficiencies": json.loads(d.get("armor_proficiencies_json", "[]")),
-        "equipment": json.loads(d.get("equipment_json", "[]")),
-        "treasure": json.loads(d.get("treasure_json", '{"gp": 10, "sp": 0, "cp": 0, "pp": 0, "ep": 0}')),
-        "spell_slots": json.loads(d.get("spell_slots_json", "{}")),
-        "spells": json.loads(d.get("spells_json", "[]")),
-        "feats": json.loads(d.get("feats_json", "[]")),
-        "conditions": json.loads(d.get("conditions_json", "{}")),
-        "xp": d["xp"],
-        "location_id": d["location_id"],
-        "current_location_id": d["location_id"],
-        "approval_config": json.loads(d.get("approval_config", "{}")),
-        "aggression_slider": d.get("aggression_slider", 50),
+        "race": safe_json_loads(d.get("race_json"), {"name": d.get("race", "Human"), "size": "Medium", "traits": []}),
+        "classes": safe_json_loads(d.get("classes_json"), 
+            [{"name": _class_val or "Fighter", "level": level_val, "hit_die": 8, "spellcasting": "", "features": []}] 
+            if _class_val else []),
+        "background": safe_json_loads(d.get("background_json"), {"name": "Soldier"}),
+        "ability_scores": ability_scores,
+        "hit_points": {"max": hp_max, "current": hp_current, "temporary": d.get("hp_temporary") or 0},
+        "armor_class": {"value": ac_value, "description": d.get("ac_description", "Unarmored")},
+        "speed": safe_json_loads(d.get("speed_json"), {"Walk": 30}),
+        "skills": safe_json_loads(d.get("skills_json"), {}),
+        "saving_throws": safe_json_loads(d.get("saving_throws_json"), {}),
+        "languages": safe_json_loads(d.get("languages_json"), [], is_list=True),
+        "weapon_proficiencies": safe_json_loads(d.get("weapon_proficiencies_json"), []),
+        "armor_proficiencies": safe_json_loads(d.get("armor_proficiencies_json"), []),
+        "equipment": safe_json_loads(d.get("equipment_json"), []),
+        "treasure": safe_json_loads(d.get("treasure_json"), {"gp": 10, "sp": 0, "cp": 0, "pp": 0, "ep": 0}),
+        "spell_slots": safe_json_loads(d.get("spell_slots_json"), {}),
+        "spells": safe_json_loads(d.get("spells_json"), []),
+        "feats": safe_json_loads(d.get("feats_json"), []),
+        "conditions": safe_json_loads(d.get("conditions_json"), {}),
+        "xp": xp_val,
+        "location_id": d.get("location_id"),
+        "current_location_id": d.get("location_id"),
+        "approval_config": safe_json_loads(d.get("approval_config"), {}),
+        "aggression_slider": d.get("aggression_slider") or 50,
         "is_archived": bool(d.get("is_archived", 0)),
         "archived_at": d.get("archived_at"),
         "provenance": {
             "created_at": d.get("created_at", ""),
-            "signature": d.get("sheet_signature", ""),
+            # Coerce NULL signature to empty string to satisfy string type requirement
+            "signature": d.get("sheet_signature") or "",
             "repaired_from_corruption": True,
         },
     }
@@ -931,7 +967,9 @@ def create_character_share_token(
         expires_hours=expires_hours
     )
 
-    portal_url = f"https://d20.holocronlabs.ai/portal/{result['token']}/view"
+    proto = (request.headers.get("x-forwarded-proto") or request.url.scheme or "https").split(",")[0].strip()
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host") or request.url.netloc
+    portal_url = f"{proto}://{host}/portal/{result['token']}/view"
 
     return {
         "token": result["token"],

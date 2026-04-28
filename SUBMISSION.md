@@ -9,6 +9,9 @@ created: 2026-04-20
 - Tweet demo video tagging @NousResearch
 - Deadline: May 3, 2026
 - Prize: $25k (Hermes Agent Creative Hackathon)
+- Live demo: https://agentdungeon.com
+- Public repo: https://github.com/rigario/projectd20
+- Public docs: `docs/index.md`
 
 ## Twitter/X Thread
 

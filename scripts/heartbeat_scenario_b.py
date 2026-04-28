@@ -7,8 +7,8 @@ Run: python scripts/heartbeat_scenario_b.py
 import os, json, datetime, subprocess, sys
 import requests
 
-RULES_URL = os.environ.get("D20_RULES_URL", "https://d20.holocronlabs.ai")
-DM_URL = os.environ.get("DM_URL", "https://d20.holocronlabs.ai")
+RULES_URL = os.environ.get("D20_RULES_URL", "https://agentdungeon.com")
+DM_URL = os.environ.get("DM_URL", "https://agentdungeon.com")
 
 session = requests.Session()
 session.headers.update({"Content-Type": "application/json"})

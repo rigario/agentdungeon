@@ -11,7 +11,7 @@ Replication script for ISSUE-015: Character state desync after combat defeat.
 import httpx, uuid, json, time, sys, os
 from datetime import datetime, timezone
 
-RULES = "https://d20.holocronlabs.ai"
+RULES = "https://agentdungeon.com"
 
 cname = f"Desync-{uuid.uuid4().hex[:6]}"
 ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -58,7 +58,7 @@ with httpx.Client(timeout=60.0) as c:
     else:
         # Try DM turn to trigger combat
         print("No combat from explore, trying DM turn...")
-        resp = c.post(f"https://d20.holocronlabs.ai/dm/turn", json={
+        resp = c.post(f"https://agentdungeon.com/dm/turn", json={
             "character_id": cid,
             "message": "I search for danger in the forest."
         }, timeout=60.0)

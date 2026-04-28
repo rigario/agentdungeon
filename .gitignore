@@ -23,6 +23,18 @@ build/
 .coverage
 htmlcov/
 
+# Generated / temporary local artifacts
+*.bak
+*.autobak
+*.tmp
+*.tmp2
+.tmp_*
+p0_*_evidence.json
+scripts/tmp_*.py
+playtest-runs/
+video-build/
+voiceover.mp3
+
 # IDE
 .vscode/
 .idea/

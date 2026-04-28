@@ -27,9 +27,15 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
+asyncio_mode = "auto"
 testpaths = ["tests"]
 markers = [
   "asyncio: marks tests as async (requires pytest-asyncio)",
   "integration: marks tests requiring external services (API keys, Modal, etc.)",
 ]
 addopts = "-m 'not integration'"
+
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = ["assets*", "reports*", "playtest-runs*", "data*", "tests*"]
+namespaces = false

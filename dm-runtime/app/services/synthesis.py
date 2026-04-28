@@ -150,9 +150,15 @@ async def synthesize_narration(server_result: dict, intent: dict, world_context:
             return result
         except Exception as e:
             logger.warning("LLM narration build failed, falling back to passthrough: %s", e)
-            return _build_passthrough(server_result, intent, world_context)
+            result = _build_passthrough(server_result, intent, world_context)
+            if llm_output.get("_hermes_session_id"):
+                result["session_id"] = llm_output["_hermes_session_id"]
+            return result
     else:
-        return _build_passthrough(server_result, intent, world_context)
+        result = _build_passthrough(server_result, intent, world_context)
+        if isinstance(llm_output, dict) and llm_output.get("_hermes_session_id"):
+            result["session_id"] = llm_output["_hermes_session_id"]
+        return result
 
 
 def _build_semantic_guard(intent: dict, world_context: dict) -> dict:

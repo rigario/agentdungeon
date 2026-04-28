@@ -4,31 +4,33 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>World Map — The Dreaming Hunger</title>
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Spectral:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-deep: #080810;
-      --bg-primary: #0e0e1c;
-      --bg-card: #141428;
-      --bg-card-hover: #1a1a34;
-      --border: #22223e;
-      --border-glow: #3a2a6a;
+      --bg-deep: #080608;
+      --bg-primary: #120c0b;
+      --bg-card: #17100e;
+      --bg-card-hover: #231813;
+      --border: rgba(212,168,79,.22);
+      --border-glow: rgba(212,168,79,.52);
       --text-primary: #e8dcc8;
-      --text-secondary: #9a8ea0;
-      --text-muted: #5a5068;
-      --accent-gold: #c8a040;
+      --text-secondary: #b9a98d;
+      --text-muted: #7f705e;
+      --accent-gold: #d4a84f;
       --accent-amber: #d89020;
       --accent-red: #b83838;
-      --accent-purple: #7a4a9a;
-      --accent-blue: #4870b0;
+      --accent-purple: #8b5f3a;
+      --accent-blue: #6e7890;
       --accent-green: #3a7a40;
       --mark-glow: #e85530;
       --mark-tint: rgba(232, 85, 48, 0.08);
       --fog-color: rgba(8, 8, 16, 0.7);
       --fog-heavy: rgba(8, 8, 16, 0.88);
       --font-display: 'Cinzel', 'Georgia', serif;
-      --font-body: 'Crimson Text', 'Georgia', serif;
+      --font-body: 'Spectral', 'Georgia', serif;
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -748,9 +750,39 @@
       text-align: center;
       margin-top: 0.1rem;
     }
+
+  /* Shared public-site navigation shell — same as catalogue/sheet pages */
+  .site-topbar { position: sticky; top: 0; z-index: 1000; backdrop-filter: blur(18px); background: rgba(8,6,8,.82); border-bottom: 1px solid rgba(212,168,79,.24); }
+  .site-shell { width: min(1180px, calc(100% - 40px)); margin: 0 auto; }
+  .site-nav { min-height: 62px; display: flex; justify-content: space-between; align-items: center; gap: 24px; font-family: 'Source Sans 3', system-ui, sans-serif; }
+  .site-brand { display: flex; align-items: center; gap: 12px; color: #f0e4ce; text-decoration: none; }
+  .site-brand-mark { width: 34px; height: 34px; border: 1px solid #d4a84f; border-radius: 50%; display: grid; place-items: center; color: #f0d38a; box-shadow: 0 0 22px rgba(212,168,79,.22); }
+  .site-brand span:last-child { font: 800 13px/1 'Cinzel', Georgia, serif; letter-spacing: .14em; text-transform: uppercase; }
+  .site-links { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; font: 800 11px/1 'Source Sans 3', system-ui, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: #b9a98d; }
+  .site-links a { color: inherit; text-decoration: none; }
+  .site-links a:hover, .site-links a.active { color: #f0d38a; }
+  @media (max-width: 760px) { .site-nav { align-items: flex-start; padding: 14px 0; flex-direction: column; gap: 12px; } .site-links { gap: 12px; } }
+
+  /* Warm gothic alignment with landing/build-notes pages */
+  body { background: radial-gradient(circle at 20% 8%, rgba(166,61,47,.20), transparent 30rem), radial-gradient(circle at 80% 18%, rgba(212,168,79,.12), transparent 34rem), linear-gradient(180deg, #050405 0%, #080608 48%, #0e0908 100%) !important; }
+  body::before { content:""; position:fixed; inset:0; pointer-events:none; opacity:.14; background-image:linear-gradient(rgba(212,168,79,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(212,168,79,.06) 1px,transparent 1px); background-size:64px 64px; mask-image:radial-gradient(circle at 50% 20%, black, transparent 75%); z-index:0; }
+  .container, .map-container, #app { position: relative; z-index: 1; }
+
 </style>
 </head>
 <body>
+  <header class="site-topbar" aria-label="Site navigation">
+    <div class="site-shell site-nav">
+      <a class="site-brand" href="/"><span class="site-brand-mark">✦</span><span>The Dreaming Hunger</span></a>
+      <nav class="site-links" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/portal/">Field Journal</a>
+        <a href="/map" class="active" aria-current="page">Map</a>
+        <a href="/demo">Demo</a>
+        <a href="/docs">Build Notes</a>
+      </nav>
+    </div>
+  </header>
 
 <div id="app" class="loading">Reading the map...</div>
 
@@ -998,9 +1030,11 @@ function render() {
         <div class="legend-item fog-icon"><div class="fog-swatch"></div> Unexplored</div>
       </div>
       <div class="nav-links">
-        <a href="/portal.html">Character Sheet</a>
+        <a href="/">Home</a>
+        <a href="/portal/">Field Journal</a>
+        <a href="/sheet">Character Sheet</a>
         <a href="/demo">Demo</a>
-        <a href="/docs">API Docs</a>
+        <a href="/docs">Build Notes</a>
       </div>
     </div>
   `;

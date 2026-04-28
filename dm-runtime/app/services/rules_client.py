@@ -138,6 +138,18 @@ async def get_fronts() -> list:
     return r.json()
 
 
+async def get_map_data() -> dict:
+    """Get full world map with all locations and connections.
+
+    Used by intent normalization to resolve natural language targets
+    (e.g. "Thornhold town square" → canonical "thornhold") even when
+    the player targets a location not in their current exits list.
+    """
+    r = await _client.get("/api/map/data")
+    r.raise_for_status()
+    return r.json()
+
+
 async def get_world_context(character_id: str) -> dict:
     """Get world context for character (via latest turn)."""
     r = await _client.get(f"/characters/{character_id}/turn/latest")

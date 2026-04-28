@@ -12,5 +12,7 @@ __pycache__/
 *.md
 data/
 dm-runtime/
+hermes-home/
 d20.db
 *.log
+hermes-home/

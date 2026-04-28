@@ -11,8 +11,8 @@ import httpx
 from datetime import datetime
 
 # Configuration
-RULES_URL = os.environ.get("SMOKE_RULES_URL", "https://d20.holocronlabs.ai")
-DM_URL = os.environ.get("SMOKE_DM_URL", "https://d20.holocronlabs.ai")
+RULES_URL = os.environ.get("SMOKE_RULES_URL", "https://agentdungeon.com")
+DM_URL = os.environ.get("SMOKE_DM_URL", "https://agentdungeon.com")
 TIMEOUT = 30.0
 
 CHAR_NAME = f"heartbeat-scenarioD-{uuid.uuid4().hex[:6]}"

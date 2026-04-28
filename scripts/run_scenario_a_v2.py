@@ -4,8 +4,8 @@ import httpx, json, uuid, os
 from datetime import datetime, timezone
 from pathlib import Path
 
-RULES = "https://d20.holocronlabs.ai"
-DM = "https://d20.holocronlabs.ai"
+RULES = "https://agentdungeon.com"
+DM = "https://agentdungeon.com"
 TIMEOUT = 120.0
 
 def run():

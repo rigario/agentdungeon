@@ -10,6 +10,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "dm-runtime"))
 import pytest
 
 from app.services.synthesis import _extract_mechanics, _extract_choices, _is_combat_response, synthesize_narration
+import app.services.synthesis as synthesis_module
 
 
 def test_is_combat_response_detects_nested_combat_key():
@@ -144,3 +145,19 @@ async def test_synthesize_semantic_guard_returns_noop_without_story_progression(
     assert "Action held" in result["mechanics"]["what_happened"][0]
     assert result["server_trace"]["refusal_reason"] == "semantic_guard_negated_or_refusal_action"
     assert "session_id" not in result
+
+
+@pytest.mark.asyncio
+async def test_synthesize_passthrough_preserves_hermes_session_when_scope_rejected(monkeypatch):
+    async def fake_llm_narrate(server_result, intent, world_context, session_id=None):
+        return {"_hermes_session_id": "session-proof", "_scope_rejected": True}
+
+    monkeypatch.setattr(synthesis_module, "llm_narrate", fake_llm_narrate)
+    result = await synthesize_narration(
+        {"narration": "Server-safe narration."},
+        {"type": "explore", "details": {}},
+        {"location": {"id": "thornhold", "name": "Thornhold"}},
+    )
+
+    assert result["narration"]["scene"] == "Server-safe narration."
+    assert result["session_id"] == "session-proof"

@@ -15,7 +15,7 @@ Run with: pytest -m integration tests/test_cadence_live_matrix.py
 Or: python tests/test_cadence_live_matrix.py (standalone mode)
 
 Prerequisites:
-  - Running FastAPI server at LIVE_TEST_BASE_URL (default: https://d20.holocronlabs.ai)
+  - Running FastAPI server at LIVE_TEST_BASE_URL (default: https://agentdungeon.com)
   - Character exists with valid character_id
   - Cadence mode is 'playtest' and active
 """
@@ -33,7 +33,7 @@ import pytest
 # Configuration
 # ---------------------------------------------------------------------------
 
-LIVE_TEST_BASE_URL = os.getenv("LIVE_TEST_BASE_URL", "https://d20.holocronlabs.ai")
+LIVE_TEST_BASE_URL = os.getenv("LIVE_TEST_BASE_URL", "https://agentdungeon.com")
 LIVE_TEST_CHARACTER_ID = os.getenv("LIVE_TEST_CHARACTER_ID")  # Must be set if running live
 LIVE_TEST_API_KEY = os.getenv("LIVE_TEST_API_KEY")  # If auth is required
 
