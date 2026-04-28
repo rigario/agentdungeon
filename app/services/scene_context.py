@@ -143,6 +143,63 @@ def _get_hub_rumors(conn, character_id: str, location_id: str) -> List[Dict[str,
     return get_hub_rumors(character_id, location_id)
 
 
+def _get_affinities(conn, character_id: str) -> Dict[str, int]:
+    """Fetch per-NPC affinity scores (0-100 scale) for a character.
+
+    Maps to narrator.py's expected world_context["social_context"]["affinities"]
+    format: {npc_id: score}.
+    """
+    rows = conn.execute(
+        "SELECT npc_id, affinity FROM character_npc_interactions "
+        "WHERE character_id = ?",
+        (character_id,),
+    ).fetchall()
+    return {r["npc_id"]: r["affinity"] for r in rows}
+
+
+def _get_milestones(conn, character_id: str) -> List[Dict[str, Any]]:
+    """Fetch claimed milestones for a character.
+
+    Maps to narrator.py's expected world_context["social_context"]["milestones"]
+    format: [{type, threshold, reward_type, claimed_at}, ...].
+    """
+    rows = conn.execute(
+        "SELECT milestone_type, threshold, reward_type, claimed_at "
+        "FROM character_milestones "
+        "WHERE character_id = ? "
+        "ORDER BY claimed_at DESC",
+        (character_id,),
+    ).fetchall()
+    return [
+        {
+            "type": r["milestone_type"],
+            "threshold": r["threshold"],
+            "reward_type": r["reward_type"],
+            "claimed_at": r["claimed_at"],
+        }
+        for r in rows
+    ]
+
+
+def _build_hub_social_summary(rumors: List[Dict[str, Any]]) -> str:
+    """Build a 1-2 sentence hub atmosphere summary from rumors.
+
+    Used by narrator.py's world_context["social_context"]["hub_social"]["summary_text"].
+    """
+    if not rumors:
+        return ""
+    parts = []
+    positive = [r for r in rumors if r.get("sentiment", 0) > 0]
+    negative = [r for r in rumors if r.get("sentiment", 0) < 0]
+    if positive:
+        keys = [r["rumor_key"].replace("_", " ") for r in positive[:2]]
+        parts.append(f"Locals speak well of: {', '.join(keys)}.")
+    if negative:
+        keys = [r["rumor_key"].replace("_", " ") for r in negative[:2]]
+        parts.append(f"Tensions noted: {', '.join(keys)}.")
+    return " ".join(parts)
+
+
 def _compute_allowed_actions(
     conn,
     character_id: str,
@@ -302,8 +359,25 @@ def get_scene_context(character_id: str) -> Dict[str, Any]:
         # Doom clock
         doom_clock = _get_doom_clock(conn, character_id)
 
-        # Hub rumors
+        # Hub social state — aggregate for DM narrator
         hub_rumors = _get_hub_rumors(conn, character_id, location_id) if location_id else []
+        hub_social = {
+            "rumors": hub_rumors,
+            "summary_text": _build_hub_social_summary(hub_rumors),
+        }
+
+        # NPC affinities — per-NPC relationship scores
+        affinities = _get_affinities(conn, character_id)
+
+        # Claimed milestones
+        milestones = _get_milestones(conn, character_id)
+
+        # Social context wrapper (matches narrator.py expected path)
+        social_context = {
+            "affinities": affinities,
+            "milestones": milestones,
+            "hub_social": hub_social,
+        }
 
         # Affordances (allowed/disallowed actions)
         allowed_actions, disallowed_actions = _compute_allowed_actions(
@@ -337,7 +411,8 @@ def get_scene_context(character_id: str) -> Dict[str, Any]:
             "combat_state": combat_state,
             "fronts": fronts,
             "doom_clock": doom_clock,
-            "hub_rumors": hub_rumors,
+            "hub_rumors": hub_rumors,  # DEPRECATED: use social_context.hub_social.rumors
+            "social_context": social_context,
             "allowed_actions": allowed_actions,
             "disallowed_actions": disallowed_actions,
             "timestamp": datetime.datetime.utcnow().isoformat(),
