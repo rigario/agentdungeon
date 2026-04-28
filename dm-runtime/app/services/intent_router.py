@@ -349,8 +349,8 @@ class IntentRouter:
                 wc = latest.get("world_context")
                 if wc and isinstance(wc, dict):
                     return wc
-        except Exception:
-            pass  # Non-blocking — fall through to scene-context
+        except Exception as e:
+            print(f"[DEBUG] get_latest_turn failed: {e!r}"); pass  # Non-blocking — fall through to scene-context
         # Scene-context fallback: fresh characters have no turn history
         try:
             scene = await self._client.get_scene_context(character_id)
@@ -520,6 +520,9 @@ class IntentRouter:
                             npc_copy.setdefault("asleep", False)
                             aliased_npcs.append(npc_copy)
                         scene["npcs"] = aliased_npcs
+                    # FIX 0c056bba: synthesis._extract_choices reads world_context["npcs_here"]
+                    # for NPC name lookup. Provide both keys for backward compatibility.
+                    scene["npcs_here"] = aliased_npcs
                     # Always populate locations and connections from exits if the scene lacks them
                     # or they are empty (scene_context may return empty 'locations' list).
                     if not scene.get("locations"):
