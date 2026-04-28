@@ -165,7 +165,8 @@ class NarrativePlanner:
 
         if action_type == "talk" and target:
             npc_names_lower = [n.get("name", "").lower() for n in affordances.available_npcs]
-            if target.lower() not in npc_names_lower:
+            # Allow partial/fuzzy match: e.g. "aldric" matches "aldric the innkeeper"
+            if not any(target.lower() in npc_name for npc_name in npc_names_lower):
                 available = [n.get("name") for n in affordances.available_npcs]
                 m = f'"{target}" isn\'t here. Available: '
                 m += ', '.join(available) if available else 'no one'
@@ -280,7 +281,8 @@ class NarrativePlanner:
 
         if action_type == "talk" and target:
             npc_lower = [n.get("name", "").lower() for n in affordances.available_npcs]
-            if target.lower() not in npc_lower:
+            # Allow partial/fuzzy match: e.g. "aldric" matches "aldric the innkeeper"
+            if not any(target.lower() in npc_name for npc_name in npc_lower):
                 # Single-NPC pronoun resolution: "her"/"him"/"them" with exactly 1 NPC → auto-resolve
                 PRONOUNS = {"her", "him", "them", "it", "that person", "the npc", "the person", "the guard", "the woman", "the man"}
                 if len(affordances.available_npcs) == 1 and target.lower() in PRONOUNS:
