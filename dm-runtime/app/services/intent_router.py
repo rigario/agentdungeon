@@ -337,7 +337,9 @@ class IntentRouter:
         world_context can be stale. This helper fetches get_latest_turn() to get
         the authoritative updated world_context for narration.
 
-        Falls back to the provided current_wc if fetch fails (non-blocking).
+        Falls back to scene-context when no turn history exists (fresh characters),
+        ensuring the DM planner always has NPC affordances. Non-blocking — returns
+        current_wc if all fetches fail.
         """
         if not current_wc:
             current_wc = {}
@@ -348,7 +350,33 @@ class IntentRouter:
                 if wc and isinstance(wc, dict):
                     return wc
         except Exception:
-            pass  # Non-blocking — keep existing context on failure
+            pass  # Non-blocking — fall through to scene-context
+        # Scene-context fallback: fresh characters have no turn history
+        try:
+            scene = await self._client.get_scene_context(character_id)
+            exits = scene.get("exits", [])
+            # Populate backward-compatible keys
+            if "npcs" not in scene:
+                aliased = []
+                for npc in scene.get("npcs_here", []):
+                    npc_copy = dict(npc)
+                    npc_copy["is_available"] = npc.get("available", True)
+                    npc_copy.setdefault("asleep", False)
+                    aliased.append(npc_copy)
+                scene["npcs"] = aliased
+            if not scene.get("locations"):
+                scene["locations"] = exits
+            if not scene.get("connections"):
+                scene["connections"] = exits
+            if "current_location" not in scene or not isinstance(scene.get("current_location"), dict):
+                scene["current_location"] = {}
+            if "connections" not in scene["current_location"]:
+                scene["current_location"]["connections"] = exits
+            if "location" not in scene:
+                scene["location"] = scene.get("current_location", {})
+            return scene
+        except Exception:
+            pass  # Scene-context unavailable — fall back to provided current_wc
         return current_wc or {}
 
     def _normalize_target(self, intent, world_context: dict) -> str:
