@@ -26,11 +26,12 @@ def test_portal_state_map_derived_from_events():
     # Create test character
     char_id = "test-char-1"
     conn.execute(
-        "INSERT INTO characters (id, name, race, class, level, hp_current, hp_max, "
+        "INSERT INTO characters (id, player_id, name, race, class, level, hp_current, hp_max, "
         "ac_value, ability_scores_json, mark_of_dreamer_stage, location_id) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (
             char_id,
+            "test-player",
             "Test Hero",
             "halfling",
             "rogue",

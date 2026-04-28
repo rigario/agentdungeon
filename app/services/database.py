@@ -468,6 +468,30 @@ CREATE TABLE IF NOT EXISTS characters (
             FOREIGN KEY (character_id) REFERENCES characters(id)
         );
 
+        -- Queued live-tick turn receipts. Agents submit once, receive a
+        -- proof-of-custody turn_id immediately, then poll status until the
+        -- tick processor completes or fails the turn.
+        CREATE TABLE IF NOT EXISTS queued_turns (
+            turn_id TEXT PRIMARY KEY,
+            character_id TEXT NOT NULL,
+            message TEXT NOT NULL,
+            idempotency_key TEXT,
+            session_id TEXT,
+            status TEXT NOT NULL DEFAULT 'queued',
+            tick_id TEXT NOT NULL,
+            next_tick_at TEXT NOT NULL,
+            cutoff_at TEXT NOT NULL,
+            estimated_processing_window_seconds INTEGER DEFAULT 120,
+            result_json TEXT,
+            error_json TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            processing_started_at TIMESTAMP,
+            completed_at TIMESTAMP,
+            FOREIGN KEY (character_id) REFERENCES characters(id),
+            UNIQUE(character_id, idempotency_key)
+        );
+
         -- =========================================================
         -- PLAYER PORTAL — Share tokens for public character views
         -- =========================================================
@@ -512,6 +536,10 @@ CREATE TABLE IF NOT EXISTS characters (
     """)
     conn.execute("CREATE INDEX IF NOT EXISTS idx_share_tokens_character ON share_tokens(character_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_share_tokens_token ON share_tokens(token)")
+
+    # Migration: queued live-tick turn receipts for existing DBs.
+    from app.services.queued_turns import ensure_queued_turns_table
+    ensure_queued_turns_table(conn)
 
     # -----------------------------------------------------------------
     # Campaign scoping migration — additive, idempotent

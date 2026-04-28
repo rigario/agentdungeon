@@ -352,6 +352,42 @@ def get_portal_state(character_id: str) -> dict:
             "mark_of_dreamer_stage": mark_stage,
         }
 
+        # Latest live-tick queued turns for trust/progress display.
+        queued_turns = []
+        try:
+            turn_rows = db.execute(
+                """SELECT turn_id, status, tick_id, next_tick_at, cutoff_at,
+                          estimated_processing_window_seconds, created_at, updated_at,
+                          processing_started_at, completed_at, error_json
+                   FROM queued_turns
+                   WHERE character_id = ?
+                   ORDER BY created_at DESC
+                   LIMIT 5""",
+                (character_id,),
+            ).fetchall()
+            for tr in turn_rows:
+                error = None
+                if tr["error_json"]:
+                    try:
+                        error = json.loads(tr["error_json"])
+                    except (json.JSONDecodeError, TypeError):
+                        error = {"raw": tr["error_json"]}
+                queued_turns.append({
+                    "turn_id": tr["turn_id"],
+                    "status": tr["status"],
+                    "tick_id": tr["tick_id"],
+                    "next_tick_at": tr["next_tick_at"],
+                    "cutoff_at": tr["cutoff_at"],
+                    "estimated_processing_window_seconds": tr["estimated_processing_window_seconds"],
+                    "created_at": tr["created_at"],
+                    "updated_at": tr["updated_at"],
+                    "processing_started_at": tr["processing_started_at"],
+                    "completed_at": tr["completed_at"],
+                    "error": error,
+                })
+        except Exception:
+            queued_turns = []
+
         return {
             "character": {
                 "id": char["id"],
@@ -378,6 +414,7 @@ def get_portal_state(character_id: str) -> dict:
                 for e in events
             ],
             "doom_clock": dict(doom) if doom else None,
+            "queued_turns": queued_turns,
             "inventory": [dict(i) for i in inventory],
             # === NEW: map state derived from event_log ===
             "map": {

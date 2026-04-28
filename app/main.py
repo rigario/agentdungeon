@@ -10,6 +10,7 @@ from app.config import HOST, PORT
 from app.scripts.seed import seed
 from app.services.auth_middleware import AuthMiddleware
 from app.routers import health, characters, events, actions, combat, turns, narrative, items, auth, npcs, map as map_router, encounters
+from app.routers import queued_turns as queued_turns_router
 from app.routers.actions import global_actions_router
 from app.routers.combat import approval_router
 from app.routers import narrative_introspect
@@ -158,6 +159,7 @@ app.include_router(time_router.router)
 app.include_router(cadence_router.router)
 app.include_router(portal_router.router)
 app.include_router(dm_sessions.router)
+app.include_router(queued_turns_router.router)
 
 
 if __name__ == "__main__":
