@@ -2,9 +2,9 @@
 # Download all FAL sources and convert to pixel art
 set -e
 
-SRC_DIR="/home/rigario/Projects/rigario-d20/assets/sources"
-OUT_DIR="/home/rigario/Projects/rigario-d20/assets/pixel-art"
-PIXEL="/home/rigario/.hermes/skills/creative/pixel-art/scripts/pixel_art.py"
+SRC_DIR="$(cd "$(dirname "$0")" && pwd)/sources"
+OUT_DIR="$(cd "$(dirname "$0")" && pwd)/pixel-art"
+PIXEL="${PIXEL_ART_SKILL_DIR:-$HOME/.hermes/skills/creative/pixel-art/scripts}/pixel_art.py"
 
 mkdir -p "$SRC_DIR" "$OUT_DIR"
 

@@ -2,7 +2,7 @@
 
 Provides item detail inspection with narrative lore text,
 character inventory management, and key item discovery.
-Part of the hackathon sprint Task 4.1: Item Lore Viewer.
+Part of the development sprint Task 4.1: Item Lore Viewer.
 Task P2: Key item inspect endpoint with multi-layer lore.
 """
 

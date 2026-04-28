@@ -22,7 +22,7 @@ from app.services.database import get_db
 _ENCRYPTION_KEY = os.environ.get("D20_ENCRYPTION_KEY", None)
 if _ENCRYPTION_KEY is None:
     _ENCRYPTION_KEY = Fernet.generate_key().decode()
-    # NOTE: This means keys are lost on restart. Fine for hackathon dev.
+    # NOTE: This means keys are lost on restart. Fine for development.
     # Production should persist this key securely.
 
 _fernet = Fernet(_ENCRYPTION_KEY.encode() if isinstance(_ENCRYPTION_KEY, str) else _ENCRYPTION_KEY)
@@ -83,7 +83,7 @@ def register_agent(user_id: str, agent_name: str) -> dict:
     
     conn = get_db()
     try:
-        # Ensure user exists (create dev user if needed for hackathon)
+        # Ensure user exists (create dev user if needed for development)
         existing = conn.execute("SELECT id FROM users WHERE id = ?", (user_id,)).fetchone()
         if not existing:
             conn.execute(

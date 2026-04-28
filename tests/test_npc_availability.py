@@ -1,4 +1,5 @@
 """
+from pathlib import Path
 Regression tests for NPC availability filtering (task 4a292346).
 
 Tests cover:
@@ -38,7 +39,7 @@ def db_conn():
     conn.row_factory = sqlite3.Row
 
     # Load schema
-    with open("/home/rigario/Projects/rigario-d20/app/services/database_schema.sql", "r") as f:
+    with open(str(Path(__file__).resolve().parents[1] / "app/services/database_schema.sql"), "r") as f:
         conn.executescript(f.read())
 
     # Minimal location

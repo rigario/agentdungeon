@@ -190,7 +190,7 @@ def _validated_result(parsed: dict[str, Any], affordances: SceneAffordances, wor
 
 
 def _system_prompt() -> str:
-    return """You are Rigario's Dungeon Master intent resolver.
+    return """You are AgentDungeon's Dungeon Master intent resolver.
 Return ONLY valid JSON. Do not narrate.
 
 Decide what the player is trying to do using only the supplied scene affordances.

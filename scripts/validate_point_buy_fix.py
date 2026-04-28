@@ -57,7 +57,7 @@ def main():
             print(f)
         return 1
 
-    print("\n✅ All checks passed — point buy validation is SRD 5.2 compliant")
+    print("\n✅ All checks passed — point buy validation is 5E-compatible compliant")
     return 0
 
 if __name__ == "__main__":

@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Download FAL sources and convert to pixel art for D20 assets."""
-import subprocess, os, json
+import os
+import subprocess
+from pathlib import Path
 
-SRC_DIR = "/home/rigario/Projects/rigario-d20/assets/sources"
-OUT_DIR = "/home/rigario/Projects/rigario-d20/assets/pixel-art"
-PIXEL = "/home/rigario/.hermes/skills/creative/pixel-art/scripts/pixel_art.py"
+SRC_DIR = str(Path(__file__).resolve().parent / "sources")
+OUT_DIR = str(Path(__file__).resolve().parent / "pixel-art")
+PIXEL = str(Path(os.environ.get("PIXEL_ART_SKILL_DIR", "~/.hermes/skills/creative/pixel-art/scripts")).expanduser() / "pixel_art.py")
 
 os.makedirs(SRC_DIR, exist_ok=True)
 

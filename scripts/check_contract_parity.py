@@ -17,7 +17,7 @@ import argparse
 from pathlib import Path
 from typing import List, Tuple, Set
 
-PROJECT = Path("/home/rigario/Projects/rigario-d20")
+PROJECT = Path(__file__).resolve().parents[1]
 RULES_DIR = PROJECT / "app"
 DM_DIR    = PROJECT / "dm-runtime" / "app"
 

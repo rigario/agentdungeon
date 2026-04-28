@@ -15,7 +15,7 @@ This keeps the game deterministic and testable while still feeling like a real D
 
 What exists today:
 - `d20-rules-server` simulates turns, actions, combat, fronts, flags, and atmosphere.
-- `d20-dm-runtime` is a separate FastAPI service running in Docker on the VPS.
+- `d20-dm-runtime` is a separate FastAPI service running in Docker on the deployment host.
 - `POST /dm/turn` accepts player natural language, classifies intent, calls the rules server, and synthesizes the final player-facing DM payload.
 - `POST /dm/turn` includes a **DM-agent fallback intent resolver** for flexible/ambiguous input: deterministic routing handles precise actions first; low-confidence/general messages ask the in-container `d20-dm` profile for a bounded JSON decision (`execute`, `clarify`, `refuse`, or `narrate_noop`) before any server mutation.
 - `POST /dm/narrate` accepts already-resolved mechanics/world context and narrates without re-entering rules resolution.
@@ -52,7 +52,7 @@ Responsibilities:
 
 ### 2. DM Runtime
 
-A separate FastAPI service plus in-container Hermes agent. It runs as `d20-dm-runtime` on the VPS, colocated with the rules server in Docker for isolation.
+A separate FastAPI service plus in-container Hermes agent. It runs as `d20-dm-runtime` on the deployment host, colocated with the rules server in Docker for isolation.
 
 Responsibilities:
 - Accept public player natural language at `/dm/turn`
@@ -87,7 +87,7 @@ Live production stack:
 ```text
 Public player / portal
   -> Traefik HTTPS: https://agentdungeon.com
-  -> Docker Compose on VPS: /home/admin/apps/d20
+  -> Docker Compose on deployment host: /path/to/agentdungeon
      - d20-rules-server  (:8600, authoritative rules/state)
      - d20-dm-runtime    (:8610, DM FastAPI + Hermes agent)
      - d20-redis         (lock/cache support)
@@ -96,7 +96,7 @@ Public player / portal
 Canonical deploy/verify command for DM-runtime-only changes:
 
 ```bash
-cd /home/rigario/Projects/rigario-d20
+cd /path/to/agentdungeon
 scripts/deploy_dm_runtime.sh
 ```
 
@@ -314,7 +314,7 @@ Recommended setup:
   - uses `world_context` as hard scope
 
 Why Kimi here:
-- strongest hackathon narrative value
+- strongest public demo narrative value
 - visible Kimi usage in the live demo
 - model is used exactly where synthesis matters most
 - mechanical correctness remains server-side
@@ -326,7 +326,7 @@ Why Kimi here:
 - Output: narration + choices
 - Classify intent and route to existing server endpoints
 - Minimal session memory
-- Enough for hackathon demo
+- Enough for public demo
 
 ### Stage 2 — Scene Continuity Layer
 - Better NPC continuity

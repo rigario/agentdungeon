@@ -1,4 +1,5 @@
 """Debug test path resolution"""
+from pathlib import Path
 import sys, os
 print("\n=== DEBUG: test module top of file ===")
 print("__file__ =", __file__ if '__file__' in dir() else "NOT SET")
@@ -7,7 +8,7 @@ print("First 5 entries:")
 for p in sys.path[:5]:
     print(" ", p)
 
-_PROJECT_PARENT = "/home/rigario/Projects/rigario-d20"
+_PROJECT_PARENT = str(Path(__file__).resolve().parents[1])
 if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
     print(f"Inserted {_PROJECT_PARENT} at position 0")

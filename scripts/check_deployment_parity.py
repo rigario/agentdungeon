@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Deployment parity check for dm-runtime.
-Verifies that local source, VPS host files, and running container code
+Verifies that local source, remote host files, and running container code
 are in sync — no silent drift allowed.
 
 Usage:
@@ -26,9 +26,9 @@ import re
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
-LOCAL_ROOT = Path("/home/rigario/Projects/rigario-d20")
-VPS_HOST = os.environ.get("VPS_HOST", "<your-user>@<your-vps-host>")
-VPS_APP_DIR = Path("/home/admin/apps/d20")
+LOCAL_ROOT = Path(os.environ.get("LOCAL_ROOT", Path.cwd()))
+DEPLOY_HOST = os.environ.get("DEPLOY_HOST", "<your-user>@<host>")
+DEPLOY_APP_DIR = Path(os.environ.get("DEPLOY_APP_DIR", "/path/to/agentdungeon"))
 CONTAINER_NAME = "d20-dm-runtime"
 
 # Files to verify under dm-runtime/app/
@@ -59,9 +59,9 @@ CONTAINER_APP_DIR = Path("/app/app")
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Deployment parity check for dm-runtime")
-    parser.add_argument('--stage', choices=['all', 'local', 'vps', 'container'],
+    parser.add_argument('--stage', choices=['all', 'local', 'remote', 'container'],
                         default='all',
-                        help='Which stage(s) to run: local (baseline only), vps (VPS host files), container (running container), all (default)')
+                        help='Which stage(s) to run: local (baseline only), remote (remote host files), container (running container), all (default)')
     return parser.parse_args()
 
 
@@ -79,7 +79,7 @@ def sha256_of_file(path: Path) -> str:
 
 def file_exists_via_ssh(remote_path: str) -> bool:
     result = subprocess.run(
-        ["ssh", VPS_HOST, f"test -f '{remote_path}' && echo yes || echo no"],
+        ["ssh", DEPLOY_HOST, f"test -f '{remote_path}' && echo yes || echo no"],
         capture_output=True, text=True, timeout=15
     )
     return result.stdout.strip() == "yes"
@@ -87,11 +87,11 @@ def file_exists_via_ssh(remote_path: str) -> bool:
 
 def read_file_via_ssh(remote_path: str) -> str:
     result = subprocess.run(
-        ["ssh", VPS_HOST, f"cat '{remote_path}'"],
+        ["ssh", DEPLOY_HOST, f"cat '{remote_path}'"],
         capture_output=True, timeout=15
     )
     if result.returncode != 0:
-        raise FileNotFoundError(f"Could not read {remote_path} on VPS")
+        raise FileNotFoundError(f"Could not read {remote_path} on remote host")
     return result.stdout.decode("utf-8", errors="replace")
 
 
@@ -163,24 +163,24 @@ def stage_local_baseline() -> Tuple[Dict[str, str], Dict[str, bool], List[str]]:
     return hashes, symbols_ok, errors
 
 
-# ── Stage 2: VPS host file parity ─────────────────────────────────────────────
+# ── Stage 2: remote host file parity ─────────────────────────────────────────────
 
-def stage_vps_parity(local_hashes: Dict[str, str]) -> bool:
-    log("=== STAGE 2: VPS host file parity ===")
+def stage_remote_parity(local_hashes: Dict[str, str]) -> bool:
+    log("=== STAGE 2: remote host file parity ===")
     all_ok = True
 
     for rel in FILES_TO_CHECK:
-        vps_path = f"{VPS_APP_DIR}/dm-runtime/app/{rel}"
+        remote_path = f"{DEPLOY_APP_DIR}/dm-runtime/app/{rel}"
 
-        if not file_exists_via_ssh(vps_path):
-            log(f"  ✗ VPS file missing: {vps_path}")
+        if not file_exists_via_ssh(remote_path):
+            log(f"  ✗ remote host file missing: {remote_path}")
             all_ok = False
             continue
 
         try:
-            remote_content = read_file_via_ssh(vps_path)
+            remote_content = read_file_via_ssh(remote_path)
         except FileNotFoundError as e:
-            log(f"  ✗ cannot read VPS file: {e}")
+            log(f"  ✗ cannot read remote host file: {e}")
             all_ok = False
             continue
 
@@ -190,24 +190,24 @@ def stage_vps_parity(local_hashes: Dict[str, str]) -> bool:
         if remote_sha != local_sha:
             log(f"  ✗ HASH MISMATCH for {rel}")
             log(f"    local:  {local_sha[:12]}...")
-            log(f"    VPS:    {remote_sha[:12]}...")
+            log(f"    remote:    {remote_sha[:12]}...")
             all_ok = False
         else:
             log(f"  ✓ {rel} — sha256 MATCH")
 
         req_syms = REQUIRED_SYMBOLS.get(rel, [])
         if req_syms:
-            missing = check_symbols(remote_content, req_syms, f"vps:{rel}")
+            missing = check_symbols(remote_content, req_syms, f"remote:{rel}")
             if missing:
-                log(f"  ✗ VPS symbol check FAIL for {rel}:\n" + "\n".join(missing))
+                log(f"  ✗ remote host symbol check FAIL for {rel}:\n" + "\n".join(missing))
                 all_ok = False
             else:
-                log(f"    ✓ VPS symbols OK: {', '.join(req_syms)}")
+                log(f"    ✓ remote host symbols OK: {', '.join(req_syms)}")
 
     if all_ok:
-        log("VPS HOST PARITY PASSED\n")
+        log("REMOTE HOST PARITY PASSED\n")
     else:
-        log("VPS HOST PARITY FAILED\n")
+        log("REMOTE HOST PARITY FAILED\n")
     return all_ok
 
 
@@ -263,18 +263,18 @@ def main():
     allowed = []
     if args.stage == 'local':
         allowed = ['local']
-    elif args.stage == 'vps':
-        allowed = ['local', 'vps']
+    elif args.stage == 'remote':
+        allowed = ['local', 'remote']
     elif args.stage == 'container':
         allowed = ['local', 'container']
     else:  # all
-        allowed = ['local', 'vps', 'container']
+        allowed = ['local', 'remote', 'container']
 
     log("Deployment Parity Check — dm-runtime")
     log(f"Stage(s):     {args.stage}")
     log(f"Local root:   {LOCAL_ROOT}")
-    log(f"VPS host:     {VPS_HOST}")
-    log(f"VPS app dir:  {VPS_APP_DIR}")
+    log(f"Remote host:     {DEPLOY_HOST}")
+    log(f"Remote app dir:  {DEPLOY_APP_DIR}")
     log(f"Container:    {CONTAINER_NAME}")
     log(f"Files:        {', '.join(FILES_TO_CHECK)}")
     log("")
@@ -287,14 +287,14 @@ def main():
     if 'local' in allowed:
         local_hashes, local_symbols_ok, errors = stage_local_baseline()
     else:
-        # Still need hashes for VPS/container comparison; compute silently
+        # Still need hashes for remote host/container comparison; compute silently
         local_hashes, local_symbols_ok, errors = stage_local_baseline()
         log("[local baseline computed — not validated — stage: {}]".format(args.stage))
 
-    # Stage 2: VPS host files
-    vps_ok = True
-    if 'vps' in allowed:
-        vps_ok = stage_vps_parity(local_hashes)
+    # Stage 2: remote host files
+    remote_ok = True
+    if 'remote' in allowed:
+        remote_ok = stage_remote_parity(local_hashes)
 
     # Stage 3: Container files
     container_ok = True
@@ -303,7 +303,7 @@ def main():
 
     log("=== FINAL RESULT ===")
     success = True
-    if 'vps' in allowed and not vps_ok:
+    if 'remote' in allowed and not remote_ok:
         success = False
     if 'container' in allowed and not container_ok:
         success = False
@@ -312,12 +312,12 @@ def main():
         log("✓ PARITY CHECK PASSED")
         if args.stage == 'local':
             log("Local baseline validated.")
-        elif args.stage == 'vps':
-            log("VPS host files verified against local source.")
+        elif args.stage == 'remote':
+            log("Remote host files verified against local source.")
         elif args.stage == 'container':
             log("Container files verified against local source.")
         else:
-            log("Deployment parity verified: local ↔ VPS host ↔ container")
+            log("Deployment parity verified: local ↔ remote host ↔ container")
         sys.exit(0)
     else:
         log("✗ PARITY CHECK FAILED")

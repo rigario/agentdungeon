@@ -1,5 +1,6 @@
 """Test portal state map fog-of-war derived from event_log."""
 
+from pathlib import Path
 import sqlite3
 import json
 import sys
@@ -19,7 +20,7 @@ def test_portal_state_map_derived_from_events():
     conn.row_factory = sqlite3.Row
 
     # Create minimal schema
-    with open("/home/rigario/Projects/rigario-d20/app/services/database_schema.sql", "r") as f:
+    with open(str(Path(__file__).resolve().parents[1] / "app/services/database_schema.sql"), "r") as f:
         schema = f.read()
     conn.executescript(schema)
 

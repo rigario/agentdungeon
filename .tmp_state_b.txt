@@ -1,1 +1,0 @@
-{"location_id": "rusty-tankard", "current_location_id": "rusty-tankard"}

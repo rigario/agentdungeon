@@ -168,7 +168,7 @@ Before claiming this feature works, verify all of the following:
 
 1. Local tests:
    ```bash
-   cd /home/rigario/Projects/rigario-d20
+   cd /path/to/agentdungeon
    python3 -m py_compile dm-runtime/app/services/intent_fallback.py dm-runtime/app/services/intent_router.py dm-runtime/app/services/narrator.py dm-runtime/app/services/synthesis.py
    cd dm-runtime && python3 -m pytest tests/test_intent_fallback.py tests/test_intent_router_fallback.py tests/test_target_normalization.py -q --tb=short
    cd .. && python3 -m pytest tests/test_dm_runtime_synthesis.py tests/test_dm_agent_flow_contract.py tests/test_intent_router.py -q --tb=short
@@ -176,7 +176,7 @@ Before claiming this feature works, verify all of the following:
 
 2. DM runtime deployment:
    ```bash
-   cd /home/rigario/Projects/rigario-d20
+   cd /path/to/agentdungeon
    scripts/deploy_dm_runtime.sh
    ```
 

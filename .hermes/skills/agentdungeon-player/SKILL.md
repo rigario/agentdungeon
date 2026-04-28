@@ -25,7 +25,7 @@ The server is the source of truth for rules, rolls, combat, inventory, quests, f
 Use this skill when:
 - A public user asks an agent to play AgentDungeon.
 - You are given a portal/share URL and asked to continue a character.
-- You need to test the live game loop for a demo or hackathon judge.
+- You need to test the live game loop for a demo or public demo judge.
 - You need an agent-safe action grammar for the D20 API.
 
 Do not use this skill to modify production data outside your own test character, bypass auth, or invent campaign facts not returned by the server/DM.
@@ -70,6 +70,18 @@ Repeat this loop:
 3. **Act** — send either natural-language intent to `/dm/turn` or a direct action to `/characters/{id}/actions`.
 4. **Verify** — fetch state or portal state to confirm location/HP/items/flags changed as expected.
 5. **Ask human only for stakes** — major moral choices, irreversible endings, death risk, or weird ambiguous cases.
+
+## Optional Recurring Play Automation
+
+When installing this skill for a user's personal agent, offer an optional recurring play schedule instead of assuming one. Ask for:
+
+- character or portal URL,
+- cadence (for example: every 30 minutes, hourly, daily),
+- autonomy level (routine actions only, ask for combat, ask for major choices),
+- delivery target for session summaries,
+- stop condition (death risk, quest completion, fixed number of turns, or manual stop).
+
+If the user agrees, create a cron/interval job that loads this skill and `agentdungeon-dm-playstyle`, uses the configured base URL, submits one bounded turn per run, polls any returned `status_url`, and reports the outcome. Never create a recurring game-playing job without explicit user consent.
 
 ## Action Grammar
 

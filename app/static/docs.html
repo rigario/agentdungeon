@@ -52,19 +52,7 @@
     }
     a { color: inherit; }
     .wrap { width: min(1180px, calc(100% - 40px)); margin: 0 auto; }
-    .topbar {
-      position: sticky; top: 0; z-index: 10;
-      backdrop-filter: blur(18px);
-      background: rgba(8,6,8,.76);
-      border-bottom: 1px solid var(--line);
-    }
-    .nav { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 16px 0; }
-    .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
-    .brand-mark { width: 34px; height: 34px; border: 1px solid var(--gold); border-radius: 50%; display: grid; place-items: center; color: var(--gold-2); box-shadow: 0 0 22px rgba(212,168,79,.22); }
-    .brand span:last-child { font: 700 14px/1 Cinzel, serif; letter-spacing: .14em; text-transform: uppercase; }
-    .navlinks { display: flex; gap: 18px; align-items: center; font: 700 12px/1 Source Sans 3, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
-    .navlinks a { text-decoration: none; }
-    .navlinks a:hover { color: var(--gold-2); }
+
     .hero { min-height: 34vh; display: grid; align-items: center; padding: 56px 0 40px; }
     .eyebrow { font: 800 12px/1 Source Sans 3, sans-serif; color: var(--gold); text-transform: uppercase; letter-spacing: .2em; margin-bottom: 18px; }
     h1, h2, h3 { font-family: Cinzel, Georgia, serif; margin: 0; letter-spacing: .02em; }
@@ -105,7 +93,6 @@
       .section-head { grid-template-columns: 1fr; }
       .card { grid-template-columns: 1fr; }
       .endpoint { grid-template-columns: 1fr; }
-      .navlinks { display: none; }
     }
     @media (max-width: 560px) {
       .section-head p { font-size: 18px; }
@@ -113,15 +100,18 @@
     }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; } }
   </style>
+  <link rel="stylesheet" href="/static/site-nav.css">
 </head>
 <body>
-  <header class="topbar">
-    <div class="wrap nav">
-      <a class="brand" href="/">
-        <span class="brand-mark">✦</span><span>The Dreaming Hunger</span>
-      </a>
-      <nav class="navlinks" aria-label="Primary">
-        <a href="/">Home</a><a href="/portal/">Field Journal</a><a href="/map">Map</a><a href="/demo">Demo</a><a href="/docs">Build Notes</a>
+  <header class="site-topbar" aria-label="Site navigation">
+    <div class="site-shell site-nav">
+      <a class="site-brand" href="/"><span class="site-brand-mark">✦</span><span>The Dreaming Hunger</span></a>
+      <nav class="site-links" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/portal/">Field Journal</a>
+        <a href="/map">Map</a>
+        <a href="/demo">Demo</a>
+        <a href="/docs" class="active" aria-current="page">Build Notes</a>
       </nav>
     </div>
   </header>
@@ -216,7 +206,7 @@
 
   <footer>
     <div class="wrap">
-      <span>Built for the Hermes Agent Creative Hackathon · A living human-agent campaign loop.</span>
+      <span>Built for the AgentDungeon · A living human-agent campaign loop.</span>
       <span><a href="/">Home</a><a href="/portal/">Field Journal</a><a href="/map">Map</a><a href="/demo">Demo</a><a href="/docs">Build Notes</a><a href="https://github.com/rigario/rigario-d20" rel="noopener">GitHub</a></span>
     </div>
   </footer>

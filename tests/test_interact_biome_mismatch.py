@@ -1,4 +1,5 @@
 """
+from pathlib import Path
 Regression test for interact query biome-filter bug.
 
 The original bug (ISSUE-003) was that the interact handler queried:
@@ -39,7 +40,7 @@ def biome_mismatch_db():
     conn.row_factory = sqlite3.Row
 
     # Load schema
-    schema_path = "/home/rigario/Projects/rigario-d20/app/services/database_schema.sql"
+    schema_path = str(Path(__file__).resolve().parents[1] / "app/services/database_schema.sql")
     with open(schema_path, "r") as f:
         conn.executescript(f.read())
 

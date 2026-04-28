@@ -29,7 +29,7 @@ NARRATOR_ENABLED = os.environ.get("DM_NARRATOR_ENABLED", "true").lower() == "tru
 
 # --- DM System Prompt ---
 # Enforces authority boundaries and world_context scope
-DM_SYSTEM_PROMPT = """You are the Dungeon Master for a D&D 5E game called Rigario D20.
+DM_SYSTEM_PROMPT = """You are the Dungeon Master for a 5E-compatible game called AgentDungeon.
 
 ## Your Role
 You narrate the world, give voice to NPCs, describe scenes, and present choices. You make the game feel alive and immersive.

@@ -1,4 +1,4 @@
-"""Rigario D20 Agent RPG — DM Server."""
+"""AgentDungeon — DM Server."""
 
 import os
 from contextlib import asynccontextmanager
@@ -48,8 +48,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Rigario D20 Agent RPG",
-    description="DM server for agent-led D&D 5E idle RPG. Validates rules, runs encounters, tracks world state.",
+    title="AgentDungeon",
+    description="DM server for agent-led 5E-compatible idle RPG. Validates rules, runs encounters, tracks world state.",
     version="0.1.0",
     lifespan=lifespan,
     docs_url=None,
@@ -136,7 +136,7 @@ def serve_api_docs():
     """Serve the raw Swagger UI at a new path."""
     return get_swagger_ui_html(
         openapi_url="/openapi.json",
-        title="Rigario D20 Agent RPG — API Docs",
+        title="AgentDungeon — API Docs",
     )
 
 # Register routers

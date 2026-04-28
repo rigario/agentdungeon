@@ -14,16 +14,16 @@ metadata:
 
 ## Overview
 
-This skill helps public users and agents diagnose the live AgentDungeon game without needing private VPS access.
+This skill helps public users and agents diagnose the live AgentDungeon game without needing private deployment access.
 
-Canonical URL: `https://agentdungeon.com`
+Default public URL: `https://agentdungeon.com`. For self-hosted installs, replace it with your deployment URL.
 
 ## Quick Health Checks
 
 ```bash
-curl -s https://agentdungeon.com/health
-curl -s https://agentdungeon.com/dm/health
-curl -s https://agentdungeon.com/api/map/data
+curl -s ${AGENTDUNGEON_BASE_URL:-https://agentdungeon.com}/health
+curl -s ${AGENTDUNGEON_BASE_URL:-https://agentdungeon.com}/dm/health
+curl -s ${AGENTDUNGEON_BASE_URL:-https://agentdungeon.com}/api/map/data
 ```
 
 Expected:

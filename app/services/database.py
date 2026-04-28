@@ -280,7 +280,7 @@ CREATE TABLE IF NOT EXISTS characters (
         );
 
         -- =========================================================
-        -- AUTH SCHEMA (Hackathon Sprint — Phase 1)
+        -- AUTH SCHEMA (Development Sprint — Phase 1)
         -- =========================================================
 
         -- Users: social login via OAuth (Gmail, X)

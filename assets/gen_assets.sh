@@ -3,8 +3,8 @@
 # Fetches source images from Pollinations + FAL, then converts with smaller pixel blocks
 
 set -e
-ASSET_DIR="/home/rigario/Projects/rigario-d20/assets/pixel-art"
-SRC_DIR="/home/rigario/Projects/rigario-d20/assets/sources"
+ASSET_DIR="$(cd "$(dirname "$0")" && pwd)/pixel-art"
+SRC_DIR="$(cd "$(dirname "$0")" && pwd)/sources"
 mkdir -p "$SRC_DIR"
 
 # Character prompts (Pollinations)
@@ -31,7 +31,7 @@ done
 
 echo ""
 echo "=== Converting to pixel art (block=2, SNES-quality detail) ==="
-cd /home/rigario/.hermes/skills/creative/pixel-art/scripts
+cd ${PIXEL_ART_SKILL_DIR:-$HOME/.hermes/skills/creative/pixel-art/scripts}
 
 # Characters: SNES preset but block=2 for more detail
 for name in del-possessed brother-kol green-woman gromm-bugbear; do

@@ -317,20 +317,8 @@
     pointer-events: none;
     z-index: 6;
   }
-
-  /* Shared public-site navigation shell */
-  .site-topbar { position: fixed; top: 0; z-index: 120; backdrop-filter: blur(18px); background: rgba(8,6,8,.58); border-bottom: 1px solid rgba(212,168,79,.24); }
-  .site-shell { width: min(1180px, calc(100% - 40px)); margin: 0 auto; }
-  .site-nav { min-height: 62px; display: flex; justify-content: space-between; align-items: center; gap: 24px; font-family: 'Source Sans 3', system-ui, sans-serif; }
-  .site-brand { display: flex; align-items: center; gap: 12px; color: #f0e4ce; text-decoration: none; }
-  .site-brand-mark { width: 34px; height: 34px; border: 1px solid #d4a84f; border-radius: 50%; display: grid; place-items: center; color: #f0d38a; box-shadow: 0 0 22px rgba(212,168,79,.22); }
-  .site-brand span:last-child { font: 800 13px/1 'Cinzel', Georgia, serif; letter-spacing: .14em; text-transform: uppercase; }
-  .site-links { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; font: 800 11px/1 'Source Sans 3', system-ui, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: #b9a98d; }
-  .site-links a { color: inherit; text-decoration: none; }
-  .site-links a:hover, .site-links a.active { color: #f0d38a; }
-  @media (max-width: 760px) { .site-nav { align-items: flex-start; padding: 14px 0; flex-direction: column; gap: 12px; } .site-links { gap: 12px; } }
-
 </style>
+  <link rel="stylesheet" href="/static/site-nav.css">
 </head>
 <body>
   <header class="site-topbar" aria-label="Site navigation">
@@ -388,7 +376,7 @@
   <div class="opening-phase" id="op-phase3">
     <div class="title-main">THE DREAMING HUNGER</div>
     <div class="title-sub">An agent-driven D&amp;D RPG of possession, sacrifice, and survival</div>
-    <div class="title-credit">Hermes Agent Creative Hackathon 2026</div>
+    <div class="title-credit">AgentDungeon</div>
   </div>
 </div>
 

@@ -56,7 +56,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS — allow all origins for hackathon demo
+# CORS — allow all origins for public demo
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

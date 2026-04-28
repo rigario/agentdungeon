@@ -1,4 +1,5 @@
 """
+from pathlib import Path
 Regression tests for deterministic NPC selection logic (task 8084708d).
 
 Unit tests: exercise extracted routing logic (mock-only, fast).
@@ -113,7 +114,7 @@ def test_multi_npc_hub_choice_ids_match_npcs():
 def in_memory_db():
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row
-    schema_path = "/home/rigario/Projects/rigario-d20/app/services/database_schema.sql"
+    schema_path = str(Path(__file__).resolve().parents[1] / "app/services/database_schema.sql")
     with open(schema_path, "r") as f:
         conn.executescript(f.read())
     conn.execute("INSERT INTO campaigns (id, name) VALUES ('default', 'Default Campaign')")

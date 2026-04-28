@@ -282,7 +282,7 @@ def classify_intent(player_message: str) -> Intent:
                 confidence=0.3,
             )
 
-    # Off-world/anachronistic actions are invalid in Rigario. Keep this
+    # Off-world/anachronistic actions are invalid in the project. Keep this
     # deterministic so obvious bad requests do not depend on LLM availability.
     if is_offworld_action(player_message):
         return Intent(

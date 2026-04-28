@@ -15,7 +15,7 @@ def health():
 @router.get("/")
 def root():
     return {
-        "service": "Rigario D20 Agent RPG",
+        "service": "AgentDungeon",
         "version": "0.1.0",
         "docs": "/docs",
         "health": "/health",

@@ -137,9 +137,22 @@
   .coin .c-type { font:800 10px Source Sans 3,sans-serif; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); }
   @media(max-width:900px){ .sheet-header-row{grid-template-columns:1fr}.sheet-header-row .portrait{width:100%;height:150px}.ability-grid{grid-template-columns:repeat(3,1fr)}.sheet-sections{grid-template-columns:1fr} }
 </style>
+  <link rel="stylesheet" href="/static/site-nav.css">
 </head>
 <body>
-  <header><div class="wrap nav"><a href="/">✦ The Dreaming Hunger</a><span id="refreshStatus">Loading journal…</span><span><a href="/portal/">Field Journal</a> · <a href="/map">Map</a> · <a href="/demo">Demo</a> · <a href="/docs">Build Notes</a></span></div></header>
+  <header class="site-topbar" aria-label="Site navigation">
+    <div class="site-shell site-nav">
+      <a class="site-brand" href="/"><span class="site-brand-mark">✦</span><span>The Dreaming Hunger</span></a>
+      <span id="refreshStatus" class="site-status">Loading journal…</span>
+      <nav class="site-links" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/portal/" class="active" aria-current="page">Field Journal</a>
+        <a href="/map">Map</a>
+        <a href="/demo">Demo</a>
+        <a href="/docs">Build Notes</a>
+      </nav>
+    </div>
+  </header>
   <main class="wrap" id="app">
     <section class="titlebar"><div><div class="eyebrow">Field Journal</div><h1>Loading character…</h1><p class="subtitle">Fetching signed portal state.</p></div><div class="stamp">view-only token</div></section>
   </main>

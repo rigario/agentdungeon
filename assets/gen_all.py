@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
 """Generate all D20 pixel art assets from manifest."""
-import json, subprocess, sys, os, time, urllib.request
+import json
+import os
+import subprocess
+import sys
+import time
+import urllib.request
+from pathlib import Path
 
-MANIFEST = "/home/rigario/Projects/rigario-d20/assets/manifest.json"
-SRC_DIR = "/home/rigario/Projects/rigario-d20/assets/sources"
-OUT_DIR = "/home/rigario/Projects/rigario-d20/assets/pixel-art"
-PIXEL_SCRIPT = "/home/rigario/.hermes/skills/creative/pixel-art/scripts/pixel_art.py"
+MANIFEST = str(Path(__file__).resolve().parent / "manifest.json")
+SRC_DIR = str(Path(__file__).resolve().parent / "sources")
+OUT_DIR = str(Path(__file__).resolve().parent / "pixel-art")
+PIXEL_SCRIPT = str(Path(os.environ.get("PIXEL_ART_SKILL_DIR", "~/.hermes/skills/creative/pixel-art/scripts")).expanduser() / "pixel_art.py")
 
 os.makedirs(SRC_DIR, exist_ok=True)
 os.makedirs(OUT_DIR, exist_ok=True)

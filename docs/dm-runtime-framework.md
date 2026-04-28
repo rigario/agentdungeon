@@ -50,7 +50,7 @@ AgentDungeon's current campaign, **The Dreaming Hunger**, customizes the generic
 - campaign-specific narrator tone and setting,
 - NPC/location/world context from the D20 rules server,
 - Mark/doom/front progression fields,
-- D&D 5E-inspired action grammar,
+- 5E-compatible-inspired action grammar,
 - guardrails for visible NPCs, reachable locations, and allowed outcomes,
 - portal and playtest flows for human-agent collaboration.
 

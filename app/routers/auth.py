@@ -307,7 +307,7 @@ async def get_current_user(authorization: Optional[str] = Header(None)):
 
 class RegisterAgentRequest(BaseModel):
     name: str
-    user_id: Optional[str] = None  # Defaults to dev-user for hackathon
+    user_id: Optional[str] = None  # Defaults to dev-user for development
 
 
 class RegisterAgentResponse(BaseModel):
@@ -354,7 +354,7 @@ class VerifyResponse(BaseModel):
 # ---- Helper for extracting user_id from headers ----
 
 def get_user_id(x_user_id: Optional[str] = None) -> str:
-    """Extract user_id from header, defaulting to dev-user for hackathon."""
+    """Extract user_id from header, defaulting to dev-user for development."""
     return x_user_id or "dev-user"
 
 

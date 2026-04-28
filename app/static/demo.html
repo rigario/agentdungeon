@@ -13,7 +13,7 @@
     :root { --void:#050405; --ink:#0d0908; --panel:#17100e; --gold:#d4a84f; --gold2:#f0d38a; --ember:#a63d2f; --blood:#6f1d1d; --text:#f3e6cf; --muted:#b8a78b; --line:rgba(212,168,79,.25); --green:#6aaa6a; }
     * { box-sizing:border-box; }
     body { margin:0; height:100vh; overflow:hidden; background:var(--void); color:var(--text); font-family:Spectral,Georgia,serif; }
-    .stage { position:relative; width:100vw; height:100vh; background:radial-gradient(circle at 50% 32%,rgba(166,61,47,.22),transparent 21rem),radial-gradient(circle at 70% 70%,rgba(212,168,79,.08),transparent 32rem),linear-gradient(180deg,#050405,#100908 70%,#050405); }
+    .stage { position:relative; width:100vw; height:calc(100vh - 62px); background:radial-gradient(circle at 50% 32%,rgba(166,61,47,.22),transparent 21rem),radial-gradient(circle at 70% 70%,rgba(212,168,79,.08),transparent 32rem),linear-gradient(180deg,#050405,#100908 70%,#050405); }
     .stage::before { content:""; position:absolute; inset:0; pointer-events:none; opacity:.16; background-image:linear-gradient(rgba(212,168,79,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(212,168,79,.06) 1px,transparent 1px); background-size:58px 58px; mask-image:radial-gradient(circle at 50% 42%,black,transparent 78%); }
     .scene { position:absolute; inset:0; opacity:0; pointer-events:none; transition:opacity .7s ease; display:grid; place-items:center; padding:clamp(42px,6vw,86px); }
     .scene.active { opacity:1; pointer-events:auto; }
@@ -71,10 +71,7 @@
     .hud { position:fixed; left:24px; right:24px; bottom:20px; display:flex; justify-content:space-between; align-items:center; color:var(--muted); font:800 12px Source Sans 3,sans-serif; letter-spacing:.12em; text-transform:uppercase; z-index:20; }
     .dots { display:flex; gap:8px; } .dot { width:10px; height:10px; border-radius:50%; border:1px solid var(--gold); opacity:.45; cursor:pointer; } .dot.active { background:var(--gold); opacity:1; box-shadow:0 0 14px var(--gold); }
     .keys { color:var(--gold2); }
-    .audio { position:fixed; top:18px; right:22px; z-index:30; border:1px solid var(--line); background:rgba(8,6,8,.7); color:var(--gold2); padding:9px 12px; cursor:pointer; font:800 11px Source Sans 3,sans-serif; letter-spacing:.12em; text-transform:uppercase; }
-    .top-nav { position:fixed; top:18px; left:22px; z-index:30; display:flex; gap:10px; align-items:center; }
-    .top-nav a { text-decoration:none; border:1px solid var(--line); background:rgba(8,6,8,.7); color:var(--gold2); padding:9px 12px; font:800 11px Source Sans 3,sans-serif; letter-spacing:.12em; text-transform:uppercase; transition: background .18s ease, border-color .18s ease; }
-    .top-nav a:hover { background:rgba(212,168,79,.12); border-color:var(--gold); }
+    .audio { position:fixed; top:78px; right:22px; z-index:30; border:1px solid var(--line); background:rgba(8,6,8,.7); color:var(--gold2); padding:9px 12px; cursor:pointer; font:800 11px Source Sans 3,sans-serif; letter-spacing:.12em; text-transform:uppercase; }
     a { color:var(--gold2); }
     @media(max-width:850px){
       body { min-height:100svh; overflow:hidden; }
@@ -97,7 +94,7 @@
       .choice { padding:11px 12px; }
       .portal { padding-bottom:20px; }
       .mini { min-height:auto; }
-      .audio { top:12px; right:12px; }
+      .audio { top:76px; right:12px; }
     }
     @media(max-width:480px){
       .scene { padding:68px 16px 82px; }
@@ -111,15 +108,22 @@
     }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; scroll-behavior:auto !important; transition-duration:.01ms !important; } }
   </style>
+  <link rel="stylesheet" href="/static/site-nav.css">
 </head>
 <body>
   <div class="progress" id="progress"></div>
-  <nav class="top-nav" aria-label="Demo exit">
-    <a href="/">← Back to site</a>
-    <a href="/portal/">Field journal</a>
-    <a href="/map">Map</a>
-    <a href="/docs">Build notes</a>
-  </nav>
+  <header class="site-topbar" aria-label="Site navigation">
+    <div class="site-shell site-nav">
+      <a class="site-brand" href="/"><span class="site-brand-mark">✦</span><span>The Dreaming Hunger</span></a>
+      <nav class="site-links" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/portal/">Field Journal</a>
+        <a href="/map">Map</a>
+        <a href="/demo" class="active" aria-current="page">Demo</a>
+        <a href="/docs">Build Notes</a>
+      </nav>
+    </div>
+  </header>
   <button type="button" class="audio" id="audioBtn">sound</button>
   <main class="stage" id="stage">
     <section class="scene active"><div class="center"><div class="art-frame"><img class="demo-art" src="/static/generated/demo-seal-journal.png" alt="Cracked field journal seal watching from the dark"></div><h1>The Dreaming Hunger</h1><p style="margin:28px auto 0">The seal is not decoration. It is the last thing between Thornhold and what keeps knocking from inside the dream.</p></div></section>

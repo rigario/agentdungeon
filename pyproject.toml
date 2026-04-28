@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "rigario-d20"
 version = "0.1.0"
-description = "Rigario D20 Agent RPG"
+description = "AgentDungeon"
 requires-python = ">=3.11"
 dependencies = [
   "fastapi==0.115.6",

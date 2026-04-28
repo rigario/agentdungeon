@@ -199,7 +199,7 @@ def create_character(
     user_id: str | None = None,
     agent_id: str | None = None,
 ):
-    """Create a new character with SRD 5.2 validation.
+    """Create a new character with 5E-compatible validation.
 
     Uses authenticated user_id from middleware if available,
     falls back to explicit user_id param, then dev default.
@@ -562,7 +562,7 @@ def update_character(character_id: str, body: CharacterUpdate, request: Request)
 @router.post("/{character_id}/level-up", response_model=CharacterResponse)
 def level_up_character(character_id: str, choices: dict, request: Request):
     """
-    Level up a character with SRD 5.2 validation.
+    Level up a character with 5E-compatible validation.
 
     The player agent proposes choices:
     {

@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Deploy only the D20 DM runtime service to the VPS, then prove the real /dm/turn path works.
-# Designed for cron/heartbeat agents: non-interactive, fail-fast, and proof-heavy.
+# Deploy only the AgentDungeon DM runtime service, then prove the real /dm/turn path works.
+# Designed for automation: non-interactive, fail-fast, and proof-heavy.
 set -Eeuo pipefail
 
-LOCAL_ROOT="${LOCAL_ROOT:-/home/rigario/Projects/rigario-d20}"
-VPS_HOST="${VPS_HOST:-<your-user>@<your-vps-host>}"
-VPS_APP_DIR="${VPS_APP_DIR:-/home/admin/apps/d20}"
+LOCAL_ROOT="${LOCAL_ROOT:-$(pwd)}"
+DEPLOY_HOST="${DEPLOY_HOST:-<your-user>@<host>}"
+DEPLOY_APP_DIR="${DEPLOY_APP_DIR:-/path/to/agentdungeon}"
 PUBLIC_BASE="${PUBLIC_BASE:-https://agentdungeon.com}"
 MAX_TURN_SECONDS="${MAX_TURN_SECONDS:-90}"
 RUN_TESTS="${RUN_TESTS:-1}"
@@ -23,7 +23,7 @@ fi
 cd "$LOCAL_ROOT"
 
 log "D20 DM runtime deploy starting"
-log "LOCAL_ROOT=$LOCAL_ROOT VPS_HOST=$VPS_HOST VPS_APP_DIR=$VPS_APP_DIR PUBLIC_BASE=$PUBLIC_BASE VERIFY_ONLY=$VERIFY_ONLY"
+log "LOCAL_ROOT=$LOCAL_ROOT DEPLOY_HOST=$DEPLOY_HOST DEPLOY_APP_DIR=$DEPLOY_APP_DIR PUBLIC_BASE=$PUBLIC_BASE VERIFY_ONLY=$VERIFY_ONLY"
 
 log "Local git state"
 git rev-parse --short HEAD || true
@@ -48,7 +48,7 @@ else
 fi
 
 if [[ "$VERIFY_ONLY" != "1" ]]; then
-  log "Sync dm-runtime source to VPS active build context"
+  log "Sync dm-runtime source to remote active build context"
   # Keep runtime-generated Hermes/session state out of sync, but preserve the source profile/config tree.
   run rsync -az --delete \
     --chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r \
@@ -59,18 +59,18 @@ if [[ "$VERIFY_ONLY" != "1" ]]; then
     --exclude='hermes-home/profiles/*/lcm.db*' \
     --exclude='hermes-home/profiles/*/*.log' \
     --exclude='hermes-home/profiles/*/errors.log' \
-    "$LOCAL_ROOT/dm-runtime/" "$VPS_HOST:$VPS_APP_DIR/dm-runtime/"
-  log "Copy parity check script to VPS"
-  run rsync -az "$LOCAL_ROOT/scripts/check_deployment_parity.py" "$VPS_HOST:$VPS_APP_DIR/scripts/"
+    "$LOCAL_ROOT/dm-runtime/" "$DEPLOY_HOST:$DEPLOY_APP_DIR/dm-runtime/"
+  log "Copy parity check script to remote host"
+  run rsync -az "$LOCAL_ROOT/scripts/check_deployment_parity.py" "$DEPLOY_HOST:$DEPLOY_APP_DIR/scripts/"
 
-  log "VPS pre-build: deployment parity check (local source ↔ VPS host files)"
-  # FIXED: run parity check LOCALLY (not via SSH) — script uses VPS_HOST internally
-  run python3 scripts/check_deployment_parity.py --stage=vps
+  log "Remote pre-build: deployment parity check (local source ↔ remote host files)"
+  # FIXED: run parity check LOCALLY (not via SSH) — script uses DEPLOY_HOST internally
+  run python3 scripts/check_deployment_parity.py --stage=remote
 
 
-  log "VPS pre-build checks"
-  ssh "$VPS_HOST" "set -Eeuo pipefail
-    cd '$VPS_APP_DIR'
+  log "Remote pre-build checks"
+  ssh "$DEPLOY_HOST" "set -Eeuo pipefail
+    cd '$DEPLOY_APP_DIR'
     test -f docker-compose.yml
     test -f docker-compose.override.yml
     test -f dm-runtime/Dockerfile
@@ -80,28 +80,28 @@ if [[ "$VERIFY_ONLY" != "1" ]]; then
 from pathlib import Path
 p = Path('dm-runtime/app/services/synthesis.py')
 text = p.read_text()
-assert 'def _extract_trace' in text, 'missing def _extract_trace in VPS source'
+assert 'def _extract_trace' in text, 'missing def _extract_trace in remote source'
 assert text.count('_extract_trace(server_result)') >= 2, 'missing _extract_trace call sites'
-print('vps_source_ok', len(text.splitlines()))
+print('remote_source_ok', len(text.splitlines()))
 PY"
 
   log "Build d20-dm-runtime image"
   if [[ "$NO_CACHE" == "1" ]]; then
-    ssh "$VPS_HOST" "cd '$VPS_APP_DIR' && docker compose -f docker-compose.yml -f docker-compose.override.yml build d20-dm-runtime --no-cache"
+    ssh "$DEPLOY_HOST" "cd '$DEPLOY_APP_DIR' && docker compose -f docker-compose.yml -f docker-compose.override.yml build d20-dm-runtime --no-cache"
   else
-    ssh "$VPS_HOST" "cd '$VPS_APP_DIR' && docker compose -f docker-compose.yml -f docker-compose.override.yml build d20-dm-runtime"
+    ssh "$DEPLOY_HOST" "cd '$DEPLOY_APP_DIR' && docker compose -f docker-compose.yml -f docker-compose.override.yml build d20-dm-runtime"
   fi
 
   log "Recreate d20-dm-runtime with required dependencies"
-  ssh "$VPS_HOST" "set -Eeuo pipefail
-    cd '$VPS_APP_DIR'
+  ssh "$DEPLOY_HOST" "set -Eeuo pipefail
+    cd '$DEPLOY_APP_DIR'
     docker compose -f docker-compose.yml -f docker-compose.override.yml up -d --no-deps d20-dm-runtime
     sleep 8
     docker ps --filter name=d20 --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
     docker exec d20-dm-runtime sh -lc 'which hermes && hermes --help >/tmp/hermes-help.txt && head -5 /tmp/hermes-help.txt'
   "
-  # FIXED: run VPS parity check LOCALLY (container check requires local Docker)
-  run python3 scripts/check_deployment_parity.py --stage=vps
+  # FIXED: run remote parity check LOCALLY (container check requires local Docker)
+  run python3 scripts/check_deployment_parity.py --stage=remote
 fi
 
 log "Public health checks"
@@ -125,6 +125,6 @@ log "Actual DM-agent /dm/turn validation"
 run python3 scripts/validate_actual_dm_agent_turn.py --base "$PUBLIC_BASE" --max-turn-seconds "$MAX_TURN_SECONDS"
 
 log "Recent DM runtime error check"
-ssh "$VPS_HOST" "docker logs d20-dm-runtime --since 5m 2>&1 | grep -E 'NameError|Traceback|Internal Server Error|Hermes mode failed|401' || true"
+ssh "$DEPLOY_HOST" "docker logs d20-dm-runtime --since 5m 2>&1 | grep -E 'NameError|Traceback|Internal Server Error|Hermes mode failed|401' || true"
 
 log "D20 DM runtime deploy verified"

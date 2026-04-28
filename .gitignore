@@ -16,7 +16,6 @@ build/
 .env
 .env.local
 .env.production
-.env.vps
 
 # Test/cache
 .pytest_cache/
@@ -51,3 +50,26 @@ data/references/
 # Logs
 *.log
 nohup.out
+# Private/local project operations
+PLAYTEST-*.md
+ALPHA-VERIFICATION-*.md
+SUBMISSION.md
+TWITTER-THREAD.md
+VIDEO-PLAN.md
+D20-DEPLOYMENT-KEYS.md
+reports/
+video-build/
+*d20-hackathon*.mp4
+voiceover.mp3
+_heartbeat_update.py
+heartbeat_*.py
+playthrough_*.json
+
+# Runtime-owned Hermes state / vendored local installs
+dm-runtime/hermes-home/auth.json
+dm-runtime/hermes-home/profiles/*/auth.lock
+dm-runtime/hermes-home/profiles/*/sessions/
+dm-runtime/hermes-home/profiles/*/.skills_prompt_snapshot.json
+dm-runtime/hermes-home/profiles/*/models_dev_cache.json
+dm-runtime/hermes-home/profiles/*/skills/
+dm-runtime/vendor/

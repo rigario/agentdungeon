@@ -1,5 +1,6 @@
 """Test portal state map locations include per-location NPCs (loc.npcs) for map.html."""
 
+from pathlib import Path
 import sqlite3
 import json
 import sys
@@ -28,7 +29,7 @@ def test_portal_state_locations_include_npcs():
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row
 
-    with open("/home/rigario/Projects/rigario-d20/app/services/database_schema.sql", "r") as f:
+    with open(str(Path(__file__).resolve().parents[1] / "app/services/database_schema.sql"), "r") as f:
         schema = f.read()
     conn.executescript(schema)
 

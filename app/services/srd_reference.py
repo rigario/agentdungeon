@@ -1,4 +1,4 @@
-"""D20 Agent RPG — SRD 5.2 data loader.
+"""D20 Agent RPG — 5E-compatible data loader.
 
 Loads reference data from soryy708/dnd5-srd (MIT License).
 This is the canonical source for races, classes, monsters, equipment, etc.
@@ -181,7 +181,7 @@ def get_starting_equipment() -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
-# Point-buy (SRD 5.2 core rule — our own implementation, not copied)
+# Point-buy (5E-compatible core rule — our own implementation, not copied)
 # ---------------------------------------------------------------------------
 
 POINT_BUY_COSTS = {
@@ -191,7 +191,7 @@ POINT_BUY_BUDGET = 27
 
 
 def ability_modifier(score: int) -> int:
-    """Calculate D&D 5E ability modifier from score."""
+    """Calculate 5E-compatible ability modifier from score."""
     return (score - 10) // 2
 
 
@@ -222,7 +222,7 @@ def generate_point_buy() -> dict:
 
 
 # ---------------------------------------------------------------------------
-# HP / AC calculations (SRD 5.2 core rules — our own implementation)
+# HP / AC calculations (5E-compatible core rules — our own implementation)
 # ---------------------------------------------------------------------------
 
 def calculate_hp(hit_dice: int, con_score: int, level: int = 1) -> int:
@@ -324,7 +324,7 @@ STARTING_SPELL_SLOTS = {
 }
 
 
-# Spellcasting ability by class (SRD 5.2 — our own mapping)
+# Spellcasting ability by class (5E-compatible — our own mapping)
 _SPELLCASTING_ABILITY = {
     "Bard": "cha", "Cleric": "wis", "Druid": "wis",
     "Sorcerer": "cha", "Warlock": "cha", "Wizard": "int",
@@ -337,10 +337,10 @@ def _spellcasting_ability(class_name: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Level-up progression (SRD 5.2 core rules — our own implementation)
+# Level-up progression (5E-compatible core rules — our own implementation)
 # ---------------------------------------------------------------------------
 
-# XP thresholds per level (standard D&D 5E)
+# XP thresholds per level (standard 5E-compatible)
 XP_THRESHOLDS = {
     1: 0, 2: 300, 3: 900, 4: 2700, 5: 6500,
     6: 14000, 7: 23000, 8: 34000, 9: 48000, 10: 64000,
@@ -503,7 +503,7 @@ def calculate_level_hp(hit_die: int, con_score: int, level: int, hp_roll: int = 
 
 def validate_level_up(current_sheet: dict, new_level: int, choices: dict) -> tuple[bool, str, dict]:
     """
-    Validate a level-up against SRD 5.2 rules.
+    Validate a level-up against 5E-compatible rules.
 
     Args:
         current_sheet: The current character sheet
