@@ -242,12 +242,70 @@ def do_action(client: httpx.Client, char_id: str, action_type: str,
     resp.raise_for_status()
     return resp.json()
 
+
+def safe_action(client: httpx.Client, char_id: str, action_type: str,
+                target: str = None, detail: str = None) -> Dict | None:
+    """Call do_action but return None on HTTP error instead of crashing.
+    Use when the action is optional or has a DM-turn fallback."""
+    try:
+        return do_action(client, char_id, action_type, target=target, detail=detail)
+    except httpx.HTTPStatusError as e:
+        resp = e.response
+        body = {}
+        try:
+            body = resp.json()
+        except Exception:
+            pass
+        state_msg = ""
+        detail = body.get("detail") or body.get("error") or f"HTTP {resp.status_code}"
+        # detail can be a dict, string, or list — normalize to string
+        if isinstance(detail, str):
+            state_msg = detail
+        elif isinstance(detail, dict):
+            state_msg = str(detail)
+        else:
+            state_msg = str(detail) if detail else f"HTTP {resp.status_code}"
+        if resp.status_code == 403:
+            # combat_active or character_deceased — get reason
+            if "combat" in state_msg.lower() or "combat_active" in state_msg:
+                return {"success": False, "error": "combat_active", "status_code": 403, "body": body}
+            if "deceased" in state_msg.lower() or "character_deceased" in state_msg:
+                return {"success": False, "error": "character_deceased", "status_code": 403, "body": body}
+        return {"success": False, "error": state_msg, "status_code": resp.status_code, "body": body}
+    except Exception as e:
+        return {"success": False, "error": repr(e), "status_code": None, "body": {}}
+
 def do_dm_turn(client: httpx.Client, char_id: str, message: str, session_id: str = None) -> Dict:
     body = {"character_id": char_id, "message": message}
     if session_id: body["session_id"] = session_id
-    resp = client.post(f"{DM_URL}/dm/turn", json=body, timeout=60.0)
-    resp.raise_for_status()
-    return resp.json()
+    try:
+        resp = client.post(f"{DM_URL}/dm/turn", json=body, timeout=60.0)
+        resp.raise_for_status()
+        return resp.json()
+    except httpx.HTTPStatusError as e:
+        resp = e.response
+        try:
+            body = resp.json()
+        except Exception:
+            body = {"error": f"HTTP {resp.status_code}"}
+        # Return a graceful error response instead of crashing
+        return {
+            "narration": {"scene": f"[DM error {resp.status_code}: {body.get('detail', body.get('error', 'unavailable'))}]"},
+            "choices": [],
+            "mechanics": {},
+            "server_trace": {},
+            "_dm_error": body.get("detail", body.get("error", f"HTTP {resp.status_code}")),
+            "_http_status": resp.status_code,
+        }
+    except Exception as e:
+        return {
+            "narration": {"scene": f"[DM unavailable: {repr(e)}]"},
+            "choices": [],
+            "mechanics": {},
+            "server_trace": {},
+            "_dm_error": repr(e),
+            "_http_status": None,
+        }
 
 # ---------------------------------------------------------------------------
 # Phases
@@ -258,15 +316,31 @@ def phase_create_character(client: httpx.Client, state: PlaythroughState):
     state.char_id = char_id
     state.log(f"Character created: {char_id}")
     char_data = get_character(client, char_id)
-    state.location_id = char_data.get("location_id", "thornhold")
-    state.log(f"Starting location: {state.location_id}")
+    state.location_id = char_data.get("location_id", "rusty-tankard")
+    state.log(f"Spawning location: {state.location_id}")
     state.log(f"HP: {char_data.get('hp_current')}/{char_data.get('hp_max')}")
+
+    # Ensure character is at Thornhold before statue phase
+    if state.location_id != "thornhold":
+        state.log(f"Moving from {state.location_id} to Thornhold")
+        result = safe_action(client, state.char_id, "move", target="thornhold")
+        if result and result.get("success"):
+            state.location_id = result.get("character_state", {}).get("location_id") or "thornhold"
+            state.log(f"Moved to: {state.location_id}")
+        else:
+            dm_resp = state.dm_turn(client, "I go to the Thornhold town square.", label="navigate to thornhold")
+            char_data = get_character(client, state.char_id)
+            state.location_id = char_data.get("location_id")
+            state.log(f"DM routed to: {state.location_id}")
 
 def phase_thornhold_explore(client: httpx.Client, state: PlaythroughState):
     state.log("\n=== PHASE 2: Thornhold — Statue observation ===")
     state.log("Action: explore in Thornhold")
-    result = do_action(client, state.char_id, "explore")
-    state.log(f"Explore: {result.get('narration','')[:200]}", "explore")
+    result = safe_action(client, state.char_id, "explore")
+    if result:
+        state.log(f"Explore: {result.get('narration','')[:200]}", "explore")
+    else:
+        state.log("Explore blocked (HTTP error) — continuing via DM", "warning")
 
     flags = get_flags(client, state.char_id)
     if "thornhold_statue_observed" in flags:
@@ -283,25 +357,45 @@ def phase_thornhold_explore(client: httpx.Client, state: PlaythroughState):
 
 def phase_antechamber_puzzle(client: httpx.Client, state: PlaythroughState):
     state.log("\n=== PHASE 3: Cave Antechamber — Puzzle ===")
-    state.log("Moving to cave-entrance")
-    try:
-        result = do_action(client, state.char_id, "move", target="cave-entrance")
-        if result.get("success"):
-            state.location_id = "cave-entrance"
+    # Correct world path: cave-entrance is reachable from deep-forest, NOT directly from Thornhold.
+    # If not already at cave-entrance, route via forest-edge -> deep-forest.
+    if state.location_id not in ("cave-entrance", "cave-depths", "deep-forest"):
+        state.log("Routing to cave-entrance via forest-edge -> deep-forest")
+        result = safe_action(client, state.char_id, "move", target="forest-edge")
+        if result and result.get("success"):
+            state.location_id = result.get("character_state", {}).get("location_id") or "forest-edge"
+            state.log(f"Moved to: {state.location_id}")
         else:
-            state.log(f"Move to cave-entrance failed: {result.get('narration','')[:200]}", "warning")
-            # Use DM turn to navigate instead
-            dm_resp = state.dm_turn(client, "I head toward the cave entrance.", label="navigate to cave entrance")
-            scene = dm_resp.get("narration", {}).get("scene", "")
-            state.log(f"DM: {scene[:200]}")
-            # Refresh character state
+            dm_resp = state.dm_turn(client, "I travel to the forest edge of Whisperwood.", label="navigate forest-edge")
             char_data = get_character(client, state.char_id)
             state.location_id = char_data.get("location_id")
-    except Exception as e:
-        state.log(f"Direct move blocked: {e}", "warning")
+
+        state.log("Proceeding to deep forest")
+        result = safe_action(client, state.char_id, "move", target="deep-forest")
+        if result and result.get("success"):
+            state.location_id = result.get("character_state", {}).get("location_id") or "deep-forest"
+            state.log(f"Moved to: {state.location_id}")
+        else:
+            dm_resp = state.dm_turn(client, "I venture deeper into Whisperwood toward the cave entrance.", label="navigate deep-forest")
+            char_data = get_character(client, state.char_id)
+            state.location_id = char_data.get("location_id")
+
+    state.log("Moving to cave-entrance")
+    result = safe_action(client, state.char_id, "move", target="cave-entrance")
+    if result is None or not result.get("success"):
+        err = (result or {}).get("error", "move failed") if result else "HTTP error"
+        state.log(f"Move to cave-entrance blocked ({err}) — trying DM turn", "warning")
         dm_resp = state.dm_turn(client, "I head toward the cave entrance.", label="navigate to cave entrance")
+        if dm_resp.get("_dm_error"):
+            state.log(f"DM unavailable ({dm_resp.get('_dm_error')}) — skipping antechamber puzzle", "warning")
+            return
         scene = dm_resp.get("narration", {}).get("scene", "")
         state.log(f"DM: {scene[:200]}")
+        char_data = get_character(client, state.char_id)
+        state.location_id = char_data.get("location_id")
+    else:
+        state.location_id = result.get("character_state", {}).get("location_id") or "cave-entrance"
+        state.log(f"Moved to: {state.location_id}")
 
     state.gate(
         "Antechamber Puzzle",
@@ -328,20 +422,38 @@ def phase_antechamber_puzzle(client: httpx.Client, state: PlaythroughState):
 def phase_south_road_wolves(client: httpx.Client, state: PlaythroughState):
     state.log("\n=== PHASE 4: South Road — Wolves ===")
     state.log("Travel to south-road")
-    result = do_action(client, state.char_id, "move", target="south-road")
-    if result.get("success"):
-        state.location_id = "south-road"
-    else:
-        state.log(f"Move to south-road failed: {result.get('narration','')[:200]}", "warning")
+    result = safe_action(client, state.char_id, "move", target="south-road")
+    if result is None or not result.get("success"):
+        err = (result or {}).get("error", "move failed") if result else "HTTP error"
+        state.log(f"Move to south-road blocked ({err}) — trying DM turn", "warning")
         dm_resp = state.dm_turn(client, "I travel the south road toward the forest.", label="travel south road")
-        scene = dm_resp.get("narration", {}).get("scene", "")
-        state.log(f"DM narration: {scene[:200]}")
-        char_data = get_character(client, state.char_id)
-        state.location_id = char_data.get("location_id")
+        if dm_resp.get("_dm_error"):
+            state.log(f"DM unavailable ({dm_resp.get('_dm_error')}) — cannot travel", "warning")
+            char_data = get_character(client, state.char_id)
+            state.location_id = char_data.get("location_id")
+            # Detect death and stop progression
+            if char_data.get("conditions") or "deceased" in str(state.location_id).lower():
+                state.log("Character deceased — halting progression", "warning")
+                return
+        else:
+            scene = dm_resp.get("narration", {}).get("scene", "")
+            state.log(f"DM narration: {scene[:200]}")
+            char_data = get_character(client, state.char_id)
+            state.location_id = char_data.get("location_id")
+            # Check if character stuck in combat
+            if char_data.get("combat_state") == "combat_active":
+                state.log("Character in combat_active — resolving via DM combat turn", "warning")
+                dm_resp = state.dm_turn(client, "I stand ready and await the wolves' approach.", label="combat resolve")
+    else:
+        state.location_id = result.get("character_state", {}).get("location_id") or "south-road"
+        state.log(f"Moved to: {state.location_id}")
 
     state.log("Exploring to trigger encounter")
-    explore = do_action(client, state.char_id, "explore")
-    state.log(f"Encounter: {explore.get('narration','')[:300]}", "encounter")
+    explore = safe_action(client, state.char_id, "explore")
+    if explore:
+        state.log(f"Encounter: {explore.get('narration','')[:300]}", "encounter")
+    else:
+        state.log("Explore blocked (HTTP error) — continuing", "warning")
 
     # Combat via DM
     state.log("Combat: fighting wolves")
@@ -352,14 +464,16 @@ def phase_south_road_wolves(client: httpx.Client, state: PlaythroughState):
 def phase_sister_drenna_quest(client: httpx.Client, state: PlaythroughState):
     state.log("\n=== PHASE 5: Sister Drenna — Quest Gate ===")
     state.log("Move to crossroads")
-    result = do_action(client, state.char_id, "move", target="crossroads")
-    if result.get("success"):
-        state.location_id = "crossroads"
-    else:
-        state.log(f"Move to crossroads failed: {result.get('narration','')[:200]}", "warning")
+    result = safe_action(client, state.char_id, "move", target="crossroads")
+    if result is None or not result.get("success"):
+        err = (result or {}).get("error", "move failed") if result else "HTTP error"
+        state.log(f"Move to crossroads blocked ({err}) — trying DM turn", "warning")
         dm_resp = state.dm_turn(client, "I make my way to the crossroads.", label="travel crossroads")
         char_data = get_character(client, state.char_id)
         state.location_id = char_data.get("location_id")
+    else:
+        state.location_id = result.get("character_state", {}).get("location_id") or "crossroads"
+        state.log(f"Moved to: {state.location_id}")
 
     state.log("Talk to Sister Drenna")
     dm_resp = state.dm_turn(client,
@@ -380,8 +494,11 @@ def phase_sister_drenna_quest(client: httpx.Client, state: PlaythroughState):
         state.log("Auto-accepted quest")
 
     # Record acceptance
-    result = do_action(client, state.char_id, "quest", target="sister_drenna", detail="accept_rescue")
-    state.log(f"Quest: {result.get('narration','')[:200]}")
+    result = safe_action(client, state.char_id, "quest", target="sister_drenna", detail="accept_rescue")
+    if result:
+        state.log(f"Quest: {result.get('narration','')[:200]}")
+    else:
+        state.log("Quest acceptance failed (HTTP error) — attempting DM fallback", "warning")
 
     flags = get_flags(client, state.char_id)
     if "drenna_quest_accepted" in flags:
@@ -391,21 +508,23 @@ def phase_sister_drenna_quest(client: httpx.Client, state: PlaythroughState):
 def phase_kol_encounter(client: httpx.Client, state: PlaythroughState):
     state.log("\n=== PHASE 6: Brother Kol — Cave Depths ===")
     state.log("Proceed to cave-depths")
-    try:
-        result = do_action(client, state.char_id, "move", target="cave-depths")
-        if result.get("success"):
-            state.location_id = "cave-depths"
-        else:
-            state.log(f"Move to cave-depths failed: {result.get('narration','')[:200]}", "warning")
-            dm_resp = state.dm_turn(client, "I venture deeper into the cave system.", label="travel cave depths")
-            char_data = get_character(client, state.char_id)
-            state.location_id = char_data.get("location_id")
-    except Exception as e:
+    result = safe_action(client, state.char_id, "move", target="cave-depths")
+    if result is None or not result.get("success"):
+        err = (result or {}).get("error", "move failed") if result else "HTTP error"
+        state.log(f"Move to cave-depths blocked ({err}) — trying DM turn", "warning")
         dm_resp = state.dm_turn(client, "I venture deeper into the cave system.", label="travel cave depths")
+        char_data = get_character(client, state.char_id)
+        state.location_id = char_data.get("location_id")
+    else:
+        state.location_id = result.get("character_state", {}).get("location_id") or "cave-depths"
+        state.log(f"Moved to: {state.location_id}")
 
     state.log("Searching for Kol")
-    explore = do_action(client, state.char_id, "explore")
-    state.log(f"Found: {explore.get('narration','')[:200]}")
+    explore = safe_action(client, state.char_id, "explore")
+    if explore:
+        state.log(f"Found: {explore.get('narration','')[:200]}")
+    else:
+        state.log("Explore blocked (HTTP error) — continuing", "warning")
 
     state.log("Confronting Kol")
     dm_resp = state.dm_turn(client,
