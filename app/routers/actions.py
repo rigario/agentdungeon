@@ -413,6 +413,15 @@ def _resolve_combat(char: dict, encounter: dict, rng: random.Random) -> dict:
                    ON CONFLICT(character_id, flag_key) DO UPDATE SET flag_value = excluded.flag_value""",
                 (char["id"], "mark_of_dreamer_stage_1", "1", "del_mark_applied")
             )
+            # P0 fix: also set mark_of_dreamer (without _stage suffix) — required by
+            # npc-bobby (mark_observed) and npc-loris (mark_healed) dialogue chains.
+            # mark_of_dreamer_stage_1 is set above but Bobby/Loris check mark_of_dreamer.
+            conn.execute(
+                """INSERT INTO narrative_flags (character_id, flag_key, flag_value, source)
+                   VALUES (?, ?, ?, ?)
+                   ON CONFLICT(character_id, flag_key) DO UPDATE SET flag_value = excluded.flag_value""",
+                (char["id"], "mark_of_dreamer", "1", "del_mark_applied")
+            )
 
         # Advance Dreaming Hunger front to portent 1 (per-character: multi-tenancy)
         conn.execute(
@@ -482,13 +491,13 @@ def _resolve_combat(char: dict, encounter: dict, rng: random.Random) -> dict:
             """INSERT INTO narrative_flags (character_id, flag_key, flag_value, source)
                VALUES (?, ?, '1', 'encounter_resolved')
                ON CONFLICT(character_id, flag_key) DO UPDATE SET flag_value = '1'""",
-            (char["id"], "gromm_met", "1")
+            (char["id"], "gromm_met")
         )
         conn_gromm.execute(
             """INSERT INTO narrative_flags (character_id, flag_key, flag_value, source)
                VALUES (?, ?, '1', 'encounter_resolved')
                ON CONFLICT(character_id, flag_key) DO UPDATE SET flag_value = '1'""",
-            (char["id"], "gromm_ally_potential", "1")
+            (char["id"], "gromm_ally_potential")
         )
         conn_gromm.commit()
         conn_gromm.close()
@@ -980,8 +989,8 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
                                 )
                                 conn.execute(
                                     """INSERT INTO narrative_flags (character_id, flag_key, flag_value, source)
-                                       VALUES (?, 'mark_of_dreamer_stage_1', '1', 'location_horror')""",
-                                    (character_id,)
+                                       VALUES (?, ?, '1', 'location_horror')""",
+                                    (character_id, "mark_of_dreamer_stage_1")
                                 )
                                 result["narration"] += (
                                     "\n\nThe mark burns onto your arm. The things you've seen here — "
@@ -1177,8 +1186,8 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
                         )
                         conn.execute(
                             """INSERT INTO narrative_flags (character_id, flag_key, flag_value, source)
-                               VALUES (?, 'mark_of_dreamer_stage_1', '1', 'location_horror')""",
-                            (character_id,)
+                               VALUES (?, ?, '1', 'location_horror')""",
+                            (character_id, "mark_of_dreamer_stage_1")
                         )
 
             # Log events
@@ -2032,9 +2041,9 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
             if npc["id"] == "npc-brother-kol":
                 conn.execute(
                     """INSERT INTO narrative_flags (character_id, flag_key, flag_value, source)
-                       VALUES (?, 'kol_brother_met', '1', 'npc_encounter')
+                       VALUES (?, ?, '1', 'npc_encounter')
                        ON CONFLICT(character_id, flag_key) DO NOTHING""",
-                    (character_id,)
+                    (character_id, "kol_brother_met")
                 )
 
             # 948229f2: Brother Kol talkability gate — affinity 70+
@@ -2130,6 +2139,27 @@ async def submit_action(character_id: str, body: ActionRequest, request: Request
                                    source = COALESCE(excluded.source, source)""",
                             (character_id, reward["flag"], reward["value"], f"npc_{npc['id']}")
                         )
+
+                    # P1 fix: set kol_missing when Sister Drenna mentions the Breaking Rite
+                    # and Kol's location — this is when the player first learns Kol is missing.
+                    # Required by npc-gimble (kol_captured dialogue, sets quest hook for Kol rescue).
+                    if npc["id"] == "npc-sister-drenna" and selected_dialogue.get("context") == "ritual_schedule":
+                        conn.execute(
+                            """INSERT OR IGNORE INTO narrative_flags (character_id, flag_key, flag_value, source)
+                               VALUES (?, ?, ?, ?)""",
+                            (character_id, "kol_missing", "1", "npc_sister_drenna_ritual_schedule")
+                        )
+
+                    # P1 fix: set hallen_spoken when Elara mentions Harren's stone-reading.
+                    # Required by npc-elara (harren_warning dialogue) — Elara must mention
+                    # Harren before the harren_warning dialogue becomes available.
+                    if npc["id"] == "npc-elara" and selected_dialogue.get("context") == "harren_warning":
+                        conn.execute(
+                            """INSERT OR IGNORE INTO narrative_flags (character_id, flag_key, flag_value, source)
+                               VALUES (?, ?, ?, ?)""",
+                            (character_id, "hallen_spoken", "1", "npc_elara_harren_warning")
+                        )
+
             else:
                 conn2.close()
                 dialogue = f"{npc['name']} nods at you."

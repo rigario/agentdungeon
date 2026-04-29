@@ -127,10 +127,19 @@ CRITICAL_FLAGS = {
     
     # NPC dialogue chains
     "kol_backstory_known": ("Know Brother Kol's identity (Communion ending req)", "npc"),
+    "kol_brother_met": ("Met Brother Kol's brother (Del's Spirit confirmed)", "npc"),
+    "kol_missing": ("Know Brother Kol is missing (Sister Drenna revealed)", "npc"),
+    "del_brother_kol": ("Del's ghost identified Brother Kol", "npc"),
+    "drenna_recruited_by_kol": ("Sister Drenna recruited by Kol (Breaking Rite)", "npc"),
     "aldric_lying": ("Know Aldric is hiding Hollow Eye knowledge", "npc"),
     "aldric_confessed": ("Aldric admitted to Hollow Eye arrangement", "npc"),
     "green_woman_seal_knowledge": ("Know Green Woman is seal-keeper", "npc"),
     "maren_seal_knowledge": ("Know Ser Maren guards the seal", "npc"),
+    "hallen_spoken": ("Spoken with Hallen (Elara's caravan companion)", "npc"),
+    "gromm_met": ("Met Gromm the Bugbear at cave entrance", "npc"),
+
+    # Mark progression
+    "mark_of_dreamer": ("Mark of the Dreamer applied (any stage)", "mark"),
     
     # Quests
     "quest_clear_ritual_site": ("Accepted Ser Maren's quest", "quest"),
