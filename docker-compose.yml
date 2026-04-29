@@ -17,7 +17,7 @@ services:
       - 'DM_TIMEOUT=120'
     networks:
       - d20-net
-      - coolify
+      - proxy
     healthcheck:
       test: 'python -c "import urllib.request; urllib.request.urlopen(\"http://localhost:8600/health\")"'
       interval: 30s
@@ -66,7 +66,7 @@ services:
       - 'DM_FIRE_PASS_API_KEY=${DM_FIRE_PASS_API_KEY:-}'
     networks:
       - d20-net
-      - coolify
+      - proxy
     depends_on:
       d20-rules-server:
         condition: service_healthy
@@ -83,8 +83,9 @@ services:
 networks:
   d20-net:
     driver: bridge
-  coolify:
+  proxy:
     external: true
+    name: ${TRAEFIK_NETWORK:-proxy}
 
 volumes:
   d20-data:

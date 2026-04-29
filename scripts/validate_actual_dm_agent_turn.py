@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import random
 import string
 import sys
@@ -47,7 +48,7 @@ def fail(message: str):
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--base", default="https://agentdungeon.com")
+    parser.add_argument("--base", default=os.environ.get("PUBLIC_BASE", "http://localhost:8600"))
     parser.add_argument("--max-turn-seconds", type=float, default=120.0)
     args = parser.parse_args()
 
