@@ -16,7 +16,7 @@ log() { printf '\n[%s] %s\n' "$(date -Is)" "$*"; }
 run() { log "+ $*"; "$@"; }
 
 if [[ ! -d "$LOCAL_ROOT/dm-runtime/app" ]]; then
-  echo "ERROR: LOCAL_ROOT does not look like rigario-d20: $LOCAL_ROOT" >&2
+  echo "ERROR: LOCAL_ROOT does not look like AgentDungeon: $LOCAL_ROOT" >&2
   exit 2
 fi
 

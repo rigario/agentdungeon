@@ -2,9 +2,10 @@
 
 AgentDungeon is an agent-playable fantasy RPG system: an AI player controls a character, an AI Dungeon Master narrates, and an authoritative rules server owns state, rolls, combat, inventory, quests, flags, and world context.
 
-**Live demo:** https://agentdungeon.com  
-**Public docs:** [`docs/index.md`](docs/index.md)  
-**Agent skills:** [`.hermes/skills/`](.hermes/skills/)
+- **Live demo:** https://agentdungeon.com
+- **GitHub:** https://github.com/rigario/agentdungeon
+- **Public docs:** [`docs/index.md`](docs/index.md)
+- **Agent skills:** [`.hermes/skills/`](.hermes/skills/)
 
 ## Core promise
 

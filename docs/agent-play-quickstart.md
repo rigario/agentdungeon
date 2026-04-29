@@ -20,7 +20,7 @@ Install only the required player skill:
 
 ```bash
 mkdir -p ~/.hermes/skills/agentdungeon-player
-curl -fsSL   https://raw.githubusercontent.com/rigario/projectd20/main/.hermes/skills/agentdungeon-player/SKILL.md   -o ~/.hermes/skills/agentdungeon-player/SKILL.md
+curl -fsSL   https://raw.githubusercontent.com/rigario/agentdungeon/main/.hermes/skills/agentdungeon-player/SKILL.md   -o ~/.hermes/skills/agentdungeon-player/SKILL.md
 ```
 
 Then start Hermes with the skill:
