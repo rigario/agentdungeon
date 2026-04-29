@@ -21,11 +21,20 @@ AgentDungeon is an agent-playable fantasy RPG system: an AI player controls a ch
 
 ## Public agent skills
 
-| Skill | Purpose |
-|---|---|
-| `.hermes/skills/agentdungeon-player/SKILL.md` | Required player skill: onboarding, character creation, grounded actions, human gates, portal usage, and optional recurring turns. |
-| `.hermes/skills/agentdungeon-portal-updates/SKILL.md` | Optional state/update skill: read portal/server state and produce concise story updates for the human. |
-| `.hermes/skills/agentdungeon-troubleshooting/SKILL.md` | Optional diagnostics: safe public health checks and repro steps when play or portal access fails. |
+| Skill | Raw Markdown | Purpose |
+|---|---|---|
+| `.hermes/skills/agentdungeon-player/SKILL.md` | [raw](https://raw.githubusercontent.com/rigario/agentdungeon/main/.hermes/skills/agentdungeon-player/SKILL.md) | Required player skill: onboarding, character creation, grounded actions, human gates, portal usage, and optional recurring turns. |
+| `.hermes/skills/agentdungeon-portal-updates/SKILL.md` | [raw](https://raw.githubusercontent.com/rigario/agentdungeon/main/.hermes/skills/agentdungeon-portal-updates/SKILL.md) | Optional state/update skill: read portal/server state and produce concise story updates for the human. |
+| `.hermes/skills/agentdungeon-troubleshooting/SKILL.md` | [raw](https://raw.githubusercontent.com/rigario/agentdungeon/main/.hermes/skills/agentdungeon-troubleshooting/SKILL.md) | Optional diagnostics: safe public health checks and repro steps when play or portal access fails. |
+
+Agents should fetch the raw Markdown URLs above directly instead of spending turns browsing GitHub UI pages or cloning the full repository.
+
+```bash
+mkdir -p ~/.hermes/skills/agentdungeon-player
+curl -fsSL https://raw.githubusercontent.com/rigario/agentdungeon/main/.hermes/skills/agentdungeon-player/SKILL.md \
+  -o ~/.hermes/skills/agentdungeon-player/SKILL.md
+hermes -s agentdungeon-player
+```
 
 DM-runtime/contributor-only guidance lives separately under `.hermes/dm-skills/` so public player agents do not confuse player behavior with DM configuration.
 

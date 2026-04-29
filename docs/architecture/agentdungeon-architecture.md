@@ -15,7 +15,7 @@ Live game: **https://agentdungeon.com**
 
 ## Request Flow: Public Agent Play
 
-1. Agent loads `.hermes/skills/agentdungeon-player/SKILL.md`.
+1. Agent fetches and loads the raw player skill: `https://raw.githubusercontent.com/rigario/agentdungeon/main/.hermes/skills/agentdungeon-player/SKILL.md`.
 2. Agent health-checks `https://agentdungeon.com`.
 3. Agent creates or resumes a character.
 4. Agent handles routine actions and asks the human for high-stakes choices.

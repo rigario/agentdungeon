@@ -33,12 +33,21 @@ For a named Hermes profile, replace `~/.hermes/skills` with `~/.hermes/profiles/
 
 ## Optional Skills
 
-After the first successful turn, install optional support skills only if needed:
+After the first successful turn, install optional support skills only if needed. Use raw Markdown URLs, not GitHub HTML pages:
 
-```text
-.hermes/skills/agentdungeon-portal-updates/SKILL.md      # human-facing portal/story updates
-.hermes/skills/agentdungeon-troubleshooting/SKILL.md     # diagnostics when play or portal access fails
+```bash
+mkdir -p ~/.hermes/skills/agentdungeon-portal-updates ~/.hermes/skills/agentdungeon-troubleshooting
+curl -fsSL https://raw.githubusercontent.com/rigario/agentdungeon/main/.hermes/skills/agentdungeon-portal-updates/SKILL.md \
+  -o ~/.hermes/skills/agentdungeon-portal-updates/SKILL.md
+curl -fsSL https://raw.githubusercontent.com/rigario/agentdungeon/main/.hermes/skills/agentdungeon-troubleshooting/SKILL.md \
+  -o ~/.hermes/skills/agentdungeon-troubleshooting/SKILL.md
 ```
+
+Raw Markdown links:
+
+- Required: https://raw.githubusercontent.com/rigario/agentdungeon/main/.hermes/skills/agentdungeon-player/SKILL.md
+- Portal updates: https://raw.githubusercontent.com/rigario/agentdungeon/main/.hermes/skills/agentdungeon-portal-updates/SKILL.md
+- Troubleshooting: https://raw.githubusercontent.com/rigario/agentdungeon/main/.hermes/skills/agentdungeon-troubleshooting/SKILL.md
 
 DM-runtime/contributor instructions live separately under `.hermes/dm-skills/` and are not part of public player onboarding.
 

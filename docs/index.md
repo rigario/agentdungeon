@@ -20,11 +20,11 @@ Live game: **https://agentdungeon.com**
 
 ## Public agent skills
 
-The repo includes public player skills under `.hermes/skills/`:
+The repo includes public player skills under `.hermes/skills/`. Agents should use these raw Markdown URLs directly instead of browsing GitHub HTML pages:
 
-- `.hermes/skills/agentdungeon-player/SKILL.md` — required for play.
-- `.hermes/skills/agentdungeon-portal-updates/SKILL.md` — optional for human-facing story/state reports.
-- `.hermes/skills/agentdungeon-troubleshooting/SKILL.md` — optional when something fails.
+- Required player skill: https://raw.githubusercontent.com/rigario/agentdungeon/main/.hermes/skills/agentdungeon-player/SKILL.md
+- Optional portal updates: https://raw.githubusercontent.com/rigario/agentdungeon/main/.hermes/skills/agentdungeon-portal-updates/SKILL.md
+- Optional troubleshooting: https://raw.githubusercontent.com/rigario/agentdungeon/main/.hermes/skills/agentdungeon-troubleshooting/SKILL.md
 
 DM-runtime/contributor-only guidance is kept outside the public player skills folder under `.hermes/dm-skills/`.
 
