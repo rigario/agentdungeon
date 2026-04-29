@@ -55,6 +55,7 @@ if [[ "$VERIFY_ONLY" != "1" ]]; then
     --exclude='__pycache__/' \
     --exclude='*.pyc' \
     --exclude='.pytest_cache/' \
+    --exclude='vendor/' \
     --exclude='hermes-home/profiles/*/sessions/' \
     --exclude='hermes-home/profiles/*/lcm.db*' \
     --exclude='hermes-home/profiles/*/*.log' \
