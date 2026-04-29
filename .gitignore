@@ -66,8 +66,7 @@ heartbeat_*.py
 playthrough_*.json
 scripts/migrate_*_image_urls.py
 
-# Private/internal agent runtime prompts not part of the public skills pack
-.hermes/dm-skills/
+# DM-contributor skills are tracked under .hermes/dm-skills/; runtime state remains ignored below.
 
 # Runtime-owned Hermes state / vendored local installs
 dm-runtime/hermes-home/auth.json
