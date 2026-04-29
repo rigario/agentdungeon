@@ -127,6 +127,7 @@ CRITICAL_FLAGS = {
     
     # NPC dialogue chains
     "kol_backstory_known": ("Know Brother Kol's identity (Communion ending req)", "npc"),
+    "kol_ally": ("Kol recruited as ally (Communion ending — Kol-specific sacrifice path)", "npc"),
     "kol_brother_met": ("Met Brother Kol's brother (Del's Spirit confirmed)", "npc"),
     "kol_missing": ("Know Brother Kol is missing (Sister Drenna revealed)", "npc"),
     "del_brother_kol": ("Del's ghost identified Brother Kol", "npc"),
