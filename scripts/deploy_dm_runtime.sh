@@ -62,7 +62,8 @@ if [[ "$VERIFY_ONLY" != "1" ]]; then
     --exclude='hermes-home/profiles/*/errors.log' \
     "$LOCAL_ROOT/dm-runtime/" "$DEPLOY_HOST:$DEPLOY_APP_DIR/dm-runtime/"
   log "Copy parity check script to remote host"
-  run rsync -az "$LOCAL_ROOT/scripts/check_deployment_parity.py" "$DEPLOY_HOST:$DEPLOY_APP_DIR/scripts/"
+  run rsync -az "$LOCAL_ROOT/scripts/check_deployment_parity.py" "$DEPLOY_HOST:/tmp/check_deployment_parity.py"
+  ssh "$DEPLOY_HOST" "sudo mkdir -p '$DEPLOY_APP_DIR/scripts' && sudo cp /tmp/check_deployment_parity.py '$DEPLOY_APP_DIR/scripts/check_deployment_parity.py' && sudo chown admin:users '$DEPLOY_APP_DIR/scripts/check_deployment_parity.py' || true"
 
   log "Remote pre-build: deployment parity check (local source ↔ remote host files)"
   # FIXED: run parity check LOCALLY (not via SSH) — script uses DEPLOY_HOST internally
