@@ -204,6 +204,20 @@ def start_combat(character_id: str, encounter_name: str = "Wild Encounter",
     location_id = char["location_id"]
 
     conn = get_db()
+
+    # The combats table enforces UNIQUE(character_id) to guarantee at most one
+    # active combat per character. Finished combats are summarized in event_log,
+    # so remove the previous non-active row before starting a new encounter;
+    # otherwise a second valid encounter after victory/flee/defeat raises a raw
+    # sqlite IntegrityError and returns HTTP 500.
+    previous = conn.execute(
+        "SELECT id FROM combats WHERE character_id = ? AND status != 'active'",
+        (character_id,),
+    ).fetchall()
+    for row in previous:
+        conn.execute("DELETE FROM combat_participants WHERE combat_id = ?", (row["id"],))
+    conn.execute("DELETE FROM combats WHERE character_id = ? AND status != 'active'", (character_id,))
+
     conn.execute(
         "INSERT INTO combats (id, character_id, encounter_name, location_id, round, turn_order_json, status) VALUES (?, ?, ?, ?, 1, '[]', 'active')",
         (combat_id, character_id, encounter_name, location_id)

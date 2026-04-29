@@ -1147,7 +1147,8 @@ NPCS = [
             "Hollow Eye is active because she's had to pay their 'tolls.' "
             "She hates it but can't fight them alone."
         ),
-        "dialogue_templates": json.dumps([
+        "image_url": "/static/pixel-art/npc-kira.png",
+"dialogue_templates": json.dumps([
             {
                 "template": "Wheel's busted. If you can help me fix it, I'll tell you what I know about this road.",
                 "context": "greeting",
@@ -1295,7 +1296,8 @@ NPCS = [
             "being told it would be easy. He remembers the hunger — not his "
             "own — when the mark was applied to him. He died confused and afraid."
         ),
-        "dialogue_templates": json.dumps([
+        "image_url": "/static/pixel-art/npc-dels-spirit.png",
+"dialogue_templates": json.dumps([
             {
                 "template": "You. You're the one after me. I remember... I remember the room. The knife. I didn't want to. I couldn't stop.",
                 "context": "first_contact",
@@ -1548,7 +1550,7 @@ NPCS = [
         "is_quest_giver": 0,
         "is_spirit": 0,
         "is_enemy": 0,
-        "image_url": "/static/pixel-art/npc-hermit.png",
+        "image_url": "/static/pixel-art/npc-harren.png",
         "current_location_id": "mountain-pass",
         "default_location_id": "mountain-pass",
         "movement_rules_json": '{"can_visit": ["mountain-pass", "moonpetal-glade"], "schedule": "seasonal", "availability_hours": [0, 23], "triggers": [{"flag": "green_woman_suppression_1", "target": "moonpetal-glade", "description": "Harren retreats to sacred grove"}, {"flag": "kol_backstory_known", "target": "mountain-pass", "description": "Harren returns to pass watching for cult activity"}]}',

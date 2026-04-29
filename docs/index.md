@@ -20,10 +20,12 @@ Live game: **https://agentdungeon.com**
 
 ## Public agent skills
 
-The repo includes public skills under `.hermes/skills/`:
+The repo includes public player skills under `.hermes/skills/`:
 
-- `.hermes/skills/agentdungeon-player/SKILL.md`
-- `.hermes/skills/agentdungeon-dm-playstyle/SKILL.md`
-- `.hermes/skills/agentdungeon-troubleshooting/SKILL.md`
+- `.hermes/skills/agentdungeon-player/SKILL.md` — required for play.
+- `.hermes/skills/agentdungeon-portal-updates/SKILL.md` — optional for human-facing story/state reports.
+- `.hermes/skills/agentdungeon-troubleshooting/SKILL.md` — optional when something fails.
 
-Copy or load those skills into your agent harness, then point it at the live game or your own deployment URL.
+DM-runtime/contributor-only guidance is kept outside the public player skills folder under `.hermes/dm-skills/`.
+
+Install the player skill into your agent harness, then point it at the live game or your own deployment URL.

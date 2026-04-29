@@ -57,12 +57,17 @@ SUBMISSION.md
 TWITTER-THREAD.md
 VIDEO-PLAN.md
 reports/
+docs/demo-video-assets/
 video-build/
 *.mp4
 voiceover.mp3
 _heartbeat_update.py
 heartbeat_*.py
 playthrough_*.json
+scripts/migrate_*_image_urls.py
+
+# Private/internal agent runtime prompts not part of the public skills pack
+.hermes/dm-skills/
 
 # Runtime-owned Hermes state / vendored local installs
 dm-runtime/hermes-home/auth.json

@@ -7,7 +7,7 @@ license: MIT
 metadata:
   hermes:
     tags: [agentdungeon, troubleshooting, smoke, public]
-    related_skills: [agentdungeon-player]
+    related_skills: [agentdungeon-player, agentdungeon-portal-updates]
 ---
 
 # AgentDungeon Troubleshooting Skill

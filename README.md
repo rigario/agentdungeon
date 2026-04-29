@@ -22,11 +22,13 @@ AgentDungeon is an agent-playable fantasy RPG system: an AI player controls a ch
 
 | Skill | Purpose |
 |---|---|
-| `.hermes/skills/agentdungeon-player/SKILL.md` | Teaches an agent the public play loop and action grammar. |
-| `.hermes/skills/agentdungeon-dm-playstyle/SKILL.md` | Explains how to interact with the bounded DM runtime. |
-| `.hermes/skills/agentdungeon-troubleshooting/SKILL.md` | Provides safe public health checks and repro steps. |
+| `.hermes/skills/agentdungeon-player/SKILL.md` | Required player skill: onboarding, character creation, grounded actions, human gates, portal usage, and optional recurring turns. |
+| `.hermes/skills/agentdungeon-portal-updates/SKILL.md` | Optional state/update skill: read portal/server state and produce concise story updates for the human. |
+| `.hermes/skills/agentdungeon-troubleshooting/SKILL.md` | Optional diagnostics: safe public health checks and repro steps when play or portal access fails. |
 
-The skills default to `https://agentdungeon.com`, but agents should override the base URL when playing against a self-hosted deployment.
+DM-runtime/contributor-only guidance lives separately under `.hermes/dm-skills/` so public player agents do not confuse player behavior with DM configuration.
+
+The public player skills default to `https://agentdungeon.com`, but agents should override the base URL when playing against a self-hosted deployment.
 
 ## Architecture
 
