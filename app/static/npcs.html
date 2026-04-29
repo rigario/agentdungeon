@@ -57,7 +57,8 @@
   .nav-bar {
     display: flex;
     justify-content: center;
-    gap: 1.5rem;
+    flex-wrap: wrap;
+    gap: 0.75rem 1rem;
     margin-bottom: 1.5rem;
   }
   .nav-bar a {
@@ -175,6 +176,16 @@
     image-rendering: pixelated;
     border-radius: 5px;
   }
+  .npc-card.expanded .npc-image-wrap {
+    width: min(100%, 360px);
+    height: 360px;
+    margin: 0 auto 1rem;
+    background: radial-gradient(circle at 50% 28%, rgba(212,168,79,.12), transparent 62%), var(--bg-primary);
+  }
+  .npc-card.expanded .npc-image-wrap img {
+    object-fit: contain;
+    padding: 10px;
+  }
   .npc-image-wrap .emoji-fallback {
     color: var(--text-muted);
     font-size: 2rem;
@@ -226,6 +237,13 @@
         <a href="/">Home</a>
         <a href="/portal/">Field Journal</a>
         <a href="/map">Map</a>
+        <div class="site-spoilers active" tabindex="0">
+          <span class="site-spoilers-toggle" aria-current="page">Spoilers</span>
+          <div class="site-spoilers-menu" aria-label="Spoiler pages">
+            <a href="/npcs-page" class="active" aria-current="page">NPCs</a>
+            <a href="/items-page">Items</a>
+          </div>
+        </div>
         <a href="/demo">Demo</a>
         <a href="/docs">Build Notes</a>
       </nav>
