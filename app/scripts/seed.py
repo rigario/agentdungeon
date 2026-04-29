@@ -150,6 +150,7 @@ LOCATIONS = [
         "hostility_level": 1,
         "encounter_threshold": 1,  # effectively safe in town
         "connected_to": json.dumps(["forest-edge", "south-road"]),
+        "image_url": "/static/pixel-art/loc-thornhold.png",
     },
     {
         "id": "rusty-tankard",
@@ -165,6 +166,7 @@ LOCATIONS = [
         "hostility_level": 0,
         "encounter_threshold": 20,  # never random encounters here
         "connected_to": json.dumps(["thornhold"]),
+        "image_url": "/static/pixel-art/loc-rusty-tankard.png",
     },
     {
         "id": "south-road",
@@ -181,6 +183,7 @@ LOCATIONS = [
         "hostility_level": 2,
         "encounter_threshold": 12,
         "connected_to": json.dumps(["thornhold", "crossroads"]),
+        "image_url": "/static/pixel-art/loc-south-road.png",
     },
     {
         "id": "forest-edge",
@@ -196,6 +199,7 @@ LOCATIONS = [
         "hostility_level": 3,
         "encounter_threshold": 10,
         "connected_to": json.dumps(["thornhold", "deep-forest"]),
+        "image_url": "/static/pixel-art/loc-whisperwood-edge.png",
     },
     {
         "id": "crossroads",
@@ -211,6 +215,7 @@ LOCATIONS = [
         "hostility_level": 3,
         "encounter_threshold": 11,
         "connected_to": json.dumps(["south-road", "mountain-pass"]),
+        "image_url": "/static/pixel-art/loc-crossroads.png",
     },
     {
         "id": "deep-forest",
@@ -227,6 +232,7 @@ LOCATIONS = [
         "hostility_level": 4,
         "encounter_threshold": 8,
         "connected_to": json.dumps(["forest-edge", "cave-entrance", "moonpetal-glade"]),
+        "image_url": "/static/pixel-art/loc-deep-whisperwood.png",
     },
     {
         "id": "mountain-pass",
@@ -243,6 +249,7 @@ LOCATIONS = [
         "hostility_level": 4,
         "encounter_threshold": 7,
         "connected_to": json.dumps(["crossroads"]),
+        "image_url": "/static/pixel-art/loc-greypeak-pass.png",
     },
     {
         "id": "cave-entrance",
@@ -259,6 +266,7 @@ LOCATIONS = [
         "hostility_level": 5,
         "encounter_threshold": 6,
         "connected_to": json.dumps(["deep-forest", "cave-depths"]),
+        "image_url": "/static/pixel-art/loc-cave-entrance.png",
     },
     {
         "id": "cave-depths",
@@ -276,6 +284,7 @@ LOCATIONS = [
         "hostility_level": 5,
         "encounter_threshold": 5,
         "connected_to": json.dumps(["cave-entrance"]),
+        "image_url": "/static/pixel-art/loc-cave-depths.png",
     },
     # ---- Moonpetal Glade — hidden sub-area of Deep Whisperwood ----
     {
@@ -295,6 +304,7 @@ LOCATIONS = [
         "encounter_threshold": 10,
         "recommended_level": 2,
         "connected_to": json.dumps(["deep-forest"]),
+        "image_url": "/static/pixel-art/loc-moonpetal-glade.png",
     },
 ]
 
@@ -343,6 +353,7 @@ ENCOUNTERS = [
         "wis_save_dc": 13,
         "save_failure_effect": "The mark burns into your forearm. The Dreaming Hunger knows your name now.",
         "save_success_effect": "You ward off the mark — but Del is still lost. The presence abandons the body.",
+        "image_url": "/static/pixel-art/del-possessed.png",
     },
 
     # ---- Road ----
@@ -386,7 +397,9 @@ ENCOUNTERS = [
             "'Kol said you'd be coming. You're marked already, aren't you? "
             "Then you understand why this has to be quiet.'"
         ),
+        "image_url": "/static/pixel-art/enc-hollow-eye-road.png",
     },
+
     {
         "id": "enc-wolf-pack-road",
         "location_id": "south-road",
@@ -411,6 +424,7 @@ ENCOUNTERS = [
             "been driven from the deep forest by something in the caves. They "
             "don't want to fight — but they're too hungry to back down."
         ),
+        "image_url": "/static/pixel-art/enc-starving-wolves.png",
     },
 
     # ---- Forest ----
@@ -443,6 +457,7 @@ ENCOUNTERS = [
             "scimitars ready. The leader holds a small mirror — they're watching "
             "for new arrivals. 'Boss Kol wants 'em alive for marking!'"
         ),
+        "image_url": "/static/pixel-art/enc-goblin-scouts.png",
     },
     {
         "id": "enc-skeletons-forest",
@@ -474,6 +489,7 @@ ENCOUNTERS = [
             "are confused. They were buried with names and now they're walking "
             "and they don't know why. One wears the rusted remains of a green cloak."
         ),
+        "image_url": "/static/pixel-art/enc-stirring-dead.png",
     },
     {
         "id": "enc-bugbear",
@@ -507,6 +523,7 @@ ENCOUNTERS = [
             "shelter made of branches and old bones. 'You Hollow Eye? No? Then "
             "why do you come to Gromm's den? They took everything else!'"
         ),
+        "image_url": "/static/pixel-art/gromm-bugbear.png",
     },
 
     # ---- Mountain ----
@@ -540,6 +557,7 @@ ENCOUNTERS = [
             "in the deep tunnels. One carries a pack sized for a child. "
             "'No fight. We go south. Something woke. You be smart — go south too.'"
         ),
+        "image_url": "/static/pixel-art/enc-orc-refugees.png",
     },
 
     # ---- Dungeon ----
@@ -571,6 +589,7 @@ ENCOUNTERS = [
             "the robes give that away. But the hunger in their eyes isn't for food. "
             "One still whispers: 'Brother Kol said it would stop hurting. It didn't.'"
         ),
+        "image_url": "/static/pixel-art/enc-cave-zombies.png",
     },
     {
         "id": "enc-cave-giant-spider",
@@ -602,6 +621,7 @@ ENCOUNTERS = [
             "this size. Old webs are draped over a pile of bones: not all are "
             "animal. It lands between you and the seal stone, fangs dripping."
         ),
+        "image_url": "/static/pixel-art/enc-corrupted-spider.png",
     },
     {
         "id": "enc-hollow-eye-ritual",
@@ -648,6 +668,7 @@ ENCOUNTERS = [
             "peaceful. 'You're marked already. The Hunger chose you. "
             "Why do you fight what wants to save you?'"
         ),
+        "image_url": "/static/pixel-art/enc-breaking-rite.png",
     },
 
     # -----------------------------------------------------------------------
@@ -695,6 +716,7 @@ ENCOUNTERS = [
             "cart, counting coins. 'Another one. Kol will be pleased.' He stands, "
             "drawing a well-worn longsword. 'Don't take it personal. Business.'"
         ),
+        "image_url": "/static/pixel-art/enc-hollow-eye-road.png",
     },
     {
         "id": "enc-miniboss-corrupted-dryad",
@@ -726,6 +748,7 @@ ENCOUNTERS = [
             "center, a figure half-merged with a dying oak. 'You smell like the "
             "mark. You brought this here.' She steps free, vines lashing."
         ),
+        "image_url": "/static/pixel-art/enc-withered-grove.png",
     },
     {
         "id": "enc-miniboss-specter-merchant",
@@ -757,6 +780,7 @@ ENCOUNTERS = [
             "rises from it — a merchant in fine robes, now skeletal in death. "
             "'They killed me for my wares. You want them? Earn them.'"
         ),
+        "image_url": "/static/pixel-art/enc-merchant-ghost.png",
     },
     {
         "id": "enc-miniboss-treant",
@@ -789,6 +813,7 @@ ENCOUNTERS = [
             "'The seal was made by those I trusted. Now the marked walk my roots. "
             "Prove you are not another thread for the Hunger to pull.'"
         ),
+        "image_url": "/static/pixel-art/enc-old-root.png",
     },
     {
         "id": "enc-miniboss-hill-giant",
@@ -820,6 +845,7 @@ ENCOUNTERS = [
             "at the cliff face for entertainment. He spots you and grins. "
             "'Small ones come to play with Stonefist! Good. Stonefist is bored.'"
         ),
+        "image_url": "/static/pixel-art/enc-stonefist.png",
     },
     {
         "id": "enc-miniboss-eye-stalker",
@@ -852,6 +878,7 @@ ENCOUNTERS = [
             "name. It knows you. The Hunger's echo — or something that has "
             "always been here."
         ),
+        "image_url": "/static/pixel-art/enc-eye-stalker.png",
     },
     # ---- Moonpetal Glade: The Warden of Petals ----
     {
@@ -893,6 +920,7 @@ ENCOUNTERS = [
             "'Three,' it says, in a voice like cracking ice. 'Only three. "
             "Show me your intent.'"
         ),
+        "image_url": "/static/pixel-art/enc-moonpetal-warden.png",
     },
 ]
 
@@ -2034,10 +2062,11 @@ def seed():
     for loc in LOCATIONS:
         conn.execute(
             """INSERT OR REPLACE INTO locations
-               (id, name, biome, description, hostility_level, encounter_threshold, connected_to)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+               (id, name, biome, description, hostility_level, encounter_threshold, connected_to, image_url)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
             (loc["id"], loc["name"], loc["biome"], loc["description"],
-             loc["hostility_level"], loc["encounter_threshold"], loc["connected_to"])
+             loc["hostility_level"], loc["encounter_threshold"], loc["connected_to"],
+             loc.get("image_url"))
         )
 
     for enc in ENCOUNTERS:
@@ -2045,8 +2074,8 @@ def seed():
             """INSERT OR REPLACE INTO encounters
                (id, location_id, name, enemies_json, min_level, max_level,
                 loot_json, description, is_opening_encounter, mark_mechanic,
-                wis_save_dc, save_failure_effect, save_success_effect)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                wis_save_dc, save_failure_effect, save_success_effect, image_url)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 enc["id"], enc["location_id"], enc["name"], enc["enemies_json"],
                 enc["min_level"], enc["max_level"], enc["loot_json"], enc["description"],
@@ -2055,6 +2084,7 @@ def seed():
                 enc.get("wis_save_dc"),
                 enc.get("save_failure_effect", ""),
                 enc.get("save_success_effect", ""),
+                enc.get("image_url"),
             )
         )
 
