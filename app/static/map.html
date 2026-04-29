@@ -720,6 +720,7 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
+      image-rendering: pixelated;
       border-radius: 4px;
     }
     .npc-card-sm .emoji-fallback {
@@ -852,15 +853,15 @@ const BIOME_ICONS = {
 };
 
 const LOC_IMAGES = {
-  'rusty-tankard': '/static/pixel-art/loc-rusty-tankard.png',
-  'south-road': '/static/pixel-art/loc-south-road.png',
-  'forest-edge': '/static/pixel-art/whisperwood-edge.png',
-  'crossroads': '/static/pixel-art/loc-crossroads.png',
-  'deep-forest': '/static/pixel-art/loc-deep-whisperwood.png',
-  'mountain-pass': '/static/pixel-art/loc-greypeak-pass.png',
-  'cave-entrance': '/static/pixel-art/loc-cave-entrance.png',
-  'cave-depths': '/static/pixel-art/cave-depths-seal.png',
-  'moonpetal-glade': '/static/pixel-art/loc-moonpetal-glade.png',
+  'rusty-tankard': '/static/pixel-art/loc-rusty-tankard.png?v=px-snes2',
+  'south-road': '/static/pixel-art/loc-south-road.png?v=px-snes2',
+  'forest-edge': '/static/pixel-art/whisperwood-edge.png?v=px-snes2',
+  'crossroads': '/static/pixel-art/loc-crossroads.png?v=px-snes2',
+  'deep-forest': '/static/pixel-art/loc-deep-whisperwood.png?v=px-snes2',
+  'mountain-pass': '/static/pixel-art/loc-greypeak-pass.png?v=px-snes2',
+  'cave-entrance': '/static/pixel-art/loc-cave-entrance.png?v=px-snes2',
+  'cave-depths': '/static/pixel-art/cave-depths-seal.png?v=px-snes2',
+  'moonpetal-glade': '/static/pixel-art/loc-moonpetal-glade.png?v=px-snes2',
 };
 
 // ============================
@@ -1022,6 +1023,14 @@ function esc(s) {
   d.textContent = s || '';
   return d.innerHTML;
 }
+function artUrl(url) {
+  if (!url) return url;
+  if (url.includes('/static/pixel-art/') && !url.includes('v=px-snes2')) {
+    return url + (url.includes('?') ? '&' : '?') + 'v=px-snes2';
+  }
+  return url;
+}
+
 
 function edgeKey(a, b) {
   return [a, b].sort().join('|');
@@ -1283,7 +1292,7 @@ function buildPanel(locId) {
     `;
   }
 
-  const locImg = loc.image_url || LOC_IMAGES[locId];
+  const locImg = artUrl(loc.image_url) || LOC_IMAGES[locId];
   let html = '';
   if (locImg) {
     html += `<div class="panel-loc-image"><img src="${esc(locImg)}" alt="${esc(loc.name)}" loading="lazy"></div>`;
@@ -1316,7 +1325,7 @@ function buildPanel(locId) {
         : '';
       // Image/fallback
       const imgHtml = npc.image_url
-        ? `<img src="${esc(npc.image_url)}" alt="${esc(npc.name)}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=emoji-fallback>🧙</span>'">`
+        ? `<img src="${esc(artUrl(npc.image_url))}" alt="${esc(npc.name)}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=emoji-fallback>🧙</span>'">`
         : `<span class="emoji-fallback">${BIOME_ICONS[loc.biome] || '🧙'}</span>`;
       html += `
         <div class="npc-card-sm ${availClass}" data-id="${esc(npc.id)}">

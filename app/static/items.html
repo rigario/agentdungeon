@@ -246,7 +246,7 @@ async function init() {
       const rar = item.rarity || 'common';
       const icon = TYPE_ICONS[item.item_type] || RARITY_ICONS[rar] || '📦';
       const imageHtml = item.image_url
-        ? `<div class="item-image-wrap"><img src="${esc(item.image_url)}" alt="${esc(item.name)}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=emoji-fallback>${icon}</span>'"></div>`
+        ? `<div class="item-image-wrap"><img src="${esc(artUrl(item.image_url))}" alt="${esc(item.name)}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=emoji-fallback>${icon}</span>'"></div>`
         : `<div class="item-icon">${icon}</div>`;
       html += `
         <div class="item-card" data-id="${esc(item.id)}">
@@ -281,6 +281,14 @@ async function init() {
     el.innerHTML = `<div class="error-msg">Failed to load items: ${esc(err.message)}</div>`;
   }
 }
+function artUrl(url) {
+  if (!url) return url;
+  if (url.includes('/static/pixel-art/') && !url.includes('v=px-snes2')) {
+    return url + (url.includes('?') ? '&' : '?') + 'v=px-snes2';
+  }
+  return url;
+}
+
 init();
 </script>
 </body>

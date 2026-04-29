@@ -164,6 +164,14 @@
     <section class="titlebar"><div><div class="eyebrow">Field Journal</div><h1>Loading character…</h1><p class="subtitle">Fetching signed portal state.</p></div><div class="stamp">view-only token</div></section>
   </main>
   <script>
+function artUrl(url) {
+  if (!url) return url;
+  if (url.includes('/static/pixel-art/') && !url.includes('v=px-snes2')) {
+    return url + (url.includes('?') ? '&' : '?') + 'v=px-snes2';
+  }
+  return url;
+}
+
     const app = document.getElementById('app');
     const refreshStatus = document.getElementById('refreshStatus');
     function getToken(){ const parts = window.location.pathname.split('/').filter(Boolean); const idx = parts.indexOf('portal'); return idx >= 0 && parts[idx+1] ? decodeURIComponent(parts[idx+1]) : ''; }
@@ -197,7 +205,7 @@
       const ac = character.ac ?? character.armor_class ?? '—';
       const lvl = character.level ?? 1;
       const xp = character.xp ?? 0;
-      const img = location.image_url || '/static/pixel-art/whisperwood-edge.png';
+      const img = artUrl(location.image_url) || '/static/pixel-art/whisperwood-edge.png?v=px-snes2';
       const digest = digestFrom(events, character, location);
 
       // Prefer new enriched character_sheet, fall back to legacy sheet
@@ -340,7 +348,7 @@
           const isAvail = npcs_available.has(npc.id);
           const availClass = isAvail ? 'available' : 'unavailable';
           const imgHtml = npc.image_url
-            ? `<img src="${esc(npc.image_url)}" alt="${esc(npc.name)}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=emoji-fallback>🧙</span>'">`
+            ? `<img src="${esc(artUrl(npc.image_url))}" alt="${esc(npc.name)}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=emoji-fallback>🧙</span>'">`
             : `<span class="emoji-fallback">🧙</span>`;
           return `
             <div class="npc-card-sm ${availClass}" data-id="${esc(npc.id)}">
@@ -367,7 +375,7 @@
           ${sheetHtml}
           ${npcHtml}
 
-          <article class="panel"><h2>Current location</h2><img class="mapimg" src="${esc(img)}" alt="${esc(locName)}" onerror="this.src='/static/pixel-art/thornhold.png'"/><div class="kv"><div class="row"><span>Location</span><b>${esc(locName)}</b></div><div class="row"><span>Terrain</span><b>${esc(location.biome || location.terrain || 'frontier')}</b></div><div class="row"><span>Hostility</span><b>${esc(location.hostility || location.danger || 'unknown')}</b></div></div></article>
+          <article class="panel"><h2>Current location</h2><img class="mapimg" src="${esc(artUrl(img))}" alt="${esc(locName)}" onerror="this.src='/static/pixel-art/thornhold.png?v=px-snes2'"/><div class="kv"><div class="row"><span>Location</span><b>${esc(locName)}</b></div><div class="row"><span>Terrain</span><b>${esc(location.biome || location.terrain || 'frontier')}</b></div><div class="row"><span>Hostility</span><b>${esc(location.hostility || location.danger || 'unknown')}</b></div></div></article>
 
           <article class="panel"><h2>Portal wiring</h2><div class="trace-step"><span>Source</span><p>Live /portal state endpoint backed by the production game database.</p></div><div class="trace-step"><span>Character</span><p>${esc(name)} · ${esc(race)} ${esc(cls)} · Level ${esc(lvl)}</p></div><div class="trace-step"><span>Refresh</span><p>Browser polls every 30 seconds; current token view count is ${esc(tokenInfo.view_count ?? '—')}.</p></div><div class="trace-step"><span>Mode</span><p>View-only. No portal buttons mutate game state.</p></div></article>
 

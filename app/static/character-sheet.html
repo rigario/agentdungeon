@@ -68,6 +68,14 @@ function esc(s) {
   d.textContent = s || '';
   return d.innerHTML;
 }
+function artUrl(url) {
+  if (!url) return url;
+  if (url.includes('/static/pixel-art/') && !url.includes('v=px-snes2')) {
+    return url + (url.includes('?') ? '&' : '?') + 'v=px-snes2';
+  }
+  return url;
+}
+
 
 // ---- Fetch data ----
 async function fetchJSON(url) {
@@ -208,7 +216,7 @@ function render({ char, mark, fronts, inventory }) {
         fetchJSON(`${API_BASE}/items/${itemId}`).then(item => {
           if (item.image_url) {
             const card = document.querySelector(`[data-item-id="${itemId}"] .ki-image`);
-            if (card) { card.src = item.image_url; card.style.display = 'block'; }
+            if (card) { card.src = artUrl(item.image_url); card.style.display = 'block'; }
           }
         }).catch(() => {});
       }

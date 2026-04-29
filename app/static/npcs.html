@@ -307,6 +307,14 @@ async function init() {
     el.innerHTML = `<div class="error-msg">Failed to load inhabitants: ${esc(err.message)}</div>`;
   }
 }
+function artUrl(url) {
+  if (!url) return url;
+  if (url.includes('/static/pixel-art/') && !url.includes('v=px-snes2')) {
+    return url + (url.includes('?') ? '&' : '?') + 'v=px-snes2';
+  }
+  return url;
+}
+
 
 function render(npcs) {
   const el = document.getElementById('content');
@@ -328,7 +336,7 @@ function render(npcs) {
     if (npc.is_enemy) tags.push('<span class="tag tag-enemy">Enemy</span>');
     tags.push(`<span class="tag tag-biome">${esc(npc.biome)}</span>`);
     const imageHtml = npc.image_url
-      ? `<img src="${esc(npc.image_url)}" alt="${esc(npc.name)}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=emoji-fallback>${icon}</span>'">`
+      ? `<img src="${esc(artUrl(npc.image_url))}" alt="${esc(npc.name)}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=emoji-fallback>${icon}</span>'">`
       : `<span class="emoji-fallback">${icon}</span>`;
     html += `
       <div class="npc-card" data-id="${esc(npc.id)}">
