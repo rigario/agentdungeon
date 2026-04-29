@@ -119,7 +119,7 @@ DREAMING_HUNGER_PORTENTS = [
 CRITICAL_FLAGS = {
     # Opening hook
     "del_encounter_fired": ("Del possession encounter completed", "opening"),
-    "del_ghost_visited": ("Del's ghost visited (information vector)", "opening"),
+    "del_ghost_met": ("Del's ghost visited player (roll passed)", "opening"),
     "del_ghost_roll": ("Ghost visit roll result (pass/fail)", "opening"),
     "mark_of_dreamer_stage_1": ("Mark stage 1 applied", "mark"),
     "mark_of_dreamer_stage_2": ("Mark stage 2 applied", "mark"),
@@ -383,8 +383,8 @@ def generate_warnings(flags: Dict, mark_stage: int, location: str) -> List[str]:
         warnings.append("In cave but Antechamber prerequisite not met (possible soft-lock)")
     
     # Check Del ghost
-    if "del_ghost_roll" in flags and "del_ghost_visited" not in flags:
-        warnings.append("Del ghost roll exists but ghost never visited (roll failed)")
+    if "del_ghost_roll" in flags and "del_ghost_met" not in flags:
+        warnings.append("Del ghost roll set but ghost never visited (roll failed — expected ghost visit but del_ghost_met not set)")
     
     # Check suppression countdown
     if "mark_suppression_countdown" in flags:
