@@ -361,6 +361,21 @@ def _resolve_combat(char: dict, encounter: dict, rng: random.Random) -> dict:
             add_key_item(char["id"], "seal_keeper_badge", conn_sacrifice)
             conn_sacrifice.commit()
             conn_sacrifice.close()
+        else:
+            # ISSUE-021: route-triggered combat defeat must not permanently brick
+            # a character. The validation gate rejects hp_current <= 0 before
+            # the DM/action routers can offer any recovery path, which made early
+            # south-road/forest-edge demo routes unrecoverable. Keep defeat as a
+            # real narrative/mechanical loss, but leave the character barely alive.
+            hp = 1
+            events.append({
+                "type": "wounded_survival",
+                "description": (
+                    "You wake later where the fight ended, battered and barely breathing. "
+                    "Whatever struck you down left you for dead — but you can still crawl, "
+                    "call for help, or retreat."
+                ),
+            })
     elif victory:
         events.append({
             "type": "combat_victory",
