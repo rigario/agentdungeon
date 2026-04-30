@@ -381,7 +381,7 @@ function artUrl(url) {
 
           <article class="panel"><h2>Doom clock</h2><div class="kv"><div class="row"><span>Stage</span><b>${esc(doom.stage ?? doom.current_stage ?? 'active')}</b></div><div class="row"><span>Pressure</span><b>${esc(doom.pressure ?? doom.status ?? 'rising')}</b></div><div class="row"><span>Next portent</span><b>${esc(doom.next_portent || doom.next || 'unknown')}</b></div></div></article>
 
-          <article class="panel"><h2>Quests</h2>${quests.length ? `<div class="events">${quests.map(q=>`<div class="event"><b>${esc(q.title || q.name || 'Quest')}</b><p>${esc(q.description || q.status || 'Active objective')}</p></div>`).join('')}</div>` : `<p class="empty">No quest is pinned. Rumors are still gathering at the Rusty Tankard.</p>`}</article>
+          <article class="panel"><h2>Quests</h2>${quests.length ? `<div class="events">${quests.map(q=>`<div class="event"><b>${esc(q.quest_title || q.title || q.name || 'Quest')}</b><p>${esc(q.quest_description || q.description || q.status || 'Active objective')}</p></div>`).join('')}</div>` : `<p class="empty">No quest is pinned. Rumors are still gathering at the Rusty Tankard.</p>`}</article>
 
           <article class="panel"><h2>Inventory & loot</h2>${inv.length ? `<div class="items">${inv.map(i=>`<span class="item">${esc(i.name || i.item_name || i)}</span>`).join('')}</div>` : `<p class="empty">No carried loot returned by the portal state.</p>`}</article>
 

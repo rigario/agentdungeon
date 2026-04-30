@@ -13,7 +13,9 @@ AgentDungeon is an agent-playable fantasy RPG system: an AI player controls a ch
 
 ## Quick path
 
-1. Open **https://agentdungeon.com**.
+Prerequisite: an AI agent that can load Markdown skills and call web APIs. For Hermes, install/setup Hermes first, then load the public skill below.
+
+1. Open **https://agentdungeon.com** to verify the live game is reachable; the human watches through a portal while the agent plays.
 2. Read the [architecture diagram](docs/architecture/agentdungeon-architecture.md).
 3. Let an agent load the public skills in [`.hermes/skills/`](.hermes/skills/) or follow [the agent quickstart](docs/agent-play-quickstart.md).
 4. Create a character, take a `/dm/turn`, and generate a portal link using the [API quickstart](docs/api-quickstart.md).
@@ -27,7 +29,7 @@ AgentDungeon is an agent-playable fantasy RPG system: an AI player controls a ch
 | `.hermes/skills/agentdungeon-portal-updates/SKILL.md` | [raw](https://raw.githubusercontent.com/rigario/agentdungeon/main/.hermes/skills/agentdungeon-portal-updates/SKILL.md) | Optional state/update skill: read portal/server state and produce concise story updates for the human. |
 | `.hermes/skills/agentdungeon-troubleshooting/SKILL.md` | [raw](https://raw.githubusercontent.com/rigario/agentdungeon/main/.hermes/skills/agentdungeon-troubleshooting/SKILL.md) | Optional diagnostics: safe public health checks and repro steps when play or portal access fails. |
 
-Agents should fetch the raw Markdown URLs above directly instead of spending turns browsing GitHub UI pages or cloning the full repository.
+Agents should fetch the raw Markdown URLs above directly instead of spending turns browsing GitHub UI pages or cloning the full repository. A skill is a Markdown instruction file that tells the agent how to create/resume characters, ask for human gates, play turns, and report state.
 
 ```bash
 mkdir -p ~/.hermes/skills/agentdungeon-player
@@ -67,9 +69,9 @@ Public HTTPS endpoint
 
 ## Character flow
 
-### 1. Create character
+### 1. Create or resume character
 
-`POST /characters` accepts race/class/background/stat choices and returns a portable signed character sheet.
+Player agents should first ask whether the human wants to resume an existing character or create a new one. For new characters, character creation is human-in-the-loop: the agent asks for or gets explicit delegation on name, class, race, background, stats/point-buy, personality/risk tolerance, and post-creation autonomy before calling `POST /characters`. For resume, the agent verifies the character ID or portal token and produces a Resume Card so play can continue later.
 
 ### 2. Play
 
@@ -79,9 +81,13 @@ Public HTTPS endpoint
 
 `POST /portal/token` creates a read-only portal link so a human can watch character state without inspecting raw API JSON.
 
-## Data sources and licensing
+## Data sources, licensing, and credits
 
-The engine is MIT licensed. Any external rules/reference data used by an installation must be sourced and attributed according to that source's license. This repository keeps rule handling in code and avoids committing private/generated reference dumps.
+The original AgentDungeon engine code is MIT licensed; see [`LICENSE`](LICENSE). Required credits and third-party notices live in [`NOTICE.md`](NOTICE.md) and on the public `/credits` page.
+
+AgentDungeon is a 5E-compatible project. Where it uses or adapts rules terms, classes, species/races, mechanics, spells, equipment, or other reference material from the Dungeons & Dragons System Reference Document, that material is credited to Wizards of the Coast LLC and used under Creative Commons Attribution 4.0 International. Source: https://www.dndbeyond.com/srd. This project is not affiliated with, endorsed, sponsored, or specifically approved by Wizards of the Coast LLC.
+
+Any future external art, music, icon, font file, copied text, dataset, or rules/reference source must be added to [`NOTICE.md`](NOTICE.md) before it is published on the repo or website.
 
 ## Project status
 

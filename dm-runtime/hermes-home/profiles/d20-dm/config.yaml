@@ -1,7 +1,7 @@
 model:
   default: kimi-k2.5
-  provider: kimi-coding
-  base_url: https://api.kimi.com/coding
+  provider: ollama-cloud
+  base_url: https://ollama.com/v1
 toolsets:
 - file
 agent:
@@ -30,3 +30,7 @@ approvals:
 context:
   engine: lcm
 _config_version: 10
+fallback_providers:
+- provider: kimi-coding
+  model: kimi-k2.5
+  base_url: https://api.kimi.com/coding

@@ -79,8 +79,14 @@ def serve_index():
 
 @app.get("/demo")
 def serve_demo():
-    """Serve the demo walkthrough page."""
+    """Serve the hackathon demo video page."""
     return FileResponse(os.path.join(static_dir, "demo.html"))
+
+
+@app.get("/demo-interactive")
+def serve_interactive_demo():
+    """Serve the original interactive demo walkthrough page."""
+    return FileResponse(os.path.join(static_dir, "demo-interactive.html"))
 
 
 @app.get("/map")
@@ -129,6 +135,12 @@ def serve_items_page():
 def serve_docs():
     """Serve the custom-designed static docs page."""
     return FileResponse(os.path.join(static_dir, "docs.html"))
+
+
+@app.get("/credits", include_in_schema=False)
+def serve_credits():
+    """Serve public credits and attribution notices."""
+    return FileResponse(os.path.join(static_dir, "credits.html"))
 
 
 @app.get("/api/docs", include_in_schema=False)

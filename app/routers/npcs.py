@@ -36,6 +36,7 @@ def _npc_to_response(row) -> dict:
         "archetype": d["archetype"],
         "biome": d["biome"],
         "personality": d.get("personality"),
+        "description": d.get("description"),
         "dialogue_templates": json.loads(d["dialogue_templates"]) if d.get("dialogue_templates") else [],
         "image_url": d.get("image_url"),
         "is_quest_giver": bool(d.get("is_quest_giver", 0)),

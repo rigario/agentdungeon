@@ -63,6 +63,8 @@ services:
       - 'HERMES_HOME=/root/.hermes'
       - 'KIMI_API_KEY=${KIMI_API_KEY:-}'
       - 'KIMI_BASE_URL=https://api.moonshot.cn/v1'
+      - 'OLLAMA_API_KEY=${OLLAMA_API_KEY:-}'
+      - 'OLLAMA_BASE_URL=https://ollama.com/v1'
       - 'DM_FIRE_PASS_API_KEY=${DM_FIRE_PASS_API_KEY:-}'
     networks:
       - d20-net

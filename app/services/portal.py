@@ -203,11 +203,14 @@ def get_portal_state(character_id: str) -> dict:
         npcs_unavailable = []
         if location_id:
             loc = db.execute(
-                "SELECT id, name, description, biome, hostility_level FROM locations WHERE id = ?",
+                "SELECT id, name, description, biome, hostility_level, image_url FROM locations WHERE id = ?",
                 (location_id,),
             ).fetchone()
             if loc:
                 location = dict(loc)
+                # Frontend compatibility aliases: portal.html historically reads
+                # `hostility` while the DB/API contract stores `hostility_level`.
+                location["hostility"] = location.get("hostility_level")
                 # Build character context for availability filtering
                 game_hour = char["game_hour"] if "game_hour" in char.keys() and char["game_hour"] is not None else 8
                 flag_rows = db.execute(

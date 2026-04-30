@@ -1,7 +1,7 @@
 model:
-  provider: kimi-coding
+  provider: ollama-cloud
   default: kimi-k2.5
-  base_url: https://api.kimi.com/coding
+  base_url: https://ollama.com/v1
 context:
   engine: lcm
 approvals:
@@ -13,3 +13,7 @@ compression:
 browser:
   enabled: false
 _config_version: 10
+fallback_providers:
+- provider: kimi-coding
+  model: kimi-k2.5
+  base_url: https://api.kimi.com/coding

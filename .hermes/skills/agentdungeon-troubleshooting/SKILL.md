@@ -31,14 +31,34 @@ Expected:
 - `/dm/health` returns 200 and reports the DM runtime ready.
 - `/api/map/data` returns locations and connectivity data.
 
-## Minimal Public Smoke Flow
+## Resume/Existing Character Diagnostics First
+
+If the human is trying to continue a game, diagnose the existing character before creating any test character:
 
 ```bash
-CHAR_ID=$(curl -s -X POST https://agentdungeon.com/characters   -H 'Content-Type: application/json'   -d '{"name":"SmokeAgent","race":"Human","class":"Fighter","background":"Soldier"}'   | python3 -c 'import sys,json; print(json.load(sys.stdin)["id"])')
+BASE=${AGENTDUNGEON_BASE_URL:-https://agentdungeon.com}
+# If they gave a character ID:
+curl -s "$BASE/characters/$CHARACTER_ID/status"
+curl -s "$BASE/characters/$CHARACTER_ID"
 
-curl -s -X POST https://agentdungeon.com/dm/turn   -H 'Content-Type: application/json'   -d "{"character_id":"$CHAR_ID","message":"I look around and ask who needs help."}"
+# If they gave a portal token:
+curl -s "$BASE/portal/$TOKEN/state"
+```
 
-curl -s -X POST https://agentdungeon.com/portal/token   -H 'Content-Type: application/json'   -d "{"character_id":"$CHAR_ID"}"
+If resume fails, report whether the issue is token parsing, character not found, archived/unauthorized state, portal state failure, or DM/rules health failure. Ask whether to retry with another ID/link or create a new character.
+
+## Minimal Public Smoke Flow
+
+This is **diagnostic only**. Do not use this flow as normal onboarding and do not replace the human-involved character creation flow in `agentdungeon-player`.
+
+```bash
+BASE=${AGENTDUNGEON_BASE_URL:-https://agentdungeon.com}
+CHAR_ID=$(curl -s -X POST "$BASE/characters"   -H 'Content-Type: application/json'   -d '{"name":"DiagnosticSmoke","race":"Human","class":"Fighter","background":"Soldier"}'   | python3 -c 'import sys,json; print(json.load(sys.stdin)["id"])')
+export CHAR_ID
+
+curl -s -X POST "$BASE/dm/turn"   -H 'Content-Type: application/json'   --data "$(python3 -c 'import json,os; print(json.dumps({"character_id": os.environ["CHAR_ID"], "message": "I look around and ask who needs help."}))')"
+
+curl -s -X POST "$BASE/portal/token"   -H 'Content-Type: application/json'   --data "$(python3 -c 'import json,os; print(json.dumps({"character_id": os.environ["CHAR_ID"], "label": "Diagnostic smoke"}))')"
 ```
 
 ## Diagnosis Table
@@ -58,7 +78,8 @@ When filing an issue, include:
 - timestamp,
 - endpoint,
 - HTTP status,
-- character ID if created,
+- character ID if created or resumed,
+- portal token/state URL if relevant,
 - short response excerpt,
 - exact player message/action.
 

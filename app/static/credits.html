@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Credits & Attribution — The Dreaming Hunger</title>
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Spectral:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --void:#080608; --panel:#17100e; --gold:#d4a84f; --gold2:#f0d38a; --text:#f1e5cf; --muted:#baa98b; --line:rgba(212,168,79,.24); }
+    * { box-sizing: border-box; }
+    body { margin:0; min-height:100vh; color:var(--text); font-family:Spectral, Georgia, serif; line-height:1.58; background:radial-gradient(circle at 18% 10%, rgba(166,61,47,.24), transparent 30rem), radial-gradient(circle at 80% 18%, rgba(212,168,79,.14), transparent 34rem), linear-gradient(180deg,#050405,var(--void) 55%,#0e0908); }
+    body::before { content:""; position:fixed; inset:0; pointer-events:none; opacity:.16; background-image:linear-gradient(rgba(212,168,79,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(212,168,79,.06) 1px,transparent 1px); background-size:64px 64px; mask-image:radial-gradient(circle at 50% 18%, black, transparent 76%); }
+    a { color:var(--gold2); }
+    .wrap { width:min(980px, calc(100% - 40px)); margin:0 auto; position:relative; }
+    main { padding:64px 0 80px; }
+    .eyebrow { font:800 12px/1 Source Sans 3,sans-serif; color:var(--gold); text-transform:uppercase; letter-spacing:.2em; margin-bottom:18px; }
+    h1,h2,h3 { font-family:Cinzel, Georgia, serif; margin:0; letter-spacing:.02em; }
+    h1 { font-size:clamp(42px,7vw,84px); line-height:.95; max-width:900px; }
+    .lede { font-size:clamp(19px,2vw,24px); color:#dccaa7; max-width:780px; margin:24px 0 0; }
+    .card { border:1px solid var(--line); background:linear-gradient(180deg, rgba(23,16,14,.86), rgba(10,7,6,.78)); padding:24px; margin-top:24px; box-shadow:0 24px 70px rgba(0,0,0,.35); }
+    .card h2 { color:var(--gold2); font-size:clamp(24px,3vw,36px); margin-bottom:10px; }
+    .card p,.card li { color:#d7c5a5; font-size:17px; }
+    .card ul { margin:10px 0 0; padding-left:22px; }
+    .fine { color:var(--muted); font:600 14px Source Sans 3,sans-serif; }
+    footer { border-top:1px solid var(--line); color:var(--muted); padding:34px 0; font-family:Source Sans 3,sans-serif; }
+    footer .wrap { display:flex; justify-content:space-between; gap:20px; flex-wrap:wrap; }
+    footer a { text-decoration:none; margin-left:16px; }
+  </style>
+  <link rel="stylesheet" href="/static/site-nav.css">
+</head>
+<body>
+  <header class="site-topbar" aria-label="Site navigation">
+    <div class="site-shell site-nav">
+      <a class="site-brand" href="/"><span class="site-brand-mark">✦</span><span>The Dreaming Hunger</span></a>
+      <nav class="site-links" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/portal/">Field Journal</a>
+        <a href="/map">Map</a>
+        <div class="site-spoilers" tabindex="0">
+          <span class="site-spoilers-toggle">Spoilers</span>
+          <div class="site-spoilers-menu" aria-label="Spoiler pages">
+            <a href="/npcs-page">NPCs</a>
+            <a href="/items-page">Items</a>
+          </div>
+        </div>
+        <a href="/demo">Demo</a>
+        <a href="/docs">Build Notes</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap">
+      <div class="eyebrow">Credits // attribution ledger</div>
+      <h1>Credits & Attribution</h1>
+      <p class="lede">The Dreaming Hunger is an original AgentDungeon campaign and human-agent co-play prototype. This page keeps public credits visible for the rules references, tools, fonts, and media used to build it.</p>
+
+      <section class="card">
+        <h2>Original project</h2>
+        <p>AgentDungeon / The Dreaming Hunger, including the Thornhold campaign frame, portal UI, agent-play workflow, generated art direction, and original NPC/location/item presentation, is by the AgentDungeon contributors unless a file says otherwise.</p>
+        <p class="fine">Repository: <a href="https://github.com/rigario/agentdungeon" rel="noopener">github.com/rigario/agentdungeon</a>. Original project code is MIT licensed; see the repository LICENSE and NOTICE files.</p>
+      </section>
+
+      <section class="card">
+        <h2>Dungeons & Dragons SRD</h2>
+        <p>Where AgentDungeon uses or adapts 5E rules terms, classes, species/races, mechanics, spells, equipment, or reference concepts from the Dungeons & Dragons System Reference Document, that material is credited to Wizards of the Coast LLC.</p>
+        <ul>
+          <li>Source: System Reference Document v5.2.1 and/or SRD v5.1 materials.</li>
+          <li>Publisher: Wizards of the Coast LLC.</li>
+          <li>Source URL: <a href="https://www.dndbeyond.com/srd" rel="noopener">https://www.dndbeyond.com/srd</a></li>
+          <li>License: <a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener">Creative Commons Attribution 4.0 International</a>.</li>
+          <li>Changes: represented as software validation, API schemas, seed data, UI labels, gameplay traces, and campaign-specific presentation.</li>
+        </ul>
+        <p class="fine">This project is not affiliated with, endorsed, sponsored, or specifically approved by Wizards of the Coast LLC. Dungeons & Dragons and related marks are trademarks of Wizards of the Coast LLC.</p>
+      </section>
+
+      <section class="card">
+        <h2>Frameworks, tools, and fonts</h2>
+        <p>The server and DM runtime use open-source packages including FastAPI, Uvicorn, Pydantic, HTTPX, Redis client libraries, APScheduler, Authlib, cryptography, and pytest tooling. Each remains under its own license.</p>
+        <p>The website uses Google Fonts families including Cinzel, Spectral, Source Sans 3, Bitter, Crimson Text, and Fira Code. Fonts are served through Google Fonts and remain under their respective font licenses.</p>
+        <p>Hermes Agent is used as part of the agent/DM workflow. Public references to Hermes, FastAPI, Dungeons & Dragons, and other named tools identify interoperability or inspiration and do not imply endorsement.</p>
+      </section>
+
+      <section class="card">
+        <h2>Generated media</h2>
+        <p>Pixel-art images, generated character/location/item/NPC assets, demo imagery, and ambient audio are project-created assets unless a file says otherwise. Some assets were created with AI-assisted generation and then edited or conformed for the AgentDungeon visual direction.</p>
+        <p class="fine">If we add third-party stock art, icons, music, sound effects, screenshots, or copied text later, it must be credited in the repository NOTICE and on this page before publishing.</p>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span>Built for the AgentDungeon · credits kept visible.</span>
+      <span><a href="/">Home</a><a href="/portal/">Field Journal</a><a href="/map">Map</a><a href="/demo">Demo</a><a href="/docs">Build Notes</a><a href="/credits">Credits</a><a href="https://github.com/rigario/agentdungeon" rel="noopener">GitHub</a></span>
+    </div>
+  </footer>
+</body>
+</html>
