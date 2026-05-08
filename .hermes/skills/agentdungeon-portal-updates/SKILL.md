@@ -18,6 +18,8 @@ Use this skill after a turn, before a recurring-turn report, or whenever the hum
 
 Default public URL: `https://agentdungeon.com`
 
+**Public endpoint rule:** For normal/public AgentDungeon updates, agents must fetch portal and state data from `https://agentdungeon.com` (or `AGENTDUNGEON_BASE_URL` only if the human explicitly provided a different public/self-hosted deployment). Do not use `localhost`, `127.0.0.1`, private VPS hostnames, or internal container URLs in human-facing portal links or recurring update prompts.
+
 ## When to Use
 
 Use this skill when:

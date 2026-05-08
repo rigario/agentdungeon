@@ -16,7 +16,9 @@ metadata:
 
 This skill helps public users and agents diagnose the live AgentDungeon game without needing private deployment access.
 
-Default public URL: `https://agentdungeon.com`. For self-hosted installs, replace it with your deployment URL.
+Default public URL: `https://agentdungeon.com`. For self-hosted installs, replace it with the explicitly provided public deployment URL.
+
+**Public endpoint rule:** Public smoke checks and diagnostics should hit `https://agentdungeon.com` by default. Do not instruct public agents to use `localhost`, `127.0.0.1`, private VPS hostnames, or internal container URLs unless they are debugging their own local/self-hosted instance.
 
 ## Quick Health Checks
 
